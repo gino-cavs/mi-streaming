@@ -26,6 +26,8 @@ jobs:
           node-version: 20
       - name: Buscar noticias
         run: node scripts/fetch-news.mjs /tmp/datos/news.json
+        env:
+          GIST_ID: ${{ vars.GIST_ID }}
       - name: Publicar en la rama "datos"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
