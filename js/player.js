@@ -179,7 +179,7 @@ const Player = (() => {
        <button data-a="audio" class="${s.audio ? 'on' : ''}" title="Solo audio (sin video)">🎧</button>
        ${s.e.ch ? `<button data-a="chat" class="${s.chat ? 'on' : ''}" title="Chat">💬</button>` : ''}
        ${s.e.out ? `<button data-a="out" title="Abrir el chat aparte">↗</button>` : ''}
-       ${pipBtn}<button data-a="x" title="Cerrar">✕</button>`;
+       ${pipBtn}<button data-a="star" title="Guardar este momento">⭐</button><button data-a="x" title="Cerrar">✕</button>`;
     d.querySelectorAll('.bar button').forEach(b => b.onclick = ev => { ev.stopPropagation(); action(i, b.dataset.a); });
   }
   function setChat(i, on) {
@@ -200,6 +200,7 @@ const Player = (() => {
     if (a === 'out') { window.open(s.e.out, '_blank', 'noopener,width=420,height=720'); return; }
     if (a === 'audio') { s.audio = !s.audio; setAudioQuality(s, s.audio); if (s.audio && s.chat) setChat(i, false); }
     if (a === 'pip') return openPip(i);
+    if (a === 'star') return Momentos.capture('slot' + i);
     paintBar(i);
   }
 
@@ -235,6 +236,7 @@ const Player = (() => {
 
   function play(c, opts = {}) {
     const e = embedOf(c), st = Canales.status[c.uid] || {};
+    if (opts.start && e.kind === 'youtube') e.v += '&start=' + Math.floor(opts.start);
     clear(sel);
     const liveish = st.st === 'live' || st.st === 'soon' || (c.platform !== 'youtube' && st.st !== 'off');
     slots[sel] = { c, e, chat:false, audio:!!opts.audio };

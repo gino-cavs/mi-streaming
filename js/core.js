@@ -29,7 +29,8 @@ const REPO = (() => {
 })();
 
 /* ---------- Datos ---------- */
-const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music'];
+const DEVICE = S.get('deviceId', null) || (() => { const d = 'd' + Math.random().toString(36).slice(2, 8); S.set('deviceId', d); return d; })();
+const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music', 'prode', 'moments', 'stats'];
 const DEFAULTS = () => ({
   cats:['Fútbol', 'Streamers'], chans:[], key:'', refresh:5,
   radios:[],
@@ -39,7 +40,10 @@ const DEFAULTS = () => ({
   velez:{ streamCat:'' },
   programs:[],
   motor:{ drivers:['Canapino', 'Colapinto', 'Jorge Martín'], practice:false },
-  music:{ items:[] }
+  music:{ items:[] },
+  prode:{ preds:{}, res:{} },
+  moments:[],
+  stats:{}
 });
 let db = S.get('hub2', null);
 if (!db) {
@@ -50,7 +54,7 @@ if (!db) {
 (function fill() {
   const D = DEFAULTS();
   SYNC_KEYS.forEach(k => { if (db[k] === undefined) db[k] = D[k]; });
-  ['futbol', 'news', 'velez', 'motor', 'music'].forEach(k => Object.keys(D[k]).forEach(x => { if (db[k][x] === undefined) db[k][x] = D[k][x]; }));
+  ['futbol', 'news', 'velez', 'motor', 'music', 'prode'].forEach(k => Object.keys(D[k]).forEach(x => { if (db[k][x] === undefined) db[k][x] = D[k][x]; }));
   if (!db.sync) db.sync = { token:'', gistId:null };
 })();
 
@@ -100,6 +104,9 @@ function mergeInto(r) {
   if (r.velez && r.velez.streamCat && !db.velez.streamCat) db.velez = r.velez;
   ((r.music && r.music.items) || []).forEach(x => { if (x && x.ref && !db.music.items.some(y => y.ref === x.ref)) { db.music.items.push(x); n++; } });
   (r.programs || []).forEach(x => { if (x && x.name && !db.programs.some(y => y.id === x.id || norm(y.name) === norm(x.name))) { db.programs.push(x); n++; } });
+  if (r.prode) { Object.assign(db.prode.res, r.prode.res || {}); Object.entries(r.prode.preds || {}).forEach(([k, v]) => { if (!db.prode.preds[k]) db.prode.preds[k] = v; }); }
+  (r.moments || []).forEach(x => { if (x && x.id && !db.moments.some(y => y.id === x.id)) { db.moments.push(x); n++; } });
+  Object.entries(r.stats || {}).forEach(([d, v]) => { if (d !== DEVICE) db.stats[d] = v; });
   if (r.key && !db.key) db.key = r.key;
   return n;
 }
@@ -135,8 +142,9 @@ async function pull(firstTime = false) {
       mergeInto(r); if (r.refresh) db.refresh = r.refresh;
       db.updatedAt = Date.now(); saveLocal(); await push(); fireChange();
     } else if ((r.updatedAt || 0) > (db.updatedAt || 0)) {
-      const D = DEFAULTS();
+      const D = DEFAULTS(), mine = db.stats && db.stats[DEVICE];
       SYNC_KEYS.forEach(k => { db[k] = r[k] !== undefined ? r[k] : (db[k] ?? D[k]); });
+      if (mine) { db.stats = db.stats || {}; db.stats[DEVICE] = mine; }
       db.updatedAt = r.updatedAt;
       saveLocal(); fireChange();
     } else if ((db.updatedAt || 0) > (r.updatedAt || 0)) {

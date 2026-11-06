@@ -60,7 +60,7 @@ const Fulbito = (() => {
     else if (t.state === 'in') st = /half/i.test(t.name) || t.shortDetail === 'HT' ? 'ET' : (status.displayClock || t.shortDetail);
     else st = /postpon|cancel|suspend|abandon/i.test(t.name) ? 'Suspendido' : 'Final';
     const goals = (comp.details || []).filter(d => d.scoringPlay).map(d => ({
-      team:d.team?.id, min:d.clock?.displayValue || '', who:d.athletesInvolved?.[0]?.displayName || '', og:d.ownGoal, pen:d.penaltyKick }));
+      team:d.team?.id, min:d.clock?.displayValue || '', who:d.athletesInvolved?.[0]?.displayName || '', whoId:d.athletesInvolved?.[0]?.id || null, og:d.ownGoal, pen:d.penaltyKick }));
     return { id:ev.id, date:ev.date, state:t.state, st, h, a, hs:num(h), as:num(a), goals };
   }
 
@@ -99,6 +99,7 @@ const Fulbito = (() => {
     const g = [...m.goals].reverse().find(x => x.team === team.id);
     const who = g ? `${g.who}${g.pen ? ' (penal)' : ''}${g.og ? ' (en contra)' : ''} ${g.min}` : '';
     const line = `${m.h.team.shortDisplayName || m.h.team.displayName} ${m.hs} - ${m.as} ${m.a.team.shortDisplayName || m.a.team.displayName}`;
+    if (m.id !== 'test' && isFav(team)) Stats.bump('gol', { id:m.id + '-' + m.hs + '-' + m.as, line, t:Date.now() });
     toast(`<span class="g">⚽ ¡GOL de ${esc(team.shortDisplayName || team.displayName)}!</span>${esc(line)}${who ? `<small>${esc(who)}</small>` : ''}`,
       { cls:'goal', ms:15000, onclick:() => Nav.go('fulbito') });
     if (local.sound && !DND.active()) beep();

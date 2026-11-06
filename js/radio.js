@@ -81,9 +81,11 @@ const Radio = (() => {
       <button id="rbSnd" title="Escuchar la radio">🔊</button>
       <button id="rbPlay">${audio.paused ? '▶' : '⏸'}</button>
       <input type="range" id="rbVol" min="0" max="1" step="0.05" value="${audio.volume}">
+      <button id="rbStar" title="Guardar este momento">⭐</button>
       <button id="rbTv" title="Pantalla TV">📺</button>
       <button id="rbX" title="Cerrar">✕</button>`;
     $('rbTv').onclick = () => TV.open();
+    $('rbStar').onclick = () => Momentos.capture('radio');
     $('rbPlay').onclick = () => audio.paused ? audio.play().catch(err) : audio.pause();
     $('rbSnd').onclick = () => AudioMgr.focus('radio');
     $('rbVol').oninput = e => { audio.volume = +e.target.value; };
