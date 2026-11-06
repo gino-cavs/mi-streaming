@@ -60,7 +60,7 @@ const Motor = (() => {
       <div id="mBody">${tab === 'resumen' ? resumen() : catView(tab)}</div>
       <p class="mut" style="font-size:12px;margin-top:14px">Datos: Jolpica (F1), motogp.com, ESPN (NASCAR), ACTC, tc2000.com.ar, toprace.com.ar · Canales: futbolenvivoargentina.com · Actualizado ${ago(data.updated)} · <a href="https://vueltarapida.com/calendario" target="_blank" rel="noopener" style="color:var(--acc)">Calendario de +50 categorías en Vuelta Rápida ↗</a></p>`;
     $('mTabs').onclick = e => { const b = e.target.closest('[data-m]'); if (b) { tab = b.dataset.m; S.set('motorTab', tab); render(); } };
-    v.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { tab = b.dataset.go; S.set('motorTab', tab); render(); window.scrollTo(0, 0); });
+    v.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { tab = b.dataset.go; S.set('motorTab', tab); render(); $('scroller').scrollTo(0, 0); });
     const f = $('mFavForm');
     if (f) f.onsubmit = e => { e.preventDefault(); const n = $('mFavIn').value.trim(); if (n && !db.motor.drivers.some(d => norm(d) === norm(n))) { db.motor.drivers.push(n); save(); } render(); };
     v.querySelectorAll('[data-unfav]').forEach(b => b.onclick = () => { db.motor.drivers = db.motor.drivers.filter(d => d !== b.dataset.unfav); save(); render(); });
@@ -179,7 +179,7 @@ const Motor = (() => {
   }
   function init() {
     load(); setInterval(load, 15 * 60e3);
-    setInterval(() => { alerts(); if (Nav.current === 'motor' && !document.hidden) { const y = window.scrollY; render(); window.scrollTo(0, y); } }, 60e3);
+    setInterval(() => { alerts(); if (Nav.current === 'motor' && !document.hidden) { const y = $('scroller').scrollTop; render(); $('scroller').scrollTop = y; } }, 60e3);
     setTimeout(alerts, 3000);
     onChange(() => { if (Nav.current === 'motor') render(); });
   }

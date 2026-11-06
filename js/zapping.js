@@ -39,7 +39,7 @@ const Zap = (() => {
         ${list.map(c => { const s = Canales.status[c.uid] || {};
           return `<button class="zi ${now.has(c.uid) ? 'now' : ''} ${s.st === 'live' ? 'live' : ''}" data-z="${c.uid}" title="${esc(s.title || c.name)}">
             <span class="za" style="${c.avatar ? `background-image:url('${esc(c.avatar)}')` : `background:${PCOL[c.platform]}`}"></span>
-            <span class="zn">${esc(c.name)}<small>${s.st === 'live' ? '● en vivo' + (s.viewers ? ' · ' + s.viewers.toLocaleString('es-AR') : '') : s.st === 'soon' ? '🕒 ' + fmtH(s.when) : esc(c.platform)}</small></span></button>`; }).join('')}</div>`).join('')
+            <span class="zn">${esc(c.name)}${s.title && (s.st === 'live' || s.st === 'soon') ? `<em>${esc(s.title)}</em>` : ''}<small>${s.st === 'live' ? '● en vivo' + (s.viewers ? ' · ' + s.viewers.toLocaleString('es-AR') : '') : s.st === 'soon' ? '🕒 ' + fmtH(s.when) : esc(c.platform)}</small></span></button>`; }).join('')}</div>`).join('')
         : '<div class="mut" style="padding:12px;font-size:13px">Todavía no agregaste canales.</div>'}</div>`;
     const inp = $('zapQ');
     inp.oninput = () => { q = inp.value; const pos = inp.selectionStart; render(); $('zapQ').focus(); $('zapQ').setSelectionRange(pos, pos); };
