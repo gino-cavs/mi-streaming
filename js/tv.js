@@ -43,7 +43,9 @@ const TV = (() => {
         <div class="tvart-bg" id="tvArtBg"></div>
         <div class="tvart-c" id="tvArtC"></div>
       </div>
-      <div class="hud" id="hud">
+`);
+    // el grafismo va sobre toda la página (esquinas de la pantalla), no sobre el reproductor
+    document.body.insertAdjacentHTML('beforeend', `<div class="hud" id="hud">
         <div class="hud-np" id="tvNp"></div>
         <div class="hud-logo"><span class="f">FUN</span><span class="v">VS</span><i></i></div>
         <div class="hud-clock">
@@ -94,13 +96,15 @@ const TV = (() => {
   }
   function apply() {
     $('hud').classList.toggle('off', !on);
+    document.body.classList.toggle('hudon', on);
+    if ($('setHud')) $('setHud').checked = on;
     $('tvToggle').classList.toggle('on', on);
     $('stage').classList.toggle('tvon', on);
   }
   function showUi() {
-    $('player').classList.add('ui');
+    $('player').classList.add('ui'); document.body.classList.add('tvui');
     clearTimeout(uiTimer);
-    uiTimer = setTimeout(() => $('player').classList.remove('ui'), 3500);
+    uiTimer = setTimeout(() => { $('player').classList.remove('ui'); document.body.classList.remove('tvui'); }, 3500);
   }
 
   /* ---------- Pantalla TV ---------- */
@@ -175,16 +179,18 @@ const TV = (() => {
 
   /* ---------- Cada segundo: reloj, qué suena y controles ---------- */
   function tick() {
-    const p = $('player');
-    if (!on || !p.classList.contains('show')) return;
+    if (!on) return;
+    // deja lugar a las barras de radio y música de abajo
+    const rb = $('radiobar'), mb = $('musicbar');
+    const hb = (rb.classList.contains('show') ? rb.offsetHeight : 0) + (mb.classList.contains('show') ? mb.offsetHeight : 0);
+    document.body.style.setProperty('--hudb', hb + 'px');
     const d = new Date();
     $('tvTime').textContent = d.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
     $('tvDate').textContent = `${DIAS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}`;
-    const s0 = Player.slots[0];
-    $('hud').style.right = Player.layout === 1 && s0 && s0.chat && window.innerWidth > 800 ? (window.innerWidth >= 1500 ? 388 : 348) + 'px' : '';
     const id = AudioMgr.active, s = id && AudioMgr.sink(id);
     const name = s && s.label ? s.label() : '';
     const tag = !s ? '' : s.radio ? 'RADIO' : s.music ? 'MÚSICA' : s.live && s.live() ? 'EN VIVO' : 'AHORA';
+    document.body.classList.toggle('npon', !!name);
     const key = tag + '|' + name;
     if (key !== lastNp) {          // cuando cambia lo que suena, el zócalo entra animado
       lastNp = key;
@@ -202,5 +208,6 @@ const TV = (() => {
       if (s.getVol && !dragging) $('tvVol').value = m ? 0 : s.getVol();
     }
   }
-  return { build, open, close, refresh };
+  const setOn = v => { on = v; S.set('tvOn', on); apply(); };
+  return { build, open, close, refresh, setOn, get on() { return on; } };
 })();

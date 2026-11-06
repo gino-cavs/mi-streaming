@@ -9,7 +9,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&display=swap">
-<link rel="stylesheet" href="css/app.css?v=12">
+<link rel="stylesheet" href="css/app.css?v=13">
 </head>
 <body>
 <header>
@@ -26,13 +26,17 @@
 <div id="warns"></div>
 
 <section id="player">
+  <aside id="zap"></aside>
+  <div class="pmain">
   <div class="pbar">
+    <button id="zapToggle" title="Mostrar u ocultar la lista de canales">☰ Canales</button>
     <span>Pantallas:</span>
     <button data-l="1">1</button><button data-l="2">2</button><button data-l="4">4</button>
     <span class="sp"></span>
     <button id="btnHide">Cerrar reproductor ✕</button>
   </div>
   <div class="stage l1" id="stage"></div>
+  </div>
 </section>
 
 <main>
@@ -108,6 +112,7 @@
     <option value="3">3 minutos</option><option value="5">5 minutos</option>
     <option value="10">10 minutos</option><option value="15">15 minutos</option>
   </select>
+  <label style="display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="setHud" style="width:auto"> Mostrar el grafismo FUNVS en las esquinas de la página</label>
   <label>No molestar (en este dispositivo)</label>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <label style="margin:0;display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="dndSched" style="width:auto"> Activarlo solo de</label>
@@ -134,20 +139,21 @@
   <div class="btns"><span class="sp"></span><button data-close>Cancelar</button><button class="pri" id="setSave">Guardar</button></div>
 </dialog>
 
-<script src="js/core.js?v=12"></script>
-<script src="js/player.js?v=12"></script>
-<script src="js/canales.js?v=12"></script>
-<script src="js/radio.js?v=12"></script>
-<script src="js/fulbito.js?v=12"></script>
-<script src="js/noticias.js?v=12"></script>
-<script src="js/velez.js?v=12"></script>
-<script src="js/calendario.js?v=12"></script>
-<script src="js/motor.js?v=12"></script>
-<script src="js/musica.js?v=12"></script>
-<script src="js/prode.js?v=12"></script>
-<script src="js/momentos.js?v=12"></script>
-<script src="js/stats.js?v=12"></script>
-<script src="js/tv.js?v=12"></script>
-<script src="js/main.js?v=12"></script>
+<script src="js/core.js?v=13"></script>
+<script src="js/player.js?v=13"></script>
+<script src="js/canales.js?v=13"></script>
+<script src="js/radio.js?v=13"></script>
+<script src="js/fulbito.js?v=13"></script>
+<script src="js/noticias.js?v=13"></script>
+<script src="js/velez.js?v=13"></script>
+<script src="js/calendario.js?v=13"></script>
+<script src="js/motor.js?v=13"></script>
+<script src="js/musica.js?v=13"></script>
+<script src="js/prode.js?v=13"></script>
+<script src="js/momentos.js?v=13"></script>
+<script src="js/stats.js?v=13"></script>
+<script src="js/tv.js?v=13"></script>
+<script src="js/zapping.js?v=13"></script>
+<script src="js/main.js?v=13"></script>
 </body>
 </html>

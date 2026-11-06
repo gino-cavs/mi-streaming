@@ -1,0 +1,62 @@
+/* =========================================================
+   Zapping: lista de canales por categoría al costado del reproductor
+   Clic para cambiar · ▲▼ (o las flechas del teclado en Pantalla TV) para canal anterior / siguiente
+   ========================================================= */
+const Zap = (() => {
+  let open = S.get('zapOpen', true), q = '', closed = new Set(S.get('zapClosed', []));
+  const PCOL = { youtube:'var(--yt)', twitch:'var(--tw)', kick:'var(--kick)' };
+  const st = c => (Canales.status[c.uid] || {}).st || '?';
+  // orden de la lista: primero los que están en vivo, después cada categoría
+  function groups() {
+    const f = c => !q || norm(c.name).includes(norm(q)) || norm(c.cat).includes(norm(q));
+    const live = Canales.sortChans(db.chans.filter(c => st(c) === 'live' && f(c)));
+    const out = [];
+    if (live.length) out.push(['🔴 En vivo ahora', live, 'live']);
+    db.cats.forEach(k => { const l = Canales.sortChans(db.chans.filter(c => c.cat === k && f(c))); if (l.length) out.push([k, l, 'c:' + k]); });
+    const sin = Canales.sortChans(db.chans.filter(c => !db.cats.includes(c.cat) && f(c))); if (sin.length) out.push(['Sin categoría', sin, 'c:']);
+    return out;
+  }
+  const playing = () => Player.slots.filter(Boolean).map(s => s.c.uid);
+  function order() { const seen = new Set(), o = []; groups().forEach(([, l]) => l.forEach(c => { if (!seen.has(c.uid)) { seen.add(c.uid); o.push(c); } })); return o; }
+  function step(d) {
+    const o = order(); if (!o.length) return;
+    const cur = Player.slots[Player.sel ?? 0] || Player.slots.find(Boolean);
+    let i = cur ? o.findIndex(c => c.uid === cur.c.uid) : -1;
+    i = (i + d + o.length) % o.length;
+    Player.play(o[i]);
+    toast(`<b>${esc(o[i].name)}</b><small>${esc(o[i].cat || '')}</small>`, { cls:'info zapt', ms:1800 });
+  }
+  function render() {
+    const z = $('zap'); if (!z) return;
+    $('player').classList.toggle('zapon', open);
+    $('zapToggle').classList.toggle('on', open);
+    if (!open) return;
+    const now = new Set(playing());
+    z.innerHTML = `
+      <div class="zhead"><input id="zapQ" placeholder="Buscar canal…" value="${esc(q)}"><button id="zapUp" title="Canal anterior">▲</button><button id="zapDn" title="Canal siguiente">▼</button></div>
+      <div class="zlist">${db.chans.length ? groups().map(([name, list, id]) => `
+        <div class="zgrp ${closed.has(id) && !q ? 'closed' : ''}"><button class="zgh" data-g="${esc(id)}">${esc(name)} <span>${list.length}</span></button>
+        ${list.map(c => { const s = Canales.status[c.uid] || {};
+          return `<button class="zi ${now.has(c.uid) ? 'now' : ''} ${s.st === 'live' ? 'live' : ''}" data-z="${c.uid}" title="${esc(s.title || c.name)}">
+            <span class="za" style="${c.avatar ? `background-image:url('${esc(c.avatar)}')` : `background:${PCOL[c.platform]}`}"></span>
+            <span class="zn">${esc(c.name)}<small>${s.st === 'live' ? '● en vivo' + (s.viewers ? ' · ' + s.viewers.toLocaleString('es-AR') : '') : s.st === 'soon' ? '🕒 ' + fmtH(s.when) : esc(c.platform)}</small></span></button>`; }).join('')}</div>`).join('')
+        : '<div class="mut" style="padding:12px;font-size:13px">Todavía no agregaste canales.</div>'}</div>`;
+    const inp = $('zapQ');
+    inp.oninput = () => { q = inp.value; const pos = inp.selectionStart; render(); $('zapQ').focus(); $('zapQ').setSelectionRange(pos, pos); };
+    $('zapUp').onclick = () => step(-1); $('zapDn').onclick = () => step(1);
+    z.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const g = b.dataset.g; closed.has(g) ? closed.delete(g) : closed.add(g); S.set('zapClosed', [...closed]); render(); });
+    z.querySelectorAll('[data-z]').forEach(b => b.onclick = () => Player.play(db.chans.find(c => c.uid === b.dataset.z)));
+  }
+  function init() {
+    $('zapToggle').onclick = () => { open = !open; S.set('zapOpen', open); render(); };
+    // en la Pantalla TV, las flechas arriba/abajo cambian de canal (como el control remoto)
+    document.addEventListener('keydown', e => {
+      if (!$('player').classList.contains('tvmode') || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+      if (e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); step(-1); }
+      if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); step(1); }
+    });
+    onChange(render);
+    render();
+  }
+  return { init, render, step };
+})();
