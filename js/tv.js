@@ -126,6 +126,17 @@ const TV = (() => {
     const noVideo = Player.slots.every(s => !s);
     p.classList.toggle('novideo', noVideo);
     if (!noVideo || !p.classList.contains('tvmode')) return;
+    const mu = Musica.current && (AudioMgr.active === 'music' || !Radio.current) ? Musica.current : null;
+    if (mu) {
+      const t = Musica.track || {}, img = t.vid ? `https://i.ytimg.com/vi/${t.vid}/hqdefault.jpg` : mu.thumb || '';
+      $('tvArtBg').style.backgroundImage = img ? `url('${img}')` : '';
+      $('tvArtC').innerHTML = `<div class="tvart-logo cover" style="${img ? `background-image:url('${esc(img)}')` : ''}">${img ? '' : '🎵'}</div>
+        <div class="tvart-kicker">MÚSICA${mu.kind === 'playlist' ? ' · ' + esc((mu.name || '').toUpperCase()) : ''}</div>
+        <div class="tvart-name">${esc(t.title || mu.name || '')}</div><div class="tvart-sub">${esc(t.by || mu.by || '')}</div>
+        <div class="eq big"><i></i><i></i><i></i><i></i><i></i></div>`;
+      $('tvArt').classList.toggle('paused', !Musica.playing);
+      return;
+    }
     const r = Radio.current, a = $('radioAudio');
     $('tvArtBg').style.backgroundImage = r && r.logo ? `url('${r.logo}')` : '';
     const live = db.chans.filter(c => Canales.status[c.uid]?.st === 'live');
@@ -171,7 +182,7 @@ const TV = (() => {
     $('hud').style.right = Player.layout === 1 && s0 && s0.chat && window.innerWidth > 800 ? (window.innerWidth >= 1500 ? 388 : 348) + 'px' : '';
     const id = AudioMgr.active, s = id && AudioMgr.sink(id);
     const name = s && s.label ? s.label() : '';
-    const tag = !s ? '' : s.radio ? 'RADIO' : s.live && s.live() ? 'EN VIVO' : 'AHORA';
+    const tag = !s ? '' : s.radio ? 'RADIO' : s.music ? 'MÚSICA' : s.live && s.live() ? 'EN VIVO' : 'AHORA';
     const key = tag + '|' + name;
     if (key !== lastNp) {          // cuando cambia lo que suena, el zócalo entra animado
       lastNp = key;

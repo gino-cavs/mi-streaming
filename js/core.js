@@ -29,7 +29,7 @@ const REPO = (() => {
 })();
 
 /* ---------- Datos ---------- */
-const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor'];
+const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music'];
 const DEFAULTS = () => ({
   cats:['Fútbol', 'Streamers'], chans:[], key:'', refresh:5,
   radios:[],
@@ -38,7 +38,8 @@ const DEFAULTS = () => ({
   news:{ topics:[], sources:[], setup:false },
   velez:{ streamCat:'' },
   programs:[],
-  motor:{ drivers:['Canapino', 'Colapinto', 'Jorge Martín'], practice:false }
+  motor:{ drivers:['Canapino', 'Colapinto', 'Jorge Martín'], practice:false },
+  music:{ items:[] }
 });
 let db = S.get('hub2', null);
 if (!db) {
@@ -49,7 +50,7 @@ if (!db) {
 (function fill() {
   const D = DEFAULTS();
   SYNC_KEYS.forEach(k => { if (db[k] === undefined) db[k] = D[k]; });
-  ['futbol', 'news', 'velez', 'motor'].forEach(k => Object.keys(D[k]).forEach(x => { if (db[k][x] === undefined) db[k][x] = D[k][x]; }));
+  ['futbol', 'news', 'velez', 'motor', 'music'].forEach(k => Object.keys(D[k]).forEach(x => { if (db[k][x] === undefined) db[k][x] = D[k][x]; }));
   if (!db.sync) db.sync = { token:'', gistId:null };
 })();
 
@@ -97,6 +98,7 @@ function mergeInto(r) {
   }
   if (r.news && r.news.setup && !db.news.setup) db.news = r.news;
   if (r.velez && r.velez.streamCat && !db.velez.streamCat) db.velez = r.velez;
+  ((r.music && r.music.items) || []).forEach(x => { if (x && x.ref && !db.music.items.some(y => y.ref === x.ref)) { db.music.items.push(x); n++; } });
   (r.programs || []).forEach(x => { if (x && x.name && !db.programs.some(y => y.id === x.id || norm(y.name) === norm(x.name))) { db.programs.push(x); n++; } });
   if (r.key && !db.key) db.key = r.key;
   return n;
@@ -163,9 +165,40 @@ function showSync() {
   if (s) { s.textContent = !db.sync.token ? 'No conectado: cada dispositivo tiene su propia lista.' : t; s.className = 'msg ' + (syncInfo.ok ? 'ok' : syncInfo.ok === false ? 'err' : ''); }
 }
 
+/* ---------- No molestar (por dispositivo) ---------- */
+const DND = (() => {
+  let st = S.get('dnd', { on:false, sched:false, from:'00:00', to:'08:00' }), missed = [];
+  const mins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  function inSched() {
+    if (!st.sched) return false;
+    const n = new Date(), now = n.getHours() * 60 + n.getMinutes(), a = mins(st.from), b = mins(st.to);
+    return a <= b ? now >= a && now < b : now >= a || now < b;     // ej: 23:00 a 08:00
+  }
+  const active = () => st.on || inSched();
+  function paint() {
+    const b = $('btnDnd'); if (!b) return;
+    b.textContent = active() ? '🔕' + (missed.length ? ' ' + missed.length : '') : '🔔';
+    b.title = active() ? 'No molestar activado (tocá para desactivar)' : 'Activar No molestar';
+    b.classList.toggle('on', active());
+  }
+  function toggle() {
+    const was = active();
+    st.on = !was; if (was && inSched()) st.sched = false;   // si lo apagás a mano dentro del horario, se apaga el horario
+    S.set('dnd', st); paint();
+    if (was && missed.length) {
+      const list = missed.slice(-6).map(h => `<div class="dndi">${h}</div>`).join('');
+      missed = []; paint();
+      toast(`<b>Mientras estabas en No molestar</b>${list}`, { cls:'info dndsum', ms:25000, force:true });
+    }
+  }
+  return { active, toggle, paint, add(h) { missed.push(h); paint(); }, get st() { return st; }, set(v) { st = { ...st, ...v }; S.set('dnd', st); paint(); } };
+})();
+setInterval(() => DND.paint(), 60e3);
+
 /* ---------- Avisos ---------- */
 function warn(t) { $('warns').innerHTML = `<div class="warn">${esc(t)}<button onclick="this.parentNode.remove()">OK</button></div>`; }
-function toast(html, { cls = '', ms = 9000, onclick } = {}) {
+function toast(html, { cls = '', ms = 9000, onclick, force } = {}) {
+  if (!force && /goal|race/.test(cls) && DND.active()) { DND.add(html); return; }   // No molestar: se guarda para después
   const d = document.createElement('div');
   d.className = 'toast ' + cls; d.innerHTML = html;
   d.onclick = () => { if (onclick) onclick(); d.remove(); };

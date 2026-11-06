@@ -2,9 +2,9 @@
    Navegación entre secciones, ajustes y arranque
    ========================================================= */
 const Nav = (() => {
-  const SECS = [['canales', '📺 Canales'], ['radios', '📻 Radios'], ['calendario', '📅 Calendario'], ['fulbito', '⚽ Fulbito'], ['motor', '🏁 Automovilismo'], ['noticias', '📰 Noticias'], ['velez', '💙 Mundo Vélez']];
+  const SECS = [['canales', '📺 Canales'], ['radios', '📻 Radios'], ['calendario', '📅 Calendario'], ['fulbito', '⚽ Fulbito'], ['motor', '🏁 Automovilismo'], ['musica', '🎵 Música'], ['noticias', '📰 Noticias'], ['velez', '💙 Mundo Vélez']];
   let current = null;
-  const renderers = { canales:() => Canales.render(), radios:() => Radio.render(), calendario:() => Calendario.render(), motor:() => Motor.render(), fulbito:() => Fulbito.render(), noticias:() => Noticias.render(), velez:() => Velez.render() };
+  const renderers = { canales:() => Canales.render(), radios:() => Radio.render(), calendario:() => Calendario.render(), motor:() => Motor.render(), musica:() => Musica.render(), fulbito:() => Fulbito.render(), noticias:() => Noticias.render(), velez:() => Velez.render() };
   function go(s) {
     if (!renderers[s]) s = 'canales';
     current = s;
@@ -34,6 +34,7 @@ function initSettings() {
     $('setKey').value = db.key;
     $('setRef').value = String(db.refresh);
     $('setTok').value = db.sync.token;
+    $('dndSched').checked = DND.st.sched; $('dndFrom').value = DND.st.from; $('dndTo').value = DND.st.to;
     $('syncCode').textContent = db.sync.gistId || '(se genera al conectar el token)';
     const o = {}; SYNC_KEYS.forEach(k => o[k] = db[k]);
     $('setSync').value = JSON.stringify(o);
@@ -44,6 +45,7 @@ function initSettings() {
   $('setSave').onclick = async () => {
     const newKey = $('setKey').value.trim(), newRef = +$('setRef').value, newTok = $('setTok').value.trim();
     const keyChanged = db.key !== newKey, tokChanged = db.sync.token !== newTok;
+    DND.set({ sched:$('dndSched').checked, from:$('dndFrom').value || '00:00', to:$('dndTo').value || '08:00' });
     if (keyChanged || db.refresh !== newRef) { db.key = newKey; db.refresh = newRef; save(); }
     if (tokChanged) {
       db.sync = { token:newTok, gistId:null }; saveLocal();
@@ -78,7 +80,8 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------- Arranque ---------- */
 if (location.protocol === 'file:') warn('Estás abriendo el archivo desde la compu: Twitch y algunos datos solo andan con la página publicada (GitHub Pages).');
-Player.build(); TV.build(); Canales.init(); Radio.init(); Fulbito.init(); Noticias.init(); Velez.init(); Calendario.init(); Motor.init();
+Player.build(); TV.build(); Canales.init(); Radio.init(); Fulbito.init(); Noticias.init(); Velez.init(); Calendario.init(); Motor.init(); Musica.init();
+$('btnDnd').onclick = () => DND.toggle(); DND.paint();
 initSettings(); Nav.init();
 onChange(() => Nav.badges());
 Nav.go(location.hash.slice(1) || S.get('hubSec', 'canales'));

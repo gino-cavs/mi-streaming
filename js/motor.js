@@ -58,7 +58,7 @@ const Motor = (() => {
         ${CATS.map(([id, n, ic]) => `<button data-m="${id}" class="${tab === id ? 'on' : ''}">${ic} ${n}${live.some(x => x.id === id) ? ' <span class="cnt" style="background:var(--live);color:#fff;border-radius:10px;padding:0 6px">●</span>' : ''}</button>`).join('')}
       </div></div>
       <div id="mBody">${tab === 'resumen' ? resumen() : catView(tab)}</div>
-      <p class="mut" style="font-size:12px;margin-top:14px">Datos: Jolpica (F1), motogp.com, ESPN (NASCAR), ACTC, tc2000.com.ar, toprace.com.ar · Canales: futbolenvivoargentina.com · Actualizado ${ago(data.updated)}</p>`;
+      <p class="mut" style="font-size:12px;margin-top:14px">Datos: Jolpica (F1), motogp.com, ESPN (NASCAR), ACTC, tc2000.com.ar, toprace.com.ar · Canales: futbolenvivoargentina.com · Actualizado ${ago(data.updated)} · <a href="https://vueltarapida.com/calendario" target="_blank" rel="noopener" style="color:var(--acc)">Calendario de +50 categorías en Vuelta Rápida ↗</a></p>`;
     $('mTabs').onclick = e => { const b = e.target.closest('[data-m]'); if (b) { tab = b.dataset.m; S.set('motorTab', tab); render(); } };
     v.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { tab = b.dataset.go; S.set('motorTab', tab); render(); window.scrollTo(0, 0); });
     const f = $('mFavForm');
@@ -166,7 +166,7 @@ const Motor = (() => {
   }
   function pop(html, id) {
     toast(html, { cls:'goal race', ms:20000, onclick:() => { tab = id; S.set('motorTab', id); Nav.go('motor'); } });
-    if (Fulbito.soundOn && Fulbito.soundOn()) beep();
+    if (Fulbito.soundOn && Fulbito.soundOn() && !DND.active()) beep();
   }
   // renglones para el zócalo de la Pantalla TV
   function ticker() {
