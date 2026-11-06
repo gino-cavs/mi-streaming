@@ -28,7 +28,7 @@ jobs:
         run: node scripts/fetch-news.mjs /tmp/datos/news.json
         env:
           GIST_ID: ${{ vars.GIST_ID }}
-      - name: Guía de TV (canales de cada partido)
+      - name: Guía de TV (canales de cada partido, futbolenvivoargentina.com)
         continue-on-error: true
         run: node scripts/fetch-tv.mjs /tmp/datos
       - name: Publicar en la rama "datos"
