@@ -81,7 +81,9 @@ const Radio = (() => {
       <button id="rbSnd" title="Escuchar la radio">🔊</button>
       <button id="rbPlay">${audio.paused ? '▶' : '⏸'}</button>
       <input type="range" id="rbVol" min="0" max="1" step="0.05" value="${audio.volume}">
+      <button id="rbTv" title="Pantalla TV">📺</button>
       <button id="rbX" title="Cerrar">✕</button>`;
+    $('rbTv').onclick = () => TV.open();
     $('rbPlay').onclick = () => audio.paused ? audio.play().catch(err) : audio.pause();
     $('rbSnd').onclick = () => AudioMgr.focus('radio');
     $('rbVol').oninput = e => { audio.volume = +e.target.value; };
@@ -100,9 +102,9 @@ const Radio = (() => {
       } catch { audio.src = r.url; }
     } else audio.src = r.url;
     audio.play().catch(err);
-    bar(); render();
+    bar(); render(); TV.refresh();
   }
-  function stop() { audio.pause(); audio.removeAttribute('src'); audio.load(); if (hls) { hls.destroy(); hls = null; } cur = null; bar(); if ($('v-radios').dataset.built) render(); }
+  function stop() { audio.pause(); audio.removeAttribute('src'); audio.load(); if (hls) { hls.destroy(); hls = null; } cur = null; bar(); if ($('v-radios').dataset.built) render(); TV.refresh(); }
 
   function init() {
     audio = $('radioAudio');
@@ -118,5 +120,5 @@ const Radio = (() => {
       muted:() => audio.muted, getVol:() => audio.volume, setVol:v => { audio.volume = v; if (v > 0 && audio.muted) AudioMgr.focus('radio'); } });
     onChange(() => { if ($('v-radios').dataset.built) render(); });
   }
-  return { init, render };
+  return { init, render, play, get current() { return cur; } };
 })();
