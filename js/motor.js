@@ -6,12 +6,15 @@ const Motor = (() => {
   const CATS = [['f1', 'Fórmula 1', '🏎️'], ['motogp', 'MotoGP', '🏍️'], ['nascar', 'NASCAR', '🇺🇸'], ['tc', 'Turismo Carretera', '🇦🇷'], ['tc2000', 'TC2000', '🇦🇷'], ['toprace', 'Top Race', '🇦🇷']];
   const DUR = { f1:{ Carrera:120, Sprint:45, def:60 }, motogp:{ Carrera:45, Sprint:25, Q1:15, Q2:15, 'Warm Up':10, def:45 }, nascar:{ Carrera:210, def:60 } };
   const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
-  let data = S.get('motorData', null), tab = S.get('motorTab', 'resumen');
+  let data = S.get('motorData', null);
+  if (data && !data.cats) data = null;
+  let tab = S.get('motorTab', 'resumen');
 
   async function load(force) {
     if (!force && data && Date.now() - data._at < 15 * 60e3) return;
     try {
       const j = await (await fetch(REPO.data + 'motor.json?t=' + Math.floor(Date.now() / 600e3))).json();
+      if (!j || !j.cats) return;
       j._at = Date.now(); data = j; S.set('motorData', j);
       if (Nav.current === 'motor') render();
       Nav.badges();
