@@ -127,7 +127,7 @@ const Canales = (() => {
     try { await Promise.all([refreshYT().catch(e => warn(e instanceof TypeError ? NET_MSG : 'YouTube: ' + e.message)), refreshOthers()]); } catch {}
     lastUpd = new Date(); S.set('hub2status', status);
     busy = false; $('btnRefresh').textContent = '⟳';
-    render(); Nav.badges();
+    render(); Nav.badges(); Zap.render();
   }
 
   /* ---------- Mostrar ---------- */

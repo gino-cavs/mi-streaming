@@ -480,3 +480,86 @@ body.hasmusic.musnovid #radiobar { bottom:58px; }
 .s3 { background:linear-gradient(160deg, #a970ff, #1238b5); } .s4 { background:linear-gradient(160deg, #1db954, #0b4f2a); }
 .s5 { background:linear-gradient(160deg, #1d4fd8, #fff 300%); } .s6 { background:linear-gradient(160deg, #ffb020, #b5123b); }
 .s7 { background:linear-gradient(160deg, #13204a, #ff3b8d); }
+
+/* ---------- FUNVS en las esquinas de la página (no del reproductor) ---------- */
+.hud { position:fixed; inset:0; z-index:110; }
+body.hudon.npon .top h1 { visibility:hidden; }
+body.hudon .top { padding-right:150px; }
+.hud-np { top:9px; left:14px; font-size:14px; max-width:40%; }
+.hud-np .hud-tag { font-size:12px; padding:4px 8px; } .hud-np .hud-name { padding:4px 10px; }
+.hud-logo { top:8px; right:14px; font-size:22px; }
+.hud-clock { left:14px; bottom:calc(var(--hudb, 0px) + 14px); }
+.hud-ctl { right:14px; bottom:calc(var(--hudb, 0px) + 14px); }
+.hud-time { font-size:30px; }
+.hud-exit { top:62px; right:14px; }
+body.hudon { padding-bottom:calc(var(--hudb, 0px) + 100px); }
+#toasts { bottom:calc(var(--hudb, 0px) + 100px); }
+/* el reproductor vuelve a mostrar sus propios botones y nombre */
+.stage.tvon .slot .lbl { display:block; }
+.stage.tvon .slot .bar { top:6px; }
+.stage.tvon .slot .muted-ic { top:auto; bottom:8px; }
+/* Pantalla TV: mismo grafismo, más grande, con el zócalo de noticias abajo */
+body.tvlock .hud-np { top:16px; left:20px; font-size:17px; max-width:45%; }
+body.tvlock .hud-np .hud-tag { font-size:13px; padding:5px 10px; } body.tvlock .hud-np .hud-name { padding:5px 14px; }
+body.tvlock .hud-logo { top:16px; right:20px; font-size:30px; }
+body.tvlock .hud-clock { left:20px; bottom:56px; }
+body.tvlock .hud-ctl { right:20px; bottom:56px; }
+body.tvlock .hud-time { font-size:36px; }
+body.tvlock .hud-ticker { display:flex; }
+body.tvlock.tvui .hud-exit { display:block; }
+#player.tvmode .hud-ticker, #player.tvmode.ui .hud-exit { display:none; }
+@media (max-width:800px) {
+  body.hudon .top { padding-right:84px; }
+  .hud-np { top:58px; left:8px; font-size:11px; max-width:70%; }
+  .hud-logo { top:10px; right:8px; font-size:16px; }
+  .hud-clock { left:8px; bottom:calc(var(--hudb, 0px) + 8px); }
+  .hud-ctl { right:8px; bottom:calc(var(--hudb, 0px) + 8px); }
+  .hud-time { font-size:20px; }
+  body.hudon .sections { margin-top:22px; }
+  body.tvlock .hud-np { top:10px; left:8px; font-size:12px; max-width:62%; }
+  body.tvlock .hud-logo { top:10px; right:8px; font-size:18px; }
+  body.tvlock .hud-clock, body.tvlock .hud-ctl { bottom:44px; }
+  body.tvlock .hud-time { font-size:22px; }
+}
+
+/* ---------- Zapping: canales al costado del reproductor ---------- */
+#player.show { display:flex; }
+.pmain { flex:1; min-width:0; display:flex; flex-direction:column; }
+#zap { display:none; width:250px; flex:none; background:#0d0f15; border-right:1px solid var(--line); flex-direction:column; max-height:calc(min(72vh, 56vw) + 46px); }
+#player.zapon #zap { display:flex; }
+.zhead { display:flex; gap:4px; padding:6px; border-bottom:1px solid var(--line); }
+.zhead input { flex:1; min-width:0; padding:5px 8px; font-size:13px; }
+.zhead button { padding:4px 8px; font-size:12px; }
+.zlist { overflow-y:auto; flex:1; padding:4px 0 8px; }
+.zgh { width:100%; text-align:left; background:none; border:none; border-radius:0; color:var(--mut); font-size:11px; letter-spacing:1px; text-transform:uppercase; padding:9px 10px 4px; display:flex; justify-content:space-between; }
+.zgh::before { content:'▾ '; } .zgrp.closed .zgh::before { content:'▸ '; }
+.zgrp.closed .zi { display:none; }
+.zi { width:100%; display:flex; align-items:center; gap:9px; background:none; border:none; border-left:3px solid transparent; border-radius:0; padding:6px 10px; text-align:left; }
+.zi:hover, .zi:focus-visible { background:#ffffff0d; }
+.zi.now { background:#1b2a4d; border-left-color:var(--acc); }
+.za { width:30px; height:30px; border-radius:50%; flex:none; background:#222 center/cover; position:relative; }
+.zi.live .za { box-shadow:0 0 0 2px var(--live); }
+.zn { min-width:0; font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.zn small { display:block; font-weight:400; font-size:11px; color:var(--mut); }
+.zi.live .zn small { color:#ff8a8a; }
+.toast.zapt { padding:8px 12px; }
+/* Pantalla TV: la lista aparece al mover el mouse, encima del video */
+#player.tvmode #zap { position:absolute; left:0; top:0; bottom:40px; z-index:7; max-height:none; background:#0b0f1ef0; transform:translateX(-100%); transition:transform .25s; }
+#player.tvmode.ui.zapon #zap { transform:none; }
+body.tvlock.tvui.hudon .hud-np { left:270px; }
+@media (max-width:800px) {
+  #player.show { flex-direction:column; }
+  #zap { width:auto; max-height:none; border-right:none; border-bottom:1px solid var(--line); }
+  .zlist { display:flex; overflow-x:auto; overflow-y:hidden; padding:6px; gap:4px; }
+  .zgrp { display:flex; gap:4px; align-items:center; } .zgh { display:none; } .zgrp.closed .zi { display:flex; }
+  .zi { width:auto; flex:none; border-left:none; border-radius:20px; padding:4px 10px 4px 4px; background:var(--panel2); }
+  .zi.now { outline:1px solid var(--acc); }
+  .za { width:24px; height:24px; } .zn small { display:none; }
+  #player.tvmode #zap { bottom:auto; right:0; transform:translateY(-100%); }
+  #player.tvmode.ui.zapon #zap { transform:none; }
+  /* celular: arriba sin texto de actualización, y sin los controles del grafismo (cada barra ya tiene los suyos) */
+  #upd { display:none; }
+  #btnTv { white-space:nowrap; }
+  body:not(.tvlock) .hud-ctl { display:none; }
+  .hud-np { top:56px; }
+}
