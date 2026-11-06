@@ -1,0 +1,234 @@
+/* =========================================================
+   Audio: cuando algo empieza a sonar, todo lo demás se silencia (no se pausa)
+   ========================================================= */
+const AudioMgr = (() => {
+  const sinks = {};          // id -> { mute(), unmute(), onState?() }
+  let current = null;
+  return {
+    register(id, sink) { sinks[id] = sink; },
+    unregister(id) { delete sinks[id]; if (current === id) current = null; },
+    focus(id) {
+      current = id;
+      Object.entries(sinks).forEach(([k, s]) => { try { k === id ? s.unmute() : s.mute(); } catch {} });
+    },
+    get current() { return current; }
+  };
+})();
+
+/* =========================================================
+   Reproductor de video: 1, 2 o 4 pantallas, chat, solo audio, ventana flotante
+   ========================================================= */
+const Player = (() => {
+  let layout = 1, sel = 0, seq = 0;
+  const slots = [null, null, null, null];   // {c, e, chat, audio, api, kind, mutedByApp, pip}
+  const els = [];
+
+  const YT_API = () => loadScript('https://www.youtube.com/iframe_api').then(() => new Promise(r => {
+    if (window.YT && YT.Player) return r();
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { prev && prev(); r(); };
+  }));
+  const TW_API = () => loadScript('https://player.twitch.tv/js/embed/v1.js');
+  const PIP_OK = 'documentPictureInPicture' in window;
+  const ANDROID = /Android/i.test(navigator.userAgent);
+
+  // v = video, ch = chat embebido oscuro, out = chat en ventana aparte
+  function embedOf(c) {
+    const s = Canales.status[c.uid] || {};
+    if (c.platform === 'twitch') return { kind:'twitch', id:c.ref.name,
+      v:`https://player.twitch.tv/?channel=${c.ref.name}&parent=${HOST}&autoplay=true`,
+      ch:`https://www.twitch.tv/embed/${c.ref.name}/chat?parent=${HOST}&darkpopout`, out:`https://www.twitch.tv/popout/${c.ref.name}/chat?darkpopout` };
+    if (c.platform === 'kick') return { kind:'kick', id:c.ref.name,
+      v:`https://player.kick.com/${c.ref.name}?autoplay=true`,
+      ch:`https://kick.com/popout/${c.ref.name}/chat`, out:`https://kick.com/popout/${c.ref.name}/chat` };
+    const isLive = s.st === 'live' || s.st === 'soon';
+    const vid = isLive ? s.vid : (c.ref.video || s.vid);
+    if (vid) return { kind:'youtube', id:vid,
+      v:`https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`,
+      ch: isLive || c.ref.video ? `https://www.youtube.com/live_chat?v=${vid}&embed_domain=${HOST}&dark_theme=1` : null,
+      out:`https://www.youtube.com/live_chat?v=${vid}&dark_theme=1` };
+    if (c.ref.channelId) return { kind:'youtube', id:null,
+      v:`https://www.youtube.com/embed/live_stream?channel=${c.ref.channelId}&autoplay=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`, ch:null };
+    return { kind:'none', v:'about:blank', ch:null };
+  }
+
+  function build() {
+    const st = $('stage');
+    for (let i = 0; i < 4; i++) {
+      const d = document.createElement('div');
+      d.className = 'slot';
+      d.innerHTML = `<span class="lbl"></span><div class="bar"></div><div class="vw"></div>
+        <div class="face"><div class="big">🎧</div><div class="nm"></div><div class="mut" style="font-size:13px">Modo solo audio</div><div class="eq"><i></i><i></i><i></i><i></i></div></div>
+        <span class="muted-ic">🔇 Silenciado · tocá para escuchar</span>`;
+      d.onclick = e => {
+        if (e.target.closest('.bar') || e.target.closest('.muted-ic')) return;
+        if (sel !== i) { sel = i; paintSel(); }
+      };
+      d.querySelector('.muted-ic').onclick = ev => { ev.stopPropagation(); AudioMgr.focus('slot' + i); };
+      st.appendChild(d); els.push(d);
+    }
+    document.querySelectorAll('.pbar [data-l]').forEach(b => b.onclick = () => setLayout(+b.dataset.l));
+    $('btnHide').onclick = closeAll;
+    setLayout(1);
+  }
+  function paintSel() { els.forEach((d, i) => d.classList.toggle('sel', i === sel && layout > 1)); }
+  function setLayout(n) {
+    layout = n;
+    for (let i = n; i < 4; i++) clear(i);    // las pantallas que sobran se apagan
+    sel = Math.min(sel, n - 1);
+    $('stage').className = 'stage l' + n;
+    els.forEach((d, i) => d.classList.toggle('hide', i >= n));
+    document.querySelectorAll('.pbar [data-l]').forEach(b => b.classList.toggle('on', +b.dataset.l === n));
+    paintSel();
+  }
+
+  function clear(i) {
+    const s = slots[i]; if (!s) { paintEmpty(i); return; }
+    AudioMgr.unregister('slot' + i);
+    try { s.api && s.api.destroy && s.api.destroy(); } catch {}
+    if (s.pip) { try { s.pip.close(); } catch {} }
+    slots[i] = null;
+    const d = els[i];
+    d.querySelector('.vw').innerHTML = '';
+    d.querySelector('.chat')?.remove();
+    paintEmpty(i);
+  }
+  function paintEmpty(i) {
+    const d = els[i]; if (!d) return;
+    d.className = 'slot' + (i >= layout ? ' hide' : '') + (i === sel && layout > 1 ? ' sel' : '');
+    d.querySelector('.lbl').textContent = '';
+    d.querySelector('.bar').innerHTML = '';
+    d.querySelector('.vw').innerHTML = `<div class="ph">Pantalla ${i + 1}<br>${layout > 1 ? 'Tocala y elegí un canal' : 'Elegí un canal'}</div>`;
+  }
+
+  function mountVideo(i) {
+    const s = slots[i], d = els[i], vw = d.querySelector('.vw'), my = ++seq;
+    s.seq = my; s.api = null; s.mutedByApp = false;
+    d.classList.remove('mutedbyapp');
+    vw.innerHTML = '';
+    const sid = 'slot' + i;
+    const setMutedUI = m => { s.mutedByApp = m; d.classList.toggle('mutedbyapp', m); };
+
+    if (s.e.kind === 'twitch') {
+      const div = document.createElement('div'); div.id = 'tw' + my; vw.appendChild(div);
+      TW_API().then(() => {
+        if (s.seq !== my) return;
+        const p = new Twitch.Player(div.id, { channel:s.e.id, parent:[HOST], width:'100%', height:'100%', autoplay:true, muted:false });
+        s.api = { destroy() { div.innerHTML = ''; } , p };
+        p.addEventListener(Twitch.Player.READY, () => { if (s.audio) setAudioQuality(s, true); });
+        p.addEventListener(Twitch.Player.PLAY, () => { if (!s.mutedByApp) AudioMgr.focus(sid); });
+        AudioMgr.register(sid, { mute() { p.setMuted(true); setMutedUI(true); }, unmute() { p.setMuted(false); setMutedUI(false); } });
+      }).catch(() => { vw.innerHTML = `<iframe src="${s.e.v}" allow="autoplay; fullscreen" allowfullscreen></iframe>`; });
+    } else if (s.e.kind === 'youtube') {
+      const f = document.createElement('iframe');
+      f.src = s.e.v; f.allow = 'autoplay; fullscreen; encrypted-media; picture-in-picture'; f.allowFullscreen = true;
+      vw.appendChild(f);
+      let last = null;
+      YT_API().then(() => {
+        if (s.seq !== my) return;
+        const p = new YT.Player(f, { events:{ onStateChange:e => {
+          // solo cuenta como "empezó a sonar" si veníamos de pausa/inicio (no al terminar de cargar)
+          if (e.data === 3) return;
+          if (e.data === 1 && last !== 1) AudioMgr.focus(sid);
+          last = e.data;
+          d.classList.toggle('paused', e.data === 2);
+        } } });
+        s.api = { p, destroy() {} };
+        AudioMgr.register(sid, { mute() { try { p.mute(); } catch {} setMutedUI(true); }, unmute() { try { p.unMute(); } catch {} setMutedUI(false); } });
+      }).catch(() => {});
+    } else if (s.e.kind === 'kick') {
+      // Kick no tiene controles para otras páginas: para silenciar hay que recargar el reproductor
+      const f = document.createElement('iframe');
+      f.src = s.e.v; f.allow = 'autoplay; fullscreen'; f.allowFullscreen = true; vw.appendChild(f);
+      AudioMgr.register(sid, {
+        mute() { if (!s.mutedByApp) { f.src = s.e.v + '&muted=true'; setMutedUI(true); } },
+        unmute() { if (s.mutedByApp) { f.src = s.e.v + '&muted=false'; setMutedUI(false); } }
+      });
+      setTimeout(() => AudioMgr.focus(sid), 0);
+    }
+  }
+  function setAudioQuality(s, on) {
+    const p = s.api && s.api.p; if (!p || !p.setQuality) return;
+    try {
+      if (on) { s.prevQ = p.getQuality(); const q = (p.getQualities() || []).find(q => q.group === 'audio_only' || q.name === 'audio_only'); p.setQuality(q ? q.group : 'audio_only'); }
+      else p.setQuality(s.prevQ || 'auto');
+    } catch {}
+  }
+
+  function paintBar(i) {
+    const s = slots[i], d = els[i];
+    d.className = 'slot' + (i === sel && layout > 1 ? ' sel' : '') + (s.chat ? ' withchat' : '') + (s.audio ? ' audio' : '') + (s.mutedByApp ? ' mutedbyapp' : '');
+    d.querySelector('.lbl').textContent = s.c.name;
+    d.querySelector('.face .nm').textContent = s.c.name;
+    const pipBtn = PIP_OK || ANDROID ? `<button data-a="pip" title="Ventana flotante">⧉</button>` : '';
+    d.querySelector('.bar').innerHTML =
+      `<button data-a="snd" title="Escuchar esta">🔊</button>
+       <button data-a="audio" class="${s.audio ? 'on' : ''}" title="Solo audio (sin video)">🎧</button>
+       ${s.e.ch ? `<button data-a="chat" class="${s.chat ? 'on' : ''}" title="Chat">💬</button>` : ''}
+       ${s.e.out ? `<button data-a="out" title="Abrir el chat aparte">↗</button>` : ''}
+       ${pipBtn}<button data-a="x" title="Cerrar">✕</button>`;
+    d.querySelectorAll('.bar button').forEach(b => b.onclick = ev => { ev.stopPropagation(); action(i, b.dataset.a); });
+  }
+  function setChat(i, on) {
+    const s = slots[i], d = els[i];
+    s.chat = on;
+    d.querySelector('.chat')?.remove();
+    if (on && s.e.ch) {
+      const f = document.createElement('iframe'); f.className = 'chat'; f.src = s.e.ch;
+      d.appendChild(f);
+    }
+    paintBar(i);
+  }
+  function action(i, a) {
+    const s = slots[i]; if (!s) return;
+    if (a === 'x') { clear(i); if (slots.every(x => !x)) closeAll(); return; }
+    if (a === 'snd') AudioMgr.focus('slot' + i);
+    if (a === 'chat') return setChat(i, !s.chat);
+    if (a === 'out') { window.open(s.e.out, '_blank', 'noopener,width=420,height=720'); return; }
+    if (a === 'audio') { s.audio = !s.audio; setAudioQuality(s, s.audio); if (s.audio && s.chat) setChat(i, false); }
+    if (a === 'pip') return openPip(i);
+    paintBar(i);
+  }
+
+  async function openPip(i) {
+    const s = slots[i];
+    if (!PIP_OK) {
+      toast('<b>Ventana flotante en Android</b><small>Poné el video en pantalla completa y tocá el botón de inicio (o deslizá hacia arriba): el video queda flotando.</small>', { cls:'info', ms:12000 });
+      return;
+    }
+    try {
+      const w = await documentPictureInPicture.requestWindow({ width:s.chat ? 900 : 640, height:360 });
+      const css = 'html,body{margin:0;height:100%;background:#000;display:flex}iframe{border:0;height:100%}.v{flex:1}.c{width:300px;border-left:1px solid #222;color-scheme:dark}';
+      const st = w.document.createElement('style'); st.textContent = css; w.document.head.appendChild(st);
+      w.document.title = s.c.name;
+      const src = s.e.kind === 'youtube' ? s.e.v.replace(/&enablejsapi=1[^&]*/, '') : s.e.v;
+      w.document.body.innerHTML = `<iframe class="v" src="${src}" allow="autoplay; fullscreen; encrypted-media"></iframe>` + (s.chat && s.e.ch ? `<iframe class="c" src="${s.e.ch}"></iframe>` : '');
+      // en la página dejo un aviso en lugar del video (para que no suene doble)
+      AudioMgr.unregister('slot' + i);
+      try { s.api && s.api.destroy && s.api.destroy(); } catch {}
+      s.seq = ++seq; s.pip = w;
+      els[i].querySelector('.vw').innerHTML = `<div class="ph">⧉ Mirando en ventana flotante<br><button class="sm" style="margin-top:8px">Volver acá</button></div>`;
+      els[i].querySelector('.vw button').onclick = () => w.close();
+      els[i].querySelector('.chat')?.remove(); s.chat = false; paintBar(i);
+      AudioMgr.register('slot' + i, { mute() {}, unmute() {} });
+      AudioMgr.focus('slot' + i);
+      w.addEventListener('pagehide', () => { if (slots[i] === s) { s.pip = null; mountVideo(i); paintBar(i); } });
+    } catch (e) { toast('<b>No se pudo abrir la ventana flotante</b><small>' + esc(e.message) + '</small>', { cls:'info' }); }
+  }
+
+  function play(c, opts = {}) {
+    const e = embedOf(c), st = Canales.status[c.uid] || {};
+    clear(sel);
+    const liveish = st.st === 'live' || st.st === 'soon' || (c.platform !== 'youtube' && st.st !== 'off');
+    slots[sel] = { c, e, chat:false, audio:!!opts.audio };
+    $('player').classList.add('show');
+    mountVideo(sel); paintBar(sel);
+    // con una sola pantalla, el chat se abre solo al lado si es un vivo
+    if (layout === 1 && e.ch && liveish && !opts.audio) setChat(sel, true);
+    if (layout > 1) { sel = (sel + 1) % layout; paintSel(); }
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+  function closeAll() { for (let i = 0; i < 4; i++) clear(i); $('player').classList.remove('show'); }
+
+  return { build, play, closeAll, embedOf };
+})();
