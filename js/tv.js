@@ -151,7 +151,7 @@ const TV = (() => {
   async function updateTicker() {
     if (!$('player').classList.contains('tvmode')) return;
     if (!Noticias.loaded) { try { await Noticias.load(); } catch {} }
-    const items = [...Fulbito.ticker(), ...Noticias.headlines(18)];
+    const items = [...Fulbito.ticker(), ...Motor.ticker(), ...Noticias.headlines(18)];
     const txt = items.length ? items.map(esc).join('<i>◆</i>') : 'FUNVS · Tu centro de entretenimiento';
     if (txt === tickerText) return;
     tickerText = txt;

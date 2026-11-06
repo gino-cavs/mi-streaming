@@ -29,7 +29,7 @@ const REPO = (() => {
 })();
 
 /* ---------- Datos ---------- */
-const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs'];
+const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor'];
 const DEFAULTS = () => ({
   cats:['Fútbol', 'Streamers'], chans:[], key:'', refresh:5,
   radios:[],
@@ -37,7 +37,8 @@ const DEFAULTS = () => ({
            teams:['Vélez Sarsfield'], scope:'teams', sound:false, notif:false },
   news:{ topics:[], sources:[], setup:false },
   velez:{ streamCat:'' },
-  programs:[]
+  programs:[],
+  motor:{ drivers:['Canapino', 'Colapinto', 'Jorge Martín'], practice:false }
 });
 let db = S.get('hub2', null);
 if (!db) {
@@ -48,7 +49,7 @@ if (!db) {
 (function fill() {
   const D = DEFAULTS();
   SYNC_KEYS.forEach(k => { if (db[k] === undefined) db[k] = D[k]; });
-  ['futbol', 'news', 'velez'].forEach(k => Object.keys(D[k]).forEach(x => { if (db[k][x] === undefined) db[k][x] = D[k][x]; }));
+  ['futbol', 'news', 'velez', 'motor'].forEach(k => Object.keys(D[k]).forEach(x => { if (db[k][x] === undefined) db[k][x] = D[k][x]; }));
   if (!db.sync) db.sync = { token:'', gistId:null };
 })();
 
