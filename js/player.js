@@ -258,7 +258,7 @@ const Player = (() => {
     // con una sola pantalla, el chat se abre solo al lado si es un vivo
     if (layout === 1 && e.ch && liveish && !opts.audio && chatOn) setChat(sel, true);
     if (layout > 1) { const empty = slots.findIndex((x, j) => !x && j < layout); if (empty >= 0) sel = empty; paintSel(); }
-    window.scrollTo({ top:0, behavior:'smooth' });
+    $('scroller').scrollTo({ top:0, behavior:'smooth' });
     TV.refresh(); Zap.render(); paintChatBtn();
   }
   function closeAll() { for (let i = 0; i < 4; i++) clear(i); if (!$('player').classList.contains('tvmode')) $('player').classList.remove('show'); TV.refresh(); }

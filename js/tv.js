@@ -66,7 +66,7 @@ const TV = (() => {
     // en la página: arriba, dentro del encabezado; abajo, una franja propia (como un canal de TV)
     document.querySelector('header .top').insertAdjacentHTML('afterbegin', '<div class="nph" id="npHead"></div>');
     document.querySelector('header .top').insertAdjacentHTML('beforeend', '<div class="hlogo" id="hLogo"><span class="f">FUN</span><span class="v">VS</span><i></i></div>');
-    document.body.insertAdjacentHTML('beforeend', `<footer id="tvfoot">
+    $('bottom').insertAdjacentHTML('beforeend', `<footer id="tvfoot">
         <div class="fclock"><div class="ftime" id="fTime"></div><div><div class="fdate" id="fDate"></div><div class="fwx" id="fWx"></div></div></div>
         <div class="fctl" id="fCtl"><button data-c="play" title="Pausa / seguir">❚❚</button><button data-c="mute" title="Silenciar">🔊</button>
           <input type="range" data-c="vol" min="0" max="1" step="0.05" title="Volumen"><button data-c="star" title="Guardar este momento">⭐</button></div>
@@ -200,9 +200,7 @@ const TV = (() => {
   function tick() {
     if (!on) return;
     // deja lugar a las barras de radio y música de abajo
-    const rb = $('radiobar'), mb = $('musicbar');
-    const hb = (rb.classList.contains('show') ? rb.offsetHeight : 0) + (mb.classList.contains('show') ? mb.offsetHeight : 0);
-    document.body.style.setProperty('--hudb', hb + 'px');
+    document.body.style.setProperty('--botH', $('bottom').offsetHeight + 'px');
     const d = new Date();
     $('tvTime').textContent = d.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
     $('tvDate').textContent = `${DIAS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}`;
