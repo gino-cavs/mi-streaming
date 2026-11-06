@@ -55,6 +55,7 @@ const TV = (() => {
           <button id="tvPlay" title="Pausa / seguir">⏸</button>
           <button id="tvMute" title="Silenciar">🔊</button>
           <input type="range" id="tvVol" min="0" max="1" step="0.05" title="Volumen">
+          <button id="tvStar" title="Guardar este momento">⭐</button>
         </div>
         <div class="hud-ticker" id="tvTicker"><span class="tk-lbl">FUNVS <b>AL MINUTO</b></span><div class="tk-wrap"><div class="tk-run" id="tvRun"></div></div></div>
         <button class="hud-exit" id="tvExit">✕ Salir de pantalla TV</button>
@@ -75,6 +76,7 @@ const TV = (() => {
       if (s.muted && s.muted()) AudioMgr.focus(id); else s.mute();
       tick();
     };
+    $('tvStar').onclick = () => Momentos.capture(AudioMgr.active);
     $('tvVol').oninput = e => { const s = AudioMgr.sink(AudioMgr.active); s && s.setVol && s.setVol(+e.target.value); };
     $('tvVol').onpointerdown = () => dragging = true;
     $('tvVol').onpointerup = () => dragging = false;

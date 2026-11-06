@@ -118,7 +118,7 @@ const Musica = (() => {
         <button id="muShuf" title="Aleatorio">🔀</button><button id="muSnd" title="Escuchar esto">🔊</button>
         <input type="range" id="muVol" min="0" max="100" step="5" value="100">
         <button id="muHide" title="Mostrar u ocultar el video">🎬</button>
-        <button id="muTv" title="Pantalla TV">📺</button><button id="muX" title="Cerrar">✕</button>`;
+        <button id="muStar" title="Guardar este momento">⭐</button><button id="muTv" title="Pantalla TV">📺</button><button id="muX" title="Cerrar">✕</button>`;
       $('muPrev').onclick = () => { try { p.previousVideo(); } catch {} };
       $('muNext').onclick = () => { try { p.nextVideo(); } catch {} };
       $('muPlay').onclick = toggle;
@@ -127,6 +127,7 @@ const Musica = (() => {
       $('muVol').oninput = e => { try { p.setVolume(+e.target.value); if (p.isMuted()) AudioMgr.focus('music'); } catch {} };
       $('muHide').onclick = () => { hidden = !hidden; S.set('musHideVid', hidden); b.classList.toggle('novid', hidden); document.body.classList.toggle('musnovid', hidden); };
       $('muTv').onclick = () => TV.open();
+      $('muStar').onclick = () => Momentos.capture('music');
       $('muX').onclick = stop;
     }
     $('muShuf').classList.toggle('on', shuffle);
@@ -153,5 +154,5 @@ const Musica = (() => {
     });
     onChange(() => { if (Nav.current === 'musica') render(); });
   }
-  return { init, render, play, get current() { return cur; }, get track() { return track; }, get playing() { return st() === 1; } };
+  return { time:() => { try { return p.getCurrentTime(); } catch { return 0; } }, init, render, play, get current() { return cur; }, get track() { return track; }, get playing() { return st() === 1; } };
 })();
