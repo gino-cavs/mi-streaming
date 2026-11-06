@@ -194,7 +194,7 @@ const Player = (() => {
   }
   function action(i, a) {
     const s = slots[i]; if (!s) return;
-    if (a === 'x') { clear(i); if (slots.every(x => !x)) closeAll(); return; }
+    if (a === 'x') { clear(i); if (slots.every(x => !x)) closeAll(); TV.refresh(); return; }
     if (a === 'snd') AudioMgr.focus('slot' + i);
     if (a === 'chat') return setChat(i, !s.chat);
     if (a === 'out') { window.open(s.e.out, '_blank', 'noopener,width=420,height=720'); return; }
@@ -244,8 +244,9 @@ const Player = (() => {
     if (layout === 1 && e.ch && liveish && !opts.audio) setChat(sel, true);
     if (layout > 1) { sel = (sel + 1) % layout; paintSel(); }
     window.scrollTo({ top:0, behavior:'smooth' });
+    TV.refresh();
   }
-  function closeAll() { for (let i = 0; i < 4; i++) clear(i); $('player').classList.remove('show'); }
+  function closeAll() { for (let i = 0; i < 4; i++) clear(i); if (!$('player').classList.contains('tvmode')) $('player').classList.remove('show'); TV.refresh(); }
 
   return { build, play, closeAll, embedOf, get layout() { return layout; }, get slots() { return slots; } };
 })();

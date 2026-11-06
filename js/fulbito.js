@@ -186,6 +186,11 @@ const Fulbito = (() => {
   const todayFor = name => Object.values(today).flatMap(L => L.events).filter(m => [m.h.team, m.a.team].some(t => norm(t.displayName).includes(norm(name))));
   const liveCount = () => Object.values(today).flatMap(L => L.events).filter(m => m.state === 'in' && (isFav(m.h.team) || isFav(m.a.team))).length;
 
+  // renglones para la barra que corre abajo en la Pantalla TV
+  const ticker = () => Object.values(today).flatMap(L => L.events)
+    .filter(m => m.state === 'in' || isFav(m.h.team) || isFav(m.a.team))
+    .map(m => { const n = t => t.team.shortDisplayName || t.team.displayName;
+      return `⚽ ${n(m.h)} ${m.state === 'pre' ? 'vs' : m.hs + '-' + m.as} ${n(m.a)} ${m.state === 'in' ? '(' + m.st + ')' : m.state === 'pre' ? '· ' + m.st : '(final)'}`; });
   function init() { onChange(() => { if ($('v-fulbito').dataset.built) render(); }); poll().catch(() => {}); }
-  return { init, render, poll, matchRow, todayFor, liveCount, board, simplify, evs };
+  return { init, render, poll, matchRow, todayFor, liveCount, board, simplify, evs, ticker };
 })();
