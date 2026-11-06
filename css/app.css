@@ -632,3 +632,20 @@ body.hudon:not(.tvlock) #tvfoot { display:flex; }
 .zn em { display:block; font-style:normal; font-weight:400; font-size:12px; color:#c9d3ea; white-space:normal; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.3; margin:1px 0; }
 .zi { align-items:flex-start; } .za { margin-top:2px; }
 @media (max-width:800px) { .zn em { display:none; } }
+
+/* ---------- Rap Battle ---------- */
+.rbgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:12px; }
+.rbc { background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+.rbc .thumb { cursor:pointer; }
+.rbplay { position:absolute; inset:auto auto 8px 8px; background:#000b; border-radius:50%; width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-size:14px; }
+.rbc .n { font-family:Oswald, system-ui, sans-serif; font-size:16px; text-transform:uppercase; letter-spacing:.3px; line-height:1.3; }
+.rbc .vs { color:var(--live); font-size:13px; margin:0 3px; }
+.rp { cursor:pointer; text-decoration:none; } .rp:hover { color:#7fb0ff; text-decoration:underline; }
+.rfix { background:none; border:none; padding:0 4px; color:var(--mut); font-size:13px; }
+.rpgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:8px; }
+.rpc { text-align:left; background:var(--panel); display:flex; flex-direction:column; gap:2px; padding:10px 12px; }
+.rpc b { font-family:Oswald, system-ui, sans-serif; font-size:16px; text-transform:uppercase; }
+.rpc span { font-size:12px; color:var(--mut); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rprof { background:linear-gradient(120deg, #2a1033, #151822 70%); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+.rprof h2 { font-family:Oswald, system-ui, sans-serif; font-size:36px; text-transform:uppercase; margin:8px 0 2px; }
+.rchip { background:var(--panel2); border:1px solid var(--line); border-radius:20px; padding:3px 10px; font-size:12px; }

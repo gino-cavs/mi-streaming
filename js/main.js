@@ -2,9 +2,9 @@
    Navegación entre secciones, ajustes y arranque
    ========================================================= */
 const Nav = (() => {
-  const SECS = [['canales', '📺 Canales'], ['radios', '📻 Radios'], ['calendario', '📅 Calendario'], ['fulbito', '⚽ Fulbito'], ['prode', '🎯 Prode'], ['motor', '🏁 Automovilismo'], ['musica', '🎵 Música'], ['momentos', '⭐ Momentos'], ['noticias', '📰 Noticias'], ['velez', '💙 Mundo Vélez'], ['wrapped', '✨ Wrapped']];
+  const SECS = [['canales', '📺 Canales'], ['radios', '📻 Radios'], ['calendario', '📅 Calendario'], ['fulbito', '⚽ Fulbito'], ['prode', '🎯 Prode'], ['motor', '🏁 Automovilismo'], ['musica', '🎵 Música'], ['rap', '🎤 Rap Battle'], ['momentos', '⭐ Momentos'], ['noticias', '📰 Noticias'], ['velez', '💙 Mundo Vélez'], ['wrapped', '✨ Wrapped']];
   let current = null;
-  const renderers = { canales:() => Canales.render(), radios:() => Radio.render(), calendario:() => Calendario.render(), motor:() => Motor.render(), musica:() => Musica.render(), prode:() => Prode.render(), momentos:() => Momentos.render(), wrapped:() => Stats.render(), fulbito:() => Fulbito.render(), noticias:() => Noticias.render(), velez:() => Velez.render() };
+  const renderers = { canales:() => Canales.render(), radios:() => Radio.render(), calendario:() => Calendario.render(), motor:() => Motor.render(), musica:() => Musica.render(), rap:() => Rap.render(), prode:() => Prode.render(), momentos:() => Momentos.render(), wrapped:() => Stats.render(), fulbito:() => Fulbito.render(), noticias:() => Noticias.render(), velez:() => Velez.render() };
   function go(s) {
     if (!renderers[s]) s = 'canales';
     current = s;
@@ -82,7 +82,7 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------- Arranque ---------- */
 if (location.protocol === 'file:') warn('Estás abriendo el archivo desde la compu: Twitch y algunos datos solo andan con la página publicada (GitHub Pages).');
-Player.build(); TV.build(); Zap.init(); Calidad.init(); Canales.init(); Radio.init(); Fulbito.init(); Noticias.init(); Velez.init(); Calendario.init(); Motor.init(); Musica.init(); Prode.init(); Momentos.init(); Stats.init();
+Player.build(); TV.build(); Zap.init(); Calidad.init(); Canales.init(); Radio.init(); Fulbito.init(); Noticias.init(); Velez.init(); Calendario.init(); Motor.init(); Musica.init(); Prode.init(); Momentos.init(); Stats.init(); Rap.init();
 $('btnDnd').onclick = () => DND.toggle(); DND.paint();
 initSettings(); Nav.init();
 onChange(() => Nav.badges());

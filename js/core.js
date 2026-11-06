@@ -30,7 +30,7 @@ const REPO = (() => {
 
 /* ---------- Datos ---------- */
 const DEVICE = S.get('deviceId', null) || (() => { const d = 'd' + Math.random().toString(36).slice(2, 8); S.set('deviceId', d); return d; })();
-const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music', 'prode', 'moments', 'stats'];
+const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music', 'prode', 'moments', 'stats', 'rap'];
 const DEFAULTS = () => ({
   cats:['Fútbol', 'Streamers'], chans:[], key:'', refresh:5,
   radios:[],
@@ -43,7 +43,8 @@ const DEFAULTS = () => ({
   music:{ items:[] },
   prode:{ preds:{}, res:{} },
   moments:[],
-  stats:{}
+  stats:{},
+  rap:{ sources:[], alias:{}, fixes:{} }
 });
 let db = S.get('hub2', null);
 if (!db) {
@@ -105,6 +106,7 @@ function mergeInto(r) {
   ((r.music && r.music.items) || []).forEach(x => { if (x && x.ref && !db.music.items.some(y => y.ref === x.ref)) { db.music.items.push(x); n++; } });
   (r.programs || []).forEach(x => { if (x && x.name && !db.programs.some(y => y.id === x.id || norm(y.name) === norm(x.name))) { db.programs.push(x); n++; } });
   if (r.prode) { Object.assign(db.prode.res, r.prode.res || {}); Object.entries(r.prode.preds || {}).forEach(([k, v]) => { if (!db.prode.preds[k]) db.prode.preds[k] = v; }); }
+  if (r.rap) { (r.rap.sources || []).forEach(x => { if (!db.rap.sources.some(y => y.id === x.id)) db.rap.sources.push(x); }); Object.assign(db.rap.alias, r.rap.alias || {}); Object.assign(db.rap.fixes, r.rap.fixes || {}); }
   (r.moments || []).forEach(x => { if (x && x.id && !db.moments.some(y => y.id === x.id)) { db.moments.push(x); n++; } });
   Object.entries(r.stats || {}).forEach(([d, v]) => { if (d !== DEVICE) db.stats[d] = v; });
   if (r.key && !db.key) db.key = r.key;
