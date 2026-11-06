@@ -101,8 +101,8 @@ const Fulbito = (() => {
     const line = `${m.h.team.shortDisplayName || m.h.team.displayName} ${m.hs} - ${m.as} ${m.a.team.shortDisplayName || m.a.team.displayName}`;
     toast(`<span class="g">⚽ ¡GOL de ${esc(team.shortDisplayName || team.displayName)}!</span>${esc(line)}${who ? `<small>${esc(who)}</small>` : ''}`,
       { cls:'goal', ms:15000, onclick:() => Nav.go('fulbito') });
-    if (local.sound) beep();
-    if (local.notif && document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+    if (local.sound && !DND.active()) beep();
+    if (local.notif && !DND.active() && document.hidden && 'Notification' in window && Notification.permission === 'granted') {
       try { new Notification('⚽ ¡GOL de ' + (team.shortDisplayName || team.displayName) + '!', { body:line + (who ? '\n' + who : ''), icon:team.logo, tag:'gol' + m.id + m.hs + m.as }); } catch {}
     }
   }

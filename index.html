@@ -9,7 +9,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&display=swap">
-<link rel="stylesheet" href="css/app.css?v=10">
+<link rel="stylesheet" href="css/app.css?v=11">
 </head>
 <body>
 <header>
@@ -17,6 +17,7 @@
     <h1>📺 Mi Centro</h1>
     <span class="upd" id="sync"></span>
     <span class="upd" id="upd"></span>
+    <button id="btnDnd" title="No molestar">🔔</button>
     <button id="btnTv" title="Pantalla TV">📺 TV</button>
     <button id="btnSettings" title="Ajustes">⚙</button>
   </div>
@@ -50,11 +51,13 @@
   <section class="view" id="v-calendario"></section>
   <section class="view" id="v-fulbito"></section>
   <section class="view" id="v-motor"></section>
+  <section class="view" id="v-musica"></section>
   <section class="view" id="v-noticias"></section>
   <section class="view" id="v-velez"></section>
 </main>
 
 <div id="radiobar"></div>
+<div id="musicbar"></div>
 <div id="toasts"></div>
 <audio id="radioAudio" preload="none"></audio>
 
@@ -102,6 +105,12 @@
     <option value="3">3 minutos</option><option value="5">5 minutos</option>
     <option value="10">10 minutos</option><option value="15">15 minutos</option>
   </select>
+  <label>No molestar (en este dispositivo)</label>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <label style="margin:0;display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="dndSched" style="width:auto"> Activarlo solo de</label>
+    <input type="time" id="dndFrom" style="width:auto"> a <input type="time" id="dndTo" style="width:auto">
+  </div>
+  <p style="margin-top:4px">Con No molestar no salen avisos de goles ni de carreras: se guardan y te los muestro cuando lo desactivás (botón 🔔/🔕 de arriba).</p>
   <label>Sincronizar entre dispositivos (token de GitHub)</label>
   <input id="setTok" placeholder="ghp_..." autocomplete="off">
   <div class="msg" id="syncState"></div>
@@ -122,16 +131,17 @@
   <div class="btns"><span class="sp"></span><button data-close>Cancelar</button><button class="pri" id="setSave">Guardar</button></div>
 </dialog>
 
-<script src="js/core.js?v=10"></script>
-<script src="js/player.js?v=10"></script>
-<script src="js/canales.js?v=10"></script>
-<script src="js/radio.js?v=10"></script>
-<script src="js/fulbito.js?v=10"></script>
-<script src="js/noticias.js?v=10"></script>
-<script src="js/velez.js?v=10"></script>
-<script src="js/calendario.js?v=10"></script>
-<script src="js/motor.js?v=10"></script>
-<script src="js/tv.js?v=10"></script>
-<script src="js/main.js?v=10"></script>
+<script src="js/core.js?v=11"></script>
+<script src="js/player.js?v=11"></script>
+<script src="js/canales.js?v=11"></script>
+<script src="js/radio.js?v=11"></script>
+<script src="js/fulbito.js?v=11"></script>
+<script src="js/noticias.js?v=11"></script>
+<script src="js/velez.js?v=11"></script>
+<script src="js/calendario.js?v=11"></script>
+<script src="js/motor.js?v=11"></script>
+<script src="js/musica.js?v=11"></script>
+<script src="js/tv.js?v=11"></script>
+<script src="js/main.js?v=11"></script>
 </body>
 </html>

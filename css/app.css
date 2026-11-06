@@ -368,3 +368,39 @@ body.tvlock { overflow:hidden; }
 .mcal div.nx { outline:1px solid var(--acc); }
 .toast.race { background:linear-gradient(90deg, #3a1010, #2a1010); border-color:var(--live); }
 @media (max-width:800px) { .msrow { grid-template-columns:92px 1fr; font-size:13px; } }
+
+/* ---------- Música ---------- */
+.mugrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:14px; }
+.mucard { position:relative; cursor:pointer; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px; }
+.mucard:hover, .mucard:focus-visible { border-color:var(--acc); outline:none; }
+.mucard.playing { border-color:var(--acc); background:#16213a; }
+.mucover { aspect-ratio:1; border-radius:8px; background:#222 center/cover; display:flex; align-items:center; justify-content:center; font-size:40px; position:relative; margin-bottom:8px; }
+.muplay { position:absolute; right:8px; bottom:8px; width:40px; height:40px; border-radius:50%; background:var(--acc); color:#fff; font-size:16px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px #0008; opacity:0; transition:.15s; }
+.mucard:hover .muplay, .mucard.playing .muplay { opacity:1; }
+.mucard b { display:block; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mucard span { font-size:12px; color:var(--mut); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mudel { position:absolute; top:6px; right:6px; background:#000b; border:none; padding:2px 7px; font-size:12px; opacity:0; }
+.mucard:hover .mudel { opacity:1; }
+#musicbar { position:fixed; left:0; right:0; bottom:0; z-index:31; background:#10131c; border-top:1px solid var(--line); display:none; align-items:center; gap:8px; padding:6px 12px; }
+#musicbar.show { display:flex; }
+#musicbar .muvid { width:200px; height:113px; flex:none; border-radius:6px; overflow:hidden; background:#000; }
+#musicbar .muvid iframe { width:100%; height:100%; border:0; display:block; }
+#musicbar.novid .muvid { width:200px; height:200px; position:fixed; left:-400px; bottom:0; }
+#musicbar .tx { flex:1; min-width:0; }
+#musicbar .tx b { display:block; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#musicbar .tx span { font-size:12px; color:var(--mut); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#musicbar button { padding:5px 9px; }
+#musicbar input[type=range] { width:100px; padding:0; }
+body.hasmusic { padding-bottom:140px; }
+body.hasmusic #radiobar { bottom:126px; }
+body.hasmusic.musnovid #radiobar { bottom:58px; }
+.tvart-logo.cover { background-size:cover; }
+#btnDnd.on { background:#3a2a00; border-color:#ffb020; }
+.toast .dndi { font-size:13px; margin-top:6px; padding-top:6px; border-top:1px solid #ffffff22; }
+.toast .dndi .g { font-size:14px; }
+@media (max-width:800px) {
+  #musicbar { flex-wrap:wrap; }
+  #musicbar .muvid { width:120px; height:68px; }
+  #musicbar input[type=range], #musicbar #muShuf, #musicbar #muHide { display:none; }
+  #musicbar .tx { flex-basis:calc(100% - 140px); }
+}
