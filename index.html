@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#171920">
 <title>Mi Centro de Streaming</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
-<link rel="stylesheet" href="css/app.css?v=4">
+<link rel="stylesheet" href="css/app.css?v=5">
 </head>
 <body>
 <header>
@@ -43,6 +43,7 @@
     <div id="chanGrid"></div>
   </section>
   <section class="view" id="v-radios"></section>
+  <section class="view" id="v-calendario"></section>
   <section class="view" id="v-fulbito"></section>
   <section class="view" id="v-noticias"></section>
   <section class="view" id="v-velez"></section>
@@ -99,6 +100,7 @@
   <label>Sincronizar entre dispositivos (token de GitHub)</label>
   <input id="setTok" placeholder="ghp_..." autocomplete="off">
   <div class="msg" id="syncState"></div>
+  <p style="margin-top:4px">Código de sincronización: <b id="syncCode" style="color:var(--txt);user-select:all"></b></p>
   <details><summary style="cursor:pointer;color:var(--mut);font-size:13px">¿Cómo lo saco?</summary>
   <p style="margin-top:6px">Tus canales, radios, ligas, noticias y la clave de YouTube se guardan en un archivo privado de tu cuenta de GitHub, y todos los dispositivos con este token usan lo mismo.</p>
   <ol>
@@ -115,13 +117,14 @@
   <div class="btns"><span class="sp"></span><button data-close>Cancelar</button><button class="pri" id="setSave">Guardar</button></div>
 </dialog>
 
-<script src="js/core.js?v=4"></script>
-<script src="js/player.js?v=4"></script>
-<script src="js/canales.js?v=4"></script>
-<script src="js/radio.js?v=4"></script>
-<script src="js/fulbito.js?v=4"></script>
-<script src="js/noticias.js?v=4"></script>
-<script src="js/velez.js?v=4"></script>
-<script src="js/main.js?v=4"></script>
+<script src="js/core.js?v=5"></script>
+<script src="js/player.js?v=5"></script>
+<script src="js/canales.js?v=5"></script>
+<script src="js/radio.js?v=5"></script>
+<script src="js/fulbito.js?v=5"></script>
+<script src="js/noticias.js?v=5"></script>
+<script src="js/velez.js?v=5"></script>
+<script src="js/calendario.js?v=5"></script>
+<script src="js/main.js?v=5"></script>
 </body>
 </html>

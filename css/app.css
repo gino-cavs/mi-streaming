@@ -196,3 +196,35 @@ dialog textarea { width:100%; height:130px; background:var(--panel2); color:var(
   .match { grid-template-columns:48px 1fr auto 1fr; gap:5px; padding:9px 8px; font-size:13px; }
   #radiobar input[type=range] { display:none; }
 }
+
+/* ---------- Calendario ---------- */
+.progs { display:flex; flex-direction:column; gap:8px; }
+.prog { display:flex; gap:12px; background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--line); border-radius:10px; padding:11px 12px; }
+.prog.live { border-left-color:var(--live); }
+.prog.soon { border-left-color:var(--soon); }
+.prog.off { opacity:.6; }
+.ptime { font-weight:800; font-size:17px; min-width:52px; }
+.pbody { flex:1; min-width:0; }
+.pname { font-weight:700; font-size:15px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.pst { font-size:11px; font-weight:700; padding:2px 7px; border-radius:5px; background:var(--panel2); color:var(--mut); }
+.pst.live { background:var(--live); color:#fff; }
+.pst.soon { background:var(--soon); color:#000; }
+.pmeta { font-size:12px; color:var(--mut); margin-top:3px; }
+.ptitle { font-size:13px; margin-top:5px; }
+.pnews { margin-top:7px; display:flex; flex-direction:column; gap:3px; }
+.pnews a { font-size:13px; text-decoration:none; }
+.pnews a:hover { text-decoration:underline; }
+.pnews small { color:var(--mut); }
+.plinks { display:flex; gap:6px; flex-wrap:wrap; margin-top:9px; }
+.plinks .lnk { text-decoration:none; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:4px 9px; font-size:13px; }
+.plinks .lnk:hover { border-color:var(--acc); }
+.week { display:grid; grid-template-columns:repeat(7, 1fr); gap:8px; }
+.wday { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:9px; min-height:120px; }
+.wday.today { border-color:var(--acc); }
+.wday h4 { font-size:13px; margin-bottom:8px; color:var(--mut); }
+.wday.today h4 { color:var(--acc); }
+.wprog { font-size:13px; background:var(--panel2); border-radius:6px; padding:6px 7px; margin-bottom:5px; cursor:pointer; }
+.wprog:hover { outline:1px solid var(--acc); }
+.daypick label { display:inline-flex; gap:5px; align-items:center; margin:0; background:var(--panel2); border-radius:20px; padding:5px 10px; color:var(--txt); }
+.daypick label input { width:auto; }
+@media (max-width:800px) { .week { grid-template-columns:1fr; } .wday { min-height:0; } }

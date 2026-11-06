@@ -29,14 +29,15 @@ const REPO = (() => {
 })();
 
 /* ---------- Datos ---------- */
-const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez'];
+const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs'];
 const DEFAULTS = () => ({
   cats:['Fútbol', 'Streamers'], chans:[], key:'', refresh:5,
   radios:[],
   futbol:{ leagues:['arg.1', 'arg.copa', 'conmebol.libertadores', 'conmebol.sudamericana'],
            teams:['Vélez Sarsfield'], scope:'teams', sound:false, notif:false },
   news:{ topics:[], sources:[], setup:false },
-  velez:{ streamCat:'' }
+  velez:{ streamCat:'' },
+  programs:[]
 });
 let db = S.get('hub2', null);
 if (!db) {
@@ -95,6 +96,7 @@ function mergeInto(r) {
   }
   if (r.news && r.news.setup && !db.news.setup) db.news = r.news;
   if (r.velez && r.velez.streamCat && !db.velez.streamCat) db.velez = r.velez;
+  (r.programs || []).forEach(x => { if (x && x.name && !db.programs.some(y => y.id === x.id || norm(y.name) === norm(x.name))) { db.programs.push(x); n++; } });
   if (r.key && !db.key) db.key = r.key;
   return n;
 }
