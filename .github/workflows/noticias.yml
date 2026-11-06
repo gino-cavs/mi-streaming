@@ -6,7 +6,7 @@ on:
   workflow_dispatch:            # botón "Run workflow" para correrlo a mano
   push:
     branches: [main]
-    paths: ["news-config.json", "scripts/fetch-news.mjs", ".github/workflows/noticias.yml"]
+    paths: ["news-config.json", "scripts/**", ".github/workflows/noticias.yml"]
 
 permissions:
   contents: write
@@ -28,6 +28,9 @@ jobs:
         run: node scripts/fetch-news.mjs /tmp/datos/news.json
         env:
           GIST_ID: ${{ vars.GIST_ID }}
+      - name: Guía de TV (canales de cada partido)
+        continue-on-error: true
+        run: node scripts/fetch-tv.mjs /tmp/datos
       - name: Publicar en la rama "datos"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -36,6 +39,6 @@ jobs:
           git init -q -b datos
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add news.json
+          git add -A
           git commit -qm "Noticias $(date -u +%Y-%m-%dT%H:%MZ)"
           git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" datos
