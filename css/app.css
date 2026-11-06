@@ -563,3 +563,58 @@ body.tvlock.tvui.hudon .hud-np { left:270px; }
   body:not(.tvlock) .hud-ctl { display:none; }
   .hud-np { top:56px; }
 }
+
+/* ===== Grafismo integrado a la página (como la interfaz de una app / un canal) ===== */
+/* el grafismo flotante queda solo para la Pantalla TV */
+body:not(.tvlock) .hud { display:none; }
+body.hudon .top { padding-right:14px; }
+/* arriba a la izquierda: lo que suena, en lugar del título */
+.nph { display:none; align-items:stretch; font-family:Oswald, 'Arial Narrow', system-ui, sans-serif; font-size:14px; min-width:0; margin-right:auto; }
+body.hudon.npon .nph { display:flex; }
+body.hudon.npon .top h1 { display:none; }
+body.hudon.npon .top h1, body.hudon .top h1 { visibility:visible; }
+.nph.in { animation:npin .6s cubic-bezier(.2,.8,.2,1); }
+.nph .hud-tag { font-size:12px; padding:4px 8px; color:#fff; } .nph .hud-name { padding:4px 10px; color:#fff; max-width:42vw; }
+/* arriba a la derecha: el logo */
+.hlogo { display:none; position:relative; align-items:stretch; font-family:Oswald, 'Arial Narrow', system-ui, sans-serif; font-size:21px; font-weight:700; letter-spacing:1px; line-height:1; margin-left:6px; }
+body.hudon .hlogo { display:flex; }
+.hlogo .f { background:#fff; color:#0b1f5c; padding:5px 5px 5px 9px; } .hlogo .v { background:linear-gradient(135deg, #2f6bff, #1238b5); color:#fff; padding:5px 9px 5px 5px; }
+.hlogo i { position:absolute; left:0; right:0; bottom:-3px; height:3px; background:linear-gradient(90deg, #ff3b3b, #ffb020); }
+/* abajo: franja fija con hora, día, clima y controles */
+#tvfoot { display:none; position:fixed; left:0; right:0; bottom:0; height:52px; z-index:32; align-items:stretch; justify-content:space-between; background:#0b0f1e; border-top:3px solid #2f6bff; font-family:Oswald, 'Arial Narrow', system-ui, sans-serif; }
+body.hudon:not(.tvlock) #tvfoot { display:flex; }
+.fclock { display:flex; align-items:stretch; }
+.ftime { background:linear-gradient(135deg, #2f6bff, #1238b5); font-size:28px; font-weight:700; padding:0 14px; display:flex; align-items:center; }
+.fclock > div:last-child { display:flex; flex-direction:column; justify-content:center; padding:0 14px; }
+.fdate { font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
+.fwx { display:flex; gap:14px; font-size:13px; color:#c9cede; } .fwx b { color:#fff; }
+.fctl { display:flex; align-items:center; gap:4px; padding:0 14px; }
+.fctl button { background:none; border:none; font-size:17px; padding:4px 8px; color:#fff; border-radius:20px; }
+.fctl button:hover { background:#ffffff1a; }
+.fctl input[type=range] { width:110px; padding:0; accent-color:#2f6bff; }
+body.hudon { padding-bottom:calc(var(--hudb, 0px) + 72px); }
+body.hudon:not(.tvlock) #radiobar, body.hudon:not(.tvlock) #musicbar { bottom:52px; }
+body.hudon.hasmusic:not(.tvlock) #radiobar { bottom:178px; }
+body.hudon.hasmusic.musnovid:not(.tvlock) #radiobar { bottom:110px; }
+body.hudon #toasts { bottom:calc(var(--hudb, 0px) + 70px); }
+#btnGraf.on { background:#16213a; border-color:#2f6bff; }
+/* botones de la pantalla, en la barra del reproductor */
+.pacts { display:flex; gap:5px; align-items:center; flex-wrap:wrap; margin-left:8px; padding-left:10px; border-left:1px solid var(--line); }
+.pacts:empty { display:none; }
+.pacts button { font-size:13px; padding:5px 9px; }
+.pa-lbl { color:var(--mut); font-size:12px; }
+.slot .bar { display:none; }
+.slot.foc { border-color:#7fb0ff; }
+@media (max-width:800px) {
+  #btnGraf { font-size:0; padding:7px 9px; } #btnGraf::before { content:'📡'; font-size:15px; }
+  .hlogo { font-size:15px; } .hlogo .f, .hlogo .v { padding:4px 4px; }
+  .nph { font-size:11px; } .nph .hud-name { max-width:30vw; }
+  #tvfoot { height:46px; }
+  .ftime { font-size:20px; padding:0 8px; } .fclock > div:last-child { padding:0 8px; }
+  .fdate { font-size:10px; } .fwx { font-size:10px; gap:6px; }
+  .fctl input[type=range] { display:none; } .fctl { padding:0 4px; } .fctl button { padding:3px 5px; font-size:15px; }
+  body.hudon:not(.tvlock) #radiobar, body.hudon:not(.tvlock) #musicbar { bottom:46px; }
+  .pacts { margin-left:0; padding-left:0; border-left:none; width:100%; }
+  .pacts button { font-size:12px; padding:4px 7px; }
+}
+@media (max-width:800px) { .nph .hud-tag { display:none; } .nph .hud-name { max-width:36vw; font-size:12px; } }

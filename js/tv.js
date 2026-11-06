@@ -34,6 +34,7 @@ const TV = (() => {
   function paintWeather() {
     const el = $('tvWx'); if (!el) return;
     el.innerHTML = weather ? weather.list.map(w => `<span>${w.ic} ${esc(w.name)} <b>${w.t}°</b></span>`).join('') : '';
+    if ($('fWx')) $('fWx').innerHTML = el.innerHTML;
   }
 
   /* ---------- Armado ---------- */
@@ -62,9 +63,27 @@ const TV = (() => {
         <div class="hud-ticker" id="tvTicker"><span class="tk-lbl">FUNVS <b>AL MINUTO</b></span><div class="tk-wrap"><div class="tk-run" id="tvRun"></div></div></div>
         <button class="hud-exit" id="tvExit">✕ Salir de pantalla TV</button>
       </div>`);
-    $('btnHide').insertAdjacentHTML('beforebegin', `<button id="tvToggle" title="Mostrar u ocultar el grafismo de TV">📺 Grafismo</button><button id="tvFull" title="Pantalla TV completa">⛶</button>`);
-    $('tvToggle').onclick = () => { on = !on; S.set('tvOn', on); apply(); };
-    $('tvFull').onclick = () => open(true);
+    // en la página: arriba, dentro del encabezado; abajo, una franja propia (como un canal de TV)
+    document.querySelector('header .top').insertAdjacentHTML('afterbegin', '<div class="nph" id="npHead"></div>');
+    document.querySelector('header .top').insertAdjacentHTML('beforeend', '<div class="hlogo" id="hLogo"><span class="f">FUN</span><span class="v">VS</span><i></i></div>');
+    document.body.insertAdjacentHTML('beforeend', `<footer id="tvfoot">
+        <div class="fclock"><div class="ftime" id="fTime"></div><div><div class="fdate" id="fDate"></div><div class="fwx" id="fWx"></div></div></div>
+        <div class="fctl" id="fCtl"><button data-c="play" title="Pausa / seguir">❚❚</button><button data-c="mute" title="Silenciar">🔊</button>
+          <input type="range" data-c="vol" min="0" max="1" step="0.05" title="Volumen"><button data-c="star" title="Guardar este momento">⭐</button></div>
+      </footer>`);
+    $('btnHide').insertAdjacentHTML('beforebegin', `<button id="tvFull" title="Pantalla completa">⛶</button>`);
+    $('btnGraf').onclick = () => { on = !on; S.set('tvOn', on); apply(); };
+    $('fCtl').querySelector('[data-c=play]').onclick = () => $('tvPlay').click();
+    $('fCtl').querySelector('[data-c=mute]').onclick = () => $('tvMute').click();
+    $('fCtl').querySelector('[data-c=star]').onclick = () => Momentos.capture(AudioMgr.active);
+    const fv = $('fCtl').querySelector('[data-c=vol]');
+    fv.oninput = e => { const s = AudioMgr.sink(AudioMgr.active); s && s.setVol && s.setVol(+e.target.value); };
+    fv.onpointerdown = () => dragging = true; fv.onpointerup = () => dragging = false;
+    $('tvFull').onclick = () => {   // pantalla completa del reproductor: ahí el grafismo no aparece
+      const p = $('player');
+      if (document.fullscreenElement) return document.exitFullscreen().catch(() => {});
+      const fn = p.requestFullscreen || p.webkitRequestFullscreen; if (fn) fn.call(p).catch(() => {});
+    };
     $('btnTv').onclick = () => open(false);
     $('tvExit').onclick = close;
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('player').classList.contains('tvmode') && !document.fullscreenElement) close(); });
@@ -97,8 +116,8 @@ const TV = (() => {
   function apply() {
     $('hud').classList.toggle('off', !on);
     document.body.classList.toggle('hudon', on);
+    $('btnGraf').classList.toggle('on', on);
     if ($('setHud')) $('setHud').checked = on;
-    $('tvToggle').classList.toggle('on', on);
     $('stage').classList.toggle('tvon', on);
   }
   function showUi() {
@@ -187,6 +206,7 @@ const TV = (() => {
     const d = new Date();
     $('tvTime').textContent = d.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
     $('tvDate').textContent = `${DIAS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}`;
+    $('fTime').textContent = $('tvTime').textContent; $('fDate').textContent = $('tvDate').textContent;
     const id = AudioMgr.active, s = id && AudioMgr.sink(id);
     const name = s && s.label ? s.label() : '';
     const tag = !s ? '' : s.radio ? 'RADIO' : s.music ? 'MÚSICA' : s.live && s.live() ? 'EN VIVO' : 'AHORA';
@@ -195,10 +215,11 @@ const TV = (() => {
     if (key !== lastNp) {          // cuando cambia lo que suena, el zócalo entra animado
       lastNp = key;
       $('tvNp').innerHTML = name ? `<span class="hud-tag ${tag === 'EN VIVO' ? 'live' : ''}">${tag === 'EN VIVO' ? '● ' : ''}${tag}</span><span class="hud-name">${esc(name)}</span>` : '';
-      $('tvNp').classList.remove('in'); void $('tvNp').offsetWidth; $('tvNp').classList.add('in');
+      $('npHead').innerHTML = $('tvNp').innerHTML;
+      [$('tvNp'), $('npHead')].forEach(x => { x.classList.remove('in'); void x.offsetWidth; x.classList.add('in'); });
       refresh();
     }
-    $('tvCtl').style.display = s ? '' : 'none';
+    $('tvCtl').style.display = s ? '' : 'none'; $('fCtl').style.visibility = s ? '' : 'hidden';
     if (s) {
       $('tvPlay').style.display = s.toggle ? '' : 'none';
       $('tvPlay').textContent = s.paused && s.paused() ? '▶' : '❚❚';
@@ -206,6 +227,11 @@ const TV = (() => {
       $('tvMute').textContent = m ? '🔇' : '🔊';
       $('tvVol').style.display = s.setVol ? '' : 'none';
       if (s.getVol && !dragging) $('tvVol').value = m ? 0 : s.getVol();
+      const fc = $('fCtl');
+      fc.querySelector('[data-c=play]').style.display = s.toggle ? '' : 'none'; fc.querySelector('[data-c=play]').textContent = $('tvPlay').textContent;
+      fc.querySelector('[data-c=mute]').textContent = $('tvMute').textContent;
+      fc.querySelector('[data-c=vol]').style.display = s.setVol ? '' : 'none';
+      if (s.getVol && !dragging) fc.querySelector('[data-c=vol]').value = $('tvVol').value;
     }
   }
   const setOn = v => { on = v; S.set('tvOn', on); apply(); };

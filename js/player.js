@@ -10,6 +10,7 @@ const AudioMgr = (() => {
     focus(id) {
       current = id;
       Object.entries(sinks).forEach(([k, s]) => { try { k === id ? s.unmute() : s.mute(); } catch {} });
+      try { Player.paintActs(); } catch {}
     },
     get current() { return current; },
     sink(id) { return sinks[id]; },
@@ -22,7 +23,7 @@ const AudioMgr = (() => {
    Reproductor de video: 1, 2 o 4 pantallas, chat, solo audio, ventana flotante
    ========================================================= */
 const Player = (() => {
-  let layout = 1, sel = 0, seq = 0, chatOn = S.get('chatOn', true);
+  let layout = 1, sel = 0, seq = 0, chatOn = S.get('chatOn', true), focus = 0;   // focus = pantalla que manejan los botones de la barra
   const slots = [null, null, null, null];   // {c, e, chat, audio, api, kind, mutedByApp, pip}
   const els = [];
 
@@ -65,23 +66,17 @@ const Player = (() => {
         <span class="muted-ic">🔇 Silenciado · tocá para escuchar</span>`;
       d.onclick = e => {
         if (e.target.closest('.bar') || e.target.closest('.muted-ic')) return;
-        if (sel !== i) { sel = i; paintSel(); }
+        if (sel !== i || focus !== i) { sel = i; focus = i; paintSel(); paintActs(); }
       };
       d.querySelector('.muted-ic').onclick = ev => { ev.stopPropagation(); AudioMgr.focus('slot' + i); };
       st.appendChild(d); els.push(d);
     }
     document.querySelectorAll('.pbar [data-l]').forEach(b => b.onclick = () => setLayout(+b.dataset.l));
-    // botón fijo para mostrar u ocultar el chat (queda recordado para los próximos canales)
-    $('btnHide').insertAdjacentHTML('beforebegin', '<button id="chatToggle" title="Mostrar u ocultar el chat"></button>');
-    $('chatToggle').onclick = () => {
-      chatOn = !chatOn; S.set('chatOn', chatOn);
-      slots.forEach((s, i) => { if (s && s.e.ch && i < layout) setChat(i, chatOn && (layout === 1 || i === sel)); });
-      paintChatBtn();
-    };
+
     $('btnHide').onclick = closeAll;
     setLayout(1);
   }
-  function paintSel() { els.forEach((d, i) => d.classList.toggle('sel', i === sel && layout > 1)); }
+  function paintSel() { els.forEach((d, i) => { d.classList.toggle('sel', i === sel && layout > 1); d.classList.toggle('foc', i === focus && layout > 1 && !!slots[i]); }); }
   function setLayout(n) {
     layout = n;
     for (let i = n; i < 4; i++) clear(i);    // las pantallas que sobran se apagan
@@ -89,7 +84,7 @@ const Player = (() => {
     ['l1', 'l2', 'l4'].forEach(c => $('stage').classList.remove(c)); $('stage').classList.add('l' + n);
     els.forEach((d, i) => d.classList.toggle('hide', i >= n));
     document.querySelectorAll('.pbar [data-l]').forEach(b => b.classList.toggle('on', +b.dataset.l === n));
-    paintSel();
+    paintSel(); paintActs();
   }
 
   function clear(i) {
@@ -180,22 +175,26 @@ const Player = (() => {
     d.className = 'slot' + (i === sel && layout > 1 ? ' sel' : '') + (s.chat ? ' withchat' : '') + (s.audio ? ' audio' : '') + (s.mutedByApp ? ' mutedbyapp' : '');
     d.querySelector('.lbl').textContent = s.c.name;
     d.querySelector('.face .nm').textContent = s.c.name;
-    const pipBtn = PIP_OK || ANDROID ? `<button data-a="pip" title="Ventana flotante">⧉</button>` : '';
-    d.querySelector('.bar').innerHTML =
-      `<button data-a="snd" title="Escuchar esta">🔊</button>
-       <button data-a="audio" class="${s.audio ? 'on' : ''}" title="Solo audio (sin video)">🎧</button>
-       ${s.e.ch ? `<button data-a="chat" class="${s.chat ? 'on' : ''}" title="Chat">💬</button>` : ''}
-       ${s.e.out ? `<button data-a="out" title="Abrir el chat aparte">↗</button>` : ''}
-       ${pipBtn}<button data-a="star" title="Guardar este momento">⭐</button><button data-a="x" title="Cerrar">✕</button>`;
-    d.querySelectorAll('.bar button').forEach(b => b.onclick = ev => { ev.stopPropagation(); action(i, b.dataset.a); });
+    d.querySelector('.bar').innerHTML = '';
+    paintSel(); paintActs();
   }
-  function paintChatBtn() {
-    const b = $('chatToggle'); if (!b) return;
-    const any = slots.some((s, i) => s && s.e.ch && i < layout), shown = slots.some(s => s && s.chat);
-    b.textContent = shown ? '💬 Ocultar chat' : '💬 Mostrar chat';
-    b.classList.toggle('on', shown);
-    b.disabled = !any; b.style.opacity = any ? '' : '.45';
+  // botones de la pantalla elegida, en la barra del reproductor (a la derecha de "Pantallas")
+  function paintActs() {
+    const box = $('pbarActs'); if (!box) return;
+    if (!slots[focus]) { const f = slots.findIndex(Boolean); if (f >= 0) focus = f; }
+    const s = slots[focus];
+    if (!s) { box.innerHTML = ''; return; }
+    const pip = PIP_OK || ANDROID ? `<button data-a="pip" title="Ventana flotante">⧉ Flotante</button>` : '';
+    box.innerHTML = `${layout > 1 ? `<span class="pa-lbl">Pantalla ${focus + 1}:</span>` : ''}
+      <button data-a="snd" class="${AudioMgr.current === 'slot' + focus ? 'on' : ''}" title="Escuchar esta pantalla">🔊</button>
+      <button data-a="audio" class="${s.audio ? 'on' : ''}" title="Solo audio (sin video)">🎧 Solo audio</button>
+      ${s.e.ch ? `<button data-a="chat" class="${s.chat ? 'on' : ''}" title="Mostrar u ocultar el chat">💬 ${s.chat ? 'Ocultar chat' : 'Mostrar chat'}</button>` : ''}
+      ${s.e.out ? `<button data-a="out" title="Abrir el chat en otra ventana">↗ Chat aparte</button>` : ''}
+      ${pip}<button data-a="star" title="Guardar este momento">⭐ Momento</button>
+      <button data-a="x" title="Cerrar esta pantalla">✕</button>`;
+    box.querySelectorAll('button').forEach(b => b.onclick = () => action(focus, b.dataset.a));
   }
+  const paintChatBtn = () => paintActs();
   function setChat(i, on) {
     const s = slots[i], d = els[i];
     s.chat = on;
@@ -209,7 +208,7 @@ const Player = (() => {
   function action(i, a) {
     const s = slots[i]; if (!s) return;
     if (a === 'x') { clear(i); if (slots.every(x => !x)) closeAll(); TV.refresh(); Zap.render(); return; }
-    if (a === 'snd') AudioMgr.focus('slot' + i);
+    if (a === 'snd') { AudioMgr.focus('slot' + i); paintActs(); return; }
     if (a === 'chat') { setChat(i, !s.chat); chatOn = s.chat; S.set('chatOn', chatOn); return; }
     if (a === 'out') { window.open(s.e.out, '_blank', 'noopener,width=420,height=720'); return; }
     if (a === 'audio') { s.audio = !s.audio; setAudioQuality(s, s.audio); if (s.audio && s.chat) setChat(i, false); }
@@ -253,16 +252,16 @@ const Player = (() => {
     if (opts.start && e.kind === 'youtube') e.v += '&start=' + Math.floor(opts.start);
     clear(sel);
     const liveish = st.st === 'live' || st.st === 'soon' || (c.platform !== 'youtube' && st.st !== 'off');
-    slots[sel] = { c, e, chat:false, audio:!!opts.audio };
+    slots[sel] = { c, e, chat:false, audio:!!opts.audio }; focus = sel;
     $('player').classList.add('show');
     mountVideo(sel); paintBar(sel);
     // con una sola pantalla, el chat se abre solo al lado si es un vivo
     if (layout === 1 && e.ch && liveish && !opts.audio && chatOn) setChat(sel, true);
-    if (layout > 1) { sel = (sel + 1) % layout; paintSel(); }
+    if (layout > 1) { const empty = slots.findIndex((x, j) => !x && j < layout); if (empty >= 0) sel = empty; paintSel(); }
     window.scrollTo({ top:0, behavior:'smooth' });
     TV.refresh(); Zap.render(); paintChatBtn();
   }
   function closeAll() { for (let i = 0; i < 4; i++) clear(i); if (!$('player').classList.contains('tvmode')) $('player').classList.remove('show'); TV.refresh(); }
 
-  return { build, play, closeAll, embedOf, get layout() { return layout; }, get slots() { return slots; }, get sel() { return sel; } };
+  return { paintActs, build, play, closeAll, embedOf, get layout() { return layout; }, get slots() { return slots; }, get sel() { return sel; } };
 })();
