@@ -16,6 +16,30 @@ const Fulbito = (() => {
   const local = S.get('futlocal', { sound:false, notif:false });   // sonido y notificaciones: por dispositivo
   const saveLocalPrefs = () => S.set('futlocal', local);
 
+  /* ---------- Canales de TV (guía de futbolenvivoargentina.com, la junta GitHub cada 30 min) ---------- */
+  let guide = S.get('tvGuide', null);
+  async function loadGuide() {
+    if (guide && Date.now() - guide._at < 20 * 60e3) return;
+    try {
+      const j = await (await fetch(REPO.data + 'tv.json?t=' + Math.floor(Date.now() / 600e3))).json();
+      j._at = Date.now(); guide = j; S.set('tvGuide', j);
+      if (Nav.current === 'fulbito') render();
+      if (Nav.current === 'velez') Velez.render();
+    } catch {}
+  }
+  const STOP = new Set(['club', 'atletico', 'deportivo', 'de', 'del', 'la', 'el', 'los', 'fc', 'cf', 'ca', 'sc', 'cd', 'ac', 'afc', 'sad', 'y']);
+  const words = n => new Set(norm(n).replace(/[^a-z0-9 ]/g, ' ').split(' ').filter(w => w.length > 2 && !STOP.has(w)));
+  const sameTeam = (a, b) => { const A = words(a), B = words(b); for (const w of A) if (B.has(w)) return true; return false; };
+  const ymdOf = d => { const x = new Date(d); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
+  function channelsFor(m) {
+    if (!guide || !guide.matches) return [];
+    const day = ymdOf(m.date), H = [m.h.team.displayName, m.h.team.shortDisplayName], A = [m.a.team.displayName, m.a.team.shortDisplayName];
+    const ok = (x, names) => names.some(n => n && sameTeam(x, n));
+    const g = guide.matches.find(g => Math.abs(Date.parse(g.date) - Date.parse(day)) <= 864e5
+      && ((ok(g.home, H) && ok(g.away, A)) || (ok(g.home, A) && ok(g.away, H))));
+    return g ? g.channels : [];
+  }
+
   let day = 0, view = {}, today = {}, prev = null, lastPoll = null, timer = null, viewLoading = false;
 
   const ymd = off => { const d = new Date(); d.setDate(d.getDate() + off); return d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0'); };
@@ -91,7 +115,9 @@ const Fulbito = (() => {
     const sc = m.state === 'pre' ? 'vs' : `${m.hs} - ${m.as}`;
     const gl = m.goals.length && m.state !== 'pre'
       ? `<div class="goals">⚽ ${m.goals.map(g => `${esc(g.who)} ${esc(g.min)}${g.pen ? ' (p)' : ''}${g.og ? ' (ec)' : ''}`).join(' · ')}</div>` : '';
-    return `<div class="match ${m.state === 'in' ? 'live' : m.state}"><div class="st">${m.state === 'in' ? '● ' : ''}${esc(m.st)}</div>${tm(m.h, 'h')}<div class="sc">${sc}</div>${tm(m.a, 'a')}${gl}</div>`;
+    const ch = m.state !== 'post' ? channelsFor(m) : [];
+    const tv = ch.length ? `<div class="tvch">📺 ${ch.map(c => `<span>${esc(c)}</span>`).join('')}</div>` : '';
+    return `<div class="match ${m.state === 'in' ? 'live' : m.state}"><div class="st">${m.state === 'in' ? '● ' : ''}${esc(m.st)}</div>${tm(m.h, 'h')}<div class="sc">${sc}</div>${tm(m.a, 'a')}${gl}${tv}</div>`;
   }
   function sortM(arr) { const r = m => ({ in:0, pre:1, post:2 }[m.state] ?? 3); return arr.slice().sort((a, b) => r(a) - r(b) || Date.parse(a.date) - Date.parse(b.date)); }
 
@@ -140,7 +166,7 @@ const Fulbito = (() => {
         </div>
       </details>
       <div id="fList"></div>
-      <p class="mut" style="font-size:12px;margin-top:10px">Resultados: datos públicos de ESPN.</p>`;
+      <p class="mut" style="font-size:12px;margin-top:10px">Resultados: datos públicos de ESPN · Canales de TV: futbolenvivoargentina.com</p>`;
     $('fDays').onclick = async e => {
       const b = e.target.closest('[data-d]'); if (!b) return;
       day = +b.dataset.d;
@@ -190,7 +216,8 @@ const Fulbito = (() => {
   const ticker = () => Object.values(today).flatMap(L => L.events)
     .filter(m => m.state === 'in' || isFav(m.h.team) || isFav(m.a.team))
     .map(m => { const n = t => t.team.shortDisplayName || t.team.displayName;
-      return `⚽ ${n(m.h)} ${m.state === 'pre' ? 'vs' : m.hs + '-' + m.as} ${n(m.a)} ${m.state === 'in' ? '(' + m.st + ')' : m.state === 'pre' ? '· ' + m.st : '(final)'}`; });
-  function init() { onChange(() => { if ($('v-fulbito').dataset.built) render(); }); poll().catch(() => {}); }
+      const ch = m.state !== 'post' ? channelsFor(m) : [];
+      return `⚽ ${n(m.h)} ${m.state === 'pre' ? 'vs' : m.hs + '-' + m.as} ${n(m.a)} ${m.state === 'in' ? '(' + m.st + ')' : m.state === 'pre' ? '· ' + m.st : '(final)'}${ch.length ? ' · 📺 ' + ch[0] : ''}`; });
+  function init() { onChange(() => { if ($('v-fulbito').dataset.built) render(); }); poll().catch(() => {}); loadGuide(); setInterval(loadGuide, 20 * 60e3); }
   return { init, render, poll, matchRow, todayFor, liveCount, board, simplify, evs, ticker };
 })();
