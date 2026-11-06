@@ -78,7 +78,7 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------- Arranque ---------- */
 if (location.protocol === 'file:') warn('Estás abriendo el archivo desde la compu: Twitch y algunos datos solo andan con la página publicada (GitHub Pages).');
-Player.build(); Canales.init(); Radio.init(); Fulbito.init(); Noticias.init(); Velez.init(); Calendario.init();
+Player.build(); TV.build(); Canales.init(); Radio.init(); Fulbito.init(); Noticias.init(); Velez.init(); Calendario.init();
 initSettings(); Nav.init();
 onChange(() => Nav.badges());
 Nav.go(location.hash.slice(1) || S.get('hubSec', 'canales'));
