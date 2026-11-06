@@ -11,7 +11,10 @@ const AudioMgr = (() => {
       current = id;
       Object.entries(sinks).forEach(([k, s]) => { try { k === id ? s.unmute() : s.mute(); } catch {} });
     },
-    get current() { return current; }
+    get current() { return current; },
+    sink(id) { return sinks[id]; },
+    // lo que suena es lo enfocado; si no hay, la radio o la primera pantalla con video
+    get active() { return current && sinks[current] ? current : (sinks.radio && sinks.radio.label && sinks.radio.label() ? 'radio' : Object.keys(sinks).find(k => k.startsWith('slot')) || null); }
   };
 })();
 
@@ -76,7 +79,7 @@ const Player = (() => {
     layout = n;
     for (let i = n; i < 4; i++) clear(i);    // las pantallas que sobran se apagan
     sel = Math.min(sel, n - 1);
-    $('stage').className = 'stage l' + n;
+    ['l1', 'l2', 'l4'].forEach(c => $('stage').classList.remove(c)); $('stage').classList.add('l' + n);
     els.forEach((d, i) => d.classList.toggle('hide', i >= n));
     document.querySelectorAll('.pbar [data-l]').forEach(b => b.classList.toggle('on', +b.dataset.l === n));
     paintSel();
@@ -117,7 +120,10 @@ const Player = (() => {
         s.api = { destroy() { div.innerHTML = ''; } , p };
         p.addEventListener(Twitch.Player.READY, () => { if (s.audio) setAudioQuality(s, true); });
         p.addEventListener(Twitch.Player.PLAY, () => { if (!s.mutedByApp) AudioMgr.focus(sid); });
-        AudioMgr.register(sid, { mute() { p.setMuted(true); setMutedUI(true); }, unmute() { p.setMuted(false); setMutedUI(false); } });
+        AudioMgr.register(sid, { mute() { p.setMuted(true); setMutedUI(true); }, unmute() { p.setMuted(false); setMutedUI(false); },
+          label:() => s.c.name, live:() => (Canales.status[s.c.uid] || {}).st === 'live',
+          paused:() => p.isPaused(), toggle:() => p.isPaused() ? p.play() : p.pause(),
+          muted:() => p.getMuted(), getVol:() => p.getVolume(), setVol:v => { p.setVolume(v); if (v > 0 && p.getMuted()) AudioMgr.focus(sid); } });
       }).catch(() => { vw.innerHTML = `<iframe src="${s.e.v}" allow="autoplay; fullscreen" allowfullscreen></iframe>`; });
     } else if (s.e.kind === 'youtube') {
       const f = document.createElement('iframe');
@@ -134,7 +140,13 @@ const Player = (() => {
           d.classList.toggle('paused', e.data === 2);
         } } });
         s.api = { p, destroy() {} };
-        AudioMgr.register(sid, { mute() { try { p.mute(); } catch {} setMutedUI(true); }, unmute() { try { p.unMute(); } catch {} setMutedUI(false); } });
+        AudioMgr.register(sid, { mute() { try { p.mute(); } catch {} setMutedUI(true); }, unmute() { try { p.unMute(); } catch {} setMutedUI(false); },
+          label:() => s.c.name, live:() => (Canales.status[s.c.uid] || {}).st === 'live',
+          paused:() => { try { return p.getPlayerState() !== 1; } catch { return false; } },
+          toggle:() => { try { p.getPlayerState() === 1 ? p.pauseVideo() : p.playVideo(); } catch {} },
+          muted:() => { try { return p.isMuted(); } catch { return false; } },
+          getVol:() => { try { return p.getVolume() / 100; } catch { return 1; } },
+          setVol:v => { try { p.setVolume(Math.round(v * 100)); if (v > 0 && p.isMuted()) AudioMgr.focus(sid); } catch {} } });
       }).catch(() => {});
     } else if (s.e.kind === 'kick') {
       // Kick no tiene controles para otras páginas: para silenciar hay que recargar el reproductor
@@ -143,6 +155,7 @@ const Player = (() => {
       AudioMgr.register(sid, {
         mute() { if (!s.mutedByApp) { f.src = s.e.v + '&muted=true'; setMutedUI(true); } },
         unmute() { if (s.mutedByApp) { f.src = s.e.v + '&muted=false'; setMutedUI(false); } }
+        , label:() => s.c.name, live:() => (Canales.status[s.c.uid] || {}).st === 'live', muted:() => s.mutedByApp
       });
       setTimeout(() => AudioMgr.focus(sid), 0);
     }
@@ -214,7 +227,7 @@ const Player = (() => {
       els[i].querySelector('.vw').innerHTML = `<div class="ph">⧉ Mirando en ventana flotante<br><button class="sm" style="margin-top:8px">Volver acá</button></div>`;
       els[i].querySelector('.vw button').onclick = () => w.close();
       els[i].querySelector('.chat')?.remove(); s.chat = false; paintBar(i);
-      AudioMgr.register('slot' + i, { mute() {}, unmute() {} });
+      AudioMgr.register('slot' + i, { mute() {}, unmute() {}, label:() => s.c.name + ' (ventana flotante)' });
       AudioMgr.focus('slot' + i);
       w.addEventListener('pagehide', () => { if (slots[i] === s) { s.pip = null; mountVideo(i); paintBar(i); } });
     } catch (e) { toast('<b>No se pudo abrir la ventana flotante</b><small>' + esc(e.message) + '</small>', { cls:'info' }); }
@@ -234,5 +247,5 @@ const Player = (() => {
   }
   function closeAll() { for (let i = 0; i < 4; i++) clear(i); $('player').classList.remove('show'); }
 
-  return { build, play, closeAll, embedOf };
+  return { build, play, closeAll, embedOf, get layout() { return layout; }, get slots() { return slots; } };
 })();

@@ -112,7 +112,10 @@ const Radio = (() => {
       const st = $('rbSt'); if (st && cur) st.innerHTML = audio.paused ? 'En pausa' : audio.muted ? '🔇 Silenciada (está sonando otra cosa)' : '<span class="st-live">●</span> Sonando';
     });
     audio.addEventListener('error', () => { if (cur && audio.getAttribute('src')) err(); });
-    AudioMgr.register('radio', { mute() { audio.muted = true; }, unmute() { audio.muted = false; } });
+    AudioMgr.register('radio', { mute() { audio.muted = true; }, unmute() { audio.muted = false; },
+      label:() => cur ? cur.name : '', live:() => !!cur && !audio.paused, radio:true,
+      paused:() => audio.paused, toggle:() => audio.paused ? audio.play().catch(() => {}) : audio.pause(),
+      muted:() => audio.muted, getVol:() => audio.volume, setVol:v => { audio.volume = v; if (v > 0 && audio.muted) AudioMgr.focus('radio'); } });
     onChange(() => { if ($('v-radios').dataset.built) render(); });
   }
   return { init, render };
