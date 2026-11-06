@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Ventana flotante</title>
+<style>
+  html, body { margin:0; height:100%; background:#000; display:flex; overflow:hidden; }
+  iframe { border:0; height:100%; }
+  .v { flex:1; min-width:0; }
+  .c { width:300px; border-left:1px solid #222; background:#0f0f0f; color-scheme:dark; }
+</style>
+</head>
+<body>
+<script>
+  // Página puente para la ventana flotante: YouTube necesita saber desde qué sitio se abre el video
+  // (si no, muestra el "error 153"). Solo acepta reproductores de YouTube, Twitch y Kick.
+  const q = new URLSearchParams(location.search);
+  const ok = u => { try { const h = new URL(u).hostname; return /(^|\.)(youtube\.com|twitch\.tv|kick\.com)$/.test(h) ? u : null; } catch { return null; } };
+  const v = ok(q.get('v') || ''), c = ok(q.get('ch') || '');
+  if (v) {
+    const f = document.createElement('iframe');
+    f.className = 'v'; f.src = v; f.allow = 'autoplay; fullscreen; encrypted-media; picture-in-picture'; f.allowFullscreen = true;
+    f.referrerPolicy = 'strict-origin-when-cross-origin';
+    document.body.appendChild(f);
+  }
+  if (c) {
+    const f = document.createElement('iframe');
+    f.className = 'c'; f.src = c; f.referrerPolicy = 'strict-origin-when-cross-origin';
+    document.body.appendChild(f);
+  }
+</script>
+</body>
+</html>

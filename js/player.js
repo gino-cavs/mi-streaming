@@ -198,11 +198,15 @@ const Player = (() => {
     }
     try {
       const w = await documentPictureInPicture.requestWindow({ width:s.chat ? 900 : 640, height:360 });
-      const css = 'html,body{margin:0;height:100%;background:#000;display:flex}iframe{border:0;height:100%}.v{flex:1}.c{width:300px;border-left:1px solid #222;color-scheme:dark}';
-      const st = w.document.createElement('style'); st.textContent = css; w.document.head.appendChild(st);
+      const st = w.document.createElement('style');
+      st.textContent = 'html,body{margin:0;height:100%;background:#000;overflow:hidden}iframe{border:0;width:100%;height:100%;display:block}';
+      w.document.head.appendChild(st);
       w.document.title = s.c.name;
-      const src = s.e.kind === 'youtube' ? s.e.v.replace(/&enablejsapi=1[^&]*/, '') : s.e.v;
-      w.document.body.innerHTML = `<iframe class="v" src="${src}" allow="autoplay; fullscreen; encrypted-media"></iframe>` + (s.chat && s.e.ch ? `<iframe class="c" src="${s.e.ch}"></iframe>` : '');
+      // la ventana flotante carga pip.html (una página nuestra) y esa página muestra el video:
+      // así YouTube sabe desde qué sitio se abre y no da el "error 153"
+      const base = location.origin + location.pathname.replace(/[^/]*$/, '');
+      const pip = base + 'pip.html?v=' + encodeURIComponent(s.e.v) + (s.chat && s.e.ch ? '&ch=' + encodeURIComponent(s.e.ch) : '');
+      w.document.body.innerHTML = `<iframe src="${esc(pip)}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture"></iframe>`;
       // en la página dejo un aviso en lugar del video (para que no suene doble)
       AudioMgr.unregister('slot' + i);
       try { s.api && s.api.destroy && s.api.destroy(); } catch {}
