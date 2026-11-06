@@ -2,9 +2,9 @@
    Navegación entre secciones, ajustes y arranque
    ========================================================= */
 const Nav = (() => {
-  const SECS = [['canales', '📺 Canales'], ['radios', '📻 Radios'], ['calendario', '📅 Calendario'], ['fulbito', '⚽ Fulbito'], ['noticias', '📰 Noticias'], ['velez', '💙 Mundo Vélez']];
+  const SECS = [['canales', '📺 Canales'], ['radios', '📻 Radios'], ['calendario', '📅 Calendario'], ['fulbito', '⚽ Fulbito'], ['motor', '🏁 Automovilismo'], ['noticias', '📰 Noticias'], ['velez', '💙 Mundo Vélez']];
   let current = null;
-  const renderers = { canales:() => Canales.render(), radios:() => Radio.render(), calendario:() => Calendario.render(), fulbito:() => Fulbito.render(), noticias:() => Noticias.render(), velez:() => Velez.render() };
+  const renderers = { canales:() => Canales.render(), radios:() => Radio.render(), calendario:() => Calendario.render(), motor:() => Motor.render(), fulbito:() => Fulbito.render(), noticias:() => Noticias.render(), velez:() => Velez.render() };
   function go(s) {
     if (!renderers[s]) s = 'canales';
     current = s;
@@ -16,7 +16,7 @@ const Nav = (() => {
     renderers[s]();
   }
   function badges() {
-    const n = { canales:Canales.liveCount(), fulbito:Fulbito.liveCount(), calendario:Calendario.liveCount() };
+    const n = { canales:Canales.liveCount(), fulbito:Fulbito.liveCount(), calendario:Calendario.liveCount(), motor:Motor.liveCount() };
     $('sections').innerHTML = SECS.map(([id, l]) => `<button data-s="${id}" class="${id === current ? 'on' : ''}">${l}${n[id] ? `<span class="cnt">${n[id]}</span>` : ''}</button>`).join('');
   }
   function init() {
@@ -78,7 +78,7 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------- Arranque ---------- */
 if (location.protocol === 'file:') warn('Estás abriendo el archivo desde la compu: Twitch y algunos datos solo andan con la página publicada (GitHub Pages).');
-Player.build(); TV.build(); Canales.init(); Radio.init(); Fulbito.init(); Noticias.init(); Velez.init(); Calendario.init();
+Player.build(); TV.build(); Canales.init(); Radio.init(); Fulbito.init(); Noticias.init(); Velez.init(); Calendario.init(); Motor.init();
 initSettings(); Nav.init();
 onChange(() => Nav.badges());
 Nav.go(location.hash.slice(1) || S.get('hubSec', 'canales'));

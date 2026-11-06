@@ -62,6 +62,6 @@ for (const t of cfg.topics) {
 
 const items = [...byKey.values()].sort((a, b) => Date.parse(b.d) - Date.parse(a.d)).slice(0, 900);
 await mkdir(dirname(out), { recursive:true });
-await writeFile(out, JSON.stringify({ updated:new Date().toISOString(), topics:cfg.topics.map(({ id, label }) => ({ id, label })), items }));
+await writeFile(out, JSON.stringify({ updated:new Date().toISOString(), topics:cfg.topics.map(({ id, label, hidden }) => ({ id, label, ...(hidden ? { hidden:true } : {}) })), items }));
 console.log(`Total: ${items.length} noticias → ${out}`);
 if (!items.length) process.exit(1);

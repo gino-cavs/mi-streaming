@@ -60,7 +60,7 @@ const Noticias = (() => {
     v.innerHTML = `
       <div class="box">
         <h2 class="sec">1. ¿Qué temas te interesan?</h2>
-        <div class="chips" id="nT">${data.topics.filter(t => !t.id.startsWith('prog:')).map(t => `<button data-t="${t.id}" class="${chosenT.has(t.id) ? 'on' : ''}">${esc(t.label)}</button>`).join('')}</div>
+        <div class="chips" id="nT">${data.topics.filter(t => !t.id.startsWith('prog:') && !t.hidden).map(t => `<button data-t="${t.id}" class="${chosenT.has(t.id) ? 'on' : ''}">${esc(t.label)}</button>`).join('')}</div>
         <h2 class="sec" style="margin-top:14px">2. ¿De qué medios? <span class="sp"></span><button class="sm" id="nAll">Todos</button><button class="sm" id="nNone">Ninguno</button></h2>
         <p class="mut" style="font-size:13px;margin-bottom:8px">Si no marcás ninguno, se muestran todos.</p>
         <input id="nSrcQ" placeholder="Buscar medio (Olé, TyC, Clarín…)" style="width:100%;margin-bottom:8px" value="${esc(srcQ)}">
