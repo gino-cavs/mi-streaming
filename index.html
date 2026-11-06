@@ -9,7 +9,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&display=swap">
-<link rel="stylesheet" href="css/app.css?v=16">
+<link rel="stylesheet" href="css/app.css?v=17">
 </head>
 <body>
 <header>
@@ -119,6 +119,10 @@
     <option value="10">10 minutos</option><option value="15">15 minutos</option>
   </select>
   <label style="display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="setHud" style="width:auto"> Mostrar el grafismo FUNVS en las esquinas de la página</label>
+  <label>Calidad de video (en este dispositivo)</label>
+  <div style="display:flex;gap:8px"><select id="setQuality" style="flex:1"></select><button type="button" id="qMeasure">Medir conexión</button></div>
+  <p id="qInfo" style="margin-top:4px"></p>
+  <p style="margin-top:2px">En Twitch se aplica la calidad elegida. YouTube y Kick ajustan la calidad solos según tu conexión.</p>
   <label>No molestar (en este dispositivo)</label>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <label style="margin:0;display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="dndSched" style="width:auto"> Activarlo solo de</label>
@@ -145,21 +149,22 @@
   <div class="btns"><span class="sp"></span><button data-close>Cancelar</button><button class="pri" id="setSave">Guardar</button></div>
 </dialog>
 
-<script src="js/core.js?v=16"></script>
-<script src="js/player.js?v=16"></script>
-<script src="js/canales.js?v=16"></script>
-<script src="js/radio.js?v=16"></script>
-<script src="js/fulbito.js?v=16"></script>
-<script src="js/noticias.js?v=16"></script>
-<script src="js/velez.js?v=16"></script>
-<script src="js/calendario.js?v=16"></script>
-<script src="js/motor.js?v=16"></script>
-<script src="js/musica.js?v=16"></script>
-<script src="js/prode.js?v=16"></script>
-<script src="js/momentos.js?v=16"></script>
-<script src="js/stats.js?v=16"></script>
-<script src="js/tv.js?v=16"></script>
-<script src="js/zapping.js?v=16"></script>
-<script src="js/main.js?v=16"></script>
+<script src="js/core.js?v=17"></script>
+<script src="js/player.js?v=17"></script>
+<script src="js/canales.js?v=17"></script>
+<script src="js/radio.js?v=17"></script>
+<script src="js/fulbito.js?v=17"></script>
+<script src="js/noticias.js?v=17"></script>
+<script src="js/velez.js?v=17"></script>
+<script src="js/calendario.js?v=17"></script>
+<script src="js/motor.js?v=17"></script>
+<script src="js/musica.js?v=17"></script>
+<script src="js/prode.js?v=17"></script>
+<script src="js/momentos.js?v=17"></script>
+<script src="js/stats.js?v=17"></script>
+<script src="js/tv.js?v=17"></script>
+<script src="js/zapping.js?v=17"></script>
+<script src="js/calidad.js?v=17"></script>
+<script src="js/main.js?v=17"></script>
 </body>
 </html>

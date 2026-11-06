@@ -120,7 +120,7 @@ const Player = (() => {
         if (s.seq !== my) return;
         const p = new Twitch.Player(div.id, { channel:s.e.id, parent:[HOST], width:'100%', height:'100%', autoplay:true, muted:false });
         s.api = { destroy() { div.innerHTML = ''; } , p };
-        p.addEventListener(Twitch.Player.READY, () => { if (s.audio) setAudioQuality(s, true); });
+        p.addEventListener(Twitch.Player.READY, () => { if (s.audio) setAudioQuality(s, true); else Calidad.applyTwitch(p); });
         p.addEventListener(Twitch.Player.PLAY, () => { if (!s.mutedByApp) AudioMgr.focus(sid); });
         AudioMgr.register(sid, { mute() { p.setMuted(true); setMutedUI(true); }, unmute() { p.setMuted(false); setMutedUI(false); },
           label:() => s.c.name, live:() => (Canales.status[s.c.uid] || {}).st === 'live',
@@ -137,6 +137,7 @@ const Player = (() => {
         const p = new YT.Player(f, { events:{ onStateChange:e => {
           // solo cuenta como "empezó a sonar" si veníamos de pausa/inicio (no al terminar de cargar)
           if (e.data === 3) return;
+          if (e.data === 1 && last === null) Calidad.applyYouTube(p);
           if (e.data === 1 && last !== 1) AudioMgr.focus(sid);
           last = e.data;
           d.classList.toggle('paused', e.data === 2);
@@ -166,7 +167,7 @@ const Player = (() => {
     const p = s.api && s.api.p; if (!p || !p.setQuality) return;
     try {
       if (on) { s.prevQ = p.getQuality(); const q = (p.getQualities() || []).find(q => q.group === 'audio_only' || q.name === 'audio_only'); p.setQuality(q ? q.group : 'audio_only'); }
-      else p.setQuality(s.prevQ || 'auto');
+      else { p.setQuality(s.prevQ || 'auto'); Calidad.applyTwitch(p); }
     } catch {}
   }
 
