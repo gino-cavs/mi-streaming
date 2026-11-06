@@ -95,11 +95,15 @@ async function motogp() {
       const st = await json(`https://api.motogp.pulselive.com/motogp/v1/results/standings?seasonUuid=${season.id}&categoryUuid=${cat.id}`);
       standings = (st.classification || []).map(x => ({ pos:x.position, name:x.rider?.full_name || '', team:x.team?.name || x.constructor?.name || '', pts:x.points }));
     } catch (e) { console.log('motogp standings', e.message); }
-    if (le) {
-      const ss = await json(`https://api.motogp.pulselive.com/motogp/v1/results/sessions?eventUuid=${le.id}&categoryUuid=${cat.id}`);
-      const rac = ss.find(s => s.type === 'RAC') || ss[ss.length - 1];
-      const cl = await json(`https://api.motogp.pulselive.com/motogp/v1/results/session/${rac.id}/classification?test=false`);
-      last = { name:mgName(le.name), date:le.date_end, results:(cl.classification || []).slice(0, 25).map(x => ({ pos:x.position, name:x.rider?.full_name || '', team:x.team?.name || '' })) };
+    // último GP con carrera terminada (el fin de semana en curso puede figurar sin carrera todavía)
+    for (const ev of fin.slice(-3).reverse()) {
+      try {
+        const ss = await json(`https://api.motogp.pulselive.com/motogp/v1/results/sessions?eventUuid=${ev.id}&categoryUuid=${cat.id}`);
+        const rac = ss.find(s => s.type === 'RAC'); if (!rac) continue;
+        const cl = await json(`https://api.motogp.pulselive.com/motogp/v1/results/session/${rac.id}/classification?test=false`);
+        const res = (cl.classification || []).slice(0, 25).map(x => ({ pos:x.position, name:x.rider?.full_name || '', team:x.team?.name || '' }));
+        if (res.length) { last = { name:mgName(ev.name), date:ev.date_end, results:res }; break; }
+      } catch {}
     }
   } catch (e) { console.log('motogp resultados', e.message); }
   return { cal, next, last, standings };
