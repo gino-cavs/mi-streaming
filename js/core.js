@@ -1,0 +1,196 @@
+/* =========================================================
+   Núcleo: datos guardados, sincronización, utilidades, avisos
+   ========================================================= */
+const HOST = location.hostname || 'localhost';
+const $ = id => document.getElementById(id);
+const S = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+function uid() { return Math.random().toString(36).slice(2, 10); }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+const fmtH = d => new Date(d).toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
+function ago(d) {
+  const m = Math.round((Date.now() - new Date(d)) / 60000);
+  if (m < 1) return 'recién';
+  if (m < 60) return 'hace ' + m + ' min';
+  const h = Math.round(m / 60);
+  if (h < 24) return 'hace ' + h + ' h';
+  const dd = Math.round(h / 24);
+  return dd === 1 ? 'ayer' : 'hace ' + dd + ' días';
+}
+
+// Dirección de los datos que junta GitHub (noticias): https://raw.githubusercontent.com/<usuario>/<repo>/datos/
+const REPO = (() => {
+  const owner = HOST.endsWith('.github.io') ? HOST.split('.')[0] : 'gino-cavs';
+  const repo = HOST.endsWith('.github.io') ? (location.pathname.split('/')[1] || 'mi-streaming') : 'mi-streaming';
+  return { owner, repo, data:`https://raw.githubusercontent.com/${owner}/${repo}/datos/` };
+})();
+
+/* ---------- Datos ---------- */
+const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez'];
+const DEFAULTS = () => ({
+  cats:['Fútbol', 'Streamers'], chans:[], key:'', refresh:5,
+  radios:[],
+  futbol:{ leagues:['arg.1', 'arg.copa', 'conmebol.libertadores', 'conmebol.sudamericana'],
+           teams:['Vélez Sarsfield'], scope:'teams', sound:false, notif:false },
+  news:{ topics:[], sources:[], setup:false },
+  velez:{ streamCat:'' }
+});
+let db = S.get('hub2', null);
+if (!db) {
+  db = DEFAULTS();
+  S.get('favs', []).forEach(f => db.chans.push({ uid:uid(), platform:f.platform, ref:f.platform === 'youtube' ? { video:f.id } : { name:f.id }, name:f.name || f.id, cat:f.cat || '' }));
+  db.chans.forEach(c => { if (c.cat && !db.cats.includes(c.cat)) db.cats.push(c.cat); });
+}
+(function fill() {
+  const D = DEFAULTS();
+  SYNC_KEYS.forEach(k => { if (db[k] === undefined) db[k] = D[k]; });
+  ['futbol', 'news', 'velez'].forEach(k => Object.keys(D[k]).forEach(x => { if (db[k][x] === undefined) db[k][x] = D[k][x]; }));
+  if (!db.sync) db.sync = { token:'', gistId:null };
+})();
+
+const changeHooks = [];             // funciones que redibujan cuando cambian los datos
+const onChange = f => changeHooks.push(f);
+const fireChange = () => changeHooks.forEach(f => { try { f(); } catch (e) { console.error(e); } });
+const saveLocal = () => S.set('hub2', db);
+// Guardar un cambio hecho por vos: lo marca como nuevo y lo sube a la nube
+const save = () => { db.updatedAt = Date.now(); saveLocal(); schedulePush(); };
+
+/* ---------- Sincronización entre dispositivos (Gist privado de GitHub) ---------- */
+const SYNC_FILE = 'mi-streaming.json';
+let pushTimer = null, syncInfo = { ok:null, at:null, err:'' };
+async function gh(path, opts = {}) {
+  const r = await fetch('https://api.github.com' + path, { ...opts, headers:{
+    Authorization:'Bearer ' + db.sync.token, Accept:'application/vnd.github+json',
+    ...(opts.body ? { 'Content-Type':'application/json' } : {}) } });
+  if (!r.ok) {
+    const e = new Error(r.status === 401 ? 'El token de GitHub no es válido o venció.'
+      : r.status === 403 || (r.status === 404 && path === '/gists') ? 'El token no tiene permiso de "gist".'
+      : 'GitHub respondió con error ' + r.status + '.');
+    e.status = r.status; throw e;
+  }
+  return r.json();
+}
+const payload = () => { const o = { v:2, updatedAt:db.updatedAt || 0 }; SYNC_KEYS.forEach(k => o[k] = db[k]); return JSON.stringify(o, null, 1); };
+function sameCh(a, b) {
+  if (a.platform !== b.platform) return false;
+  const A = a.ref, B = b.ref;
+  return !!((A.name && A.name === B.name) || (A.video && A.video === B.video) || (A.channelId && A.channelId === B.channelId)
+    || (A.handle && B.handle && A.handle.toLowerCase() === B.handle.toLowerCase()));
+}
+// Suma lo de otro lado a lo tuyo sin borrar nada (al conectar por primera vez y al importar)
+function mergeInto(r) {
+  let n = 0;
+  (r.cats || []).forEach(k => { if (!db.cats.includes(k)) db.cats.push(k); });
+  (r.chans || []).forEach(c => {
+    if (!c || !c.platform || !c.ref) return;
+    if (!db.chans.some(x => sameCh(x, c))) { db.chans.push({ ...c, uid:c.uid || uid() }); n++; }
+  });
+  (r.radios || []).forEach(x => { if (x && x.url && !db.radios.some(y => y.url === x.url)) { db.radios.push(x); n++; } });
+  if (r.futbol) {
+    (r.futbol.leagues || []).forEach(l => { if (!db.futbol.leagues.includes(l)) db.futbol.leagues.push(l); });
+    (r.futbol.teams || []).forEach(t => { if (!db.futbol.teams.some(x => norm(x) === norm(t))) db.futbol.teams.push(t); });
+  }
+  if (r.news && r.news.setup && !db.news.setup) db.news = r.news;
+  if (r.velez && r.velez.streamCat && !db.velez.streamCat) db.velez = r.velez;
+  if (r.key && !db.key) db.key = r.key;
+  return n;
+}
+async function findGist() {
+  for (let p = 1; p <= 5; p++) {
+    const list = await gh(`/gists?per_page=100&page=${p}`);
+    const g = list.find(g => g.files && g.files[SYNC_FILE]);
+    if (g) return { id:g.id, created:false };
+    if (list.length < 100) break;
+  }
+  if (!db.updatedAt) db.updatedAt = Date.now();
+  const g = await gh('/gists', { method:'POST', body:JSON.stringify({
+    description:'Mi Centro de Streaming – sincronización (no borrar)', public:false,
+    files:{ [SYNC_FILE]:{ content:payload() } } }) });
+  return { id:g.id, created:true };
+}
+async function pull(firstTime = false) {
+  if (!db.sync.token) return;
+  try {
+    if (!db.sync.gistId) {
+      const f = await findGist();
+      db.sync.gistId = f.id; saveLocal();
+      if (f.created) { syncDone(); return; }
+      firstTime = true;
+    }
+    let g;
+    try { g = await gh('/gists/' + db.sync.gistId); }
+    catch (e) { if (e.status === 404) { db.sync.gistId = null; saveLocal(); return pull(true); } throw e; }
+    const f = g.files[SYNC_FILE];
+    if (!f) { await push(); return; }
+    const r = JSON.parse(f.truncated ? await (await fetch(f.raw_url)).text() : f.content);
+    if (firstTime) {
+      mergeInto(r); if (r.refresh) db.refresh = r.refresh;
+      db.updatedAt = Date.now(); saveLocal(); await push(); fireChange();
+    } else if ((r.updatedAt || 0) > (db.updatedAt || 0)) {
+      const D = DEFAULTS();
+      SYNC_KEYS.forEach(k => { db[k] = r[k] !== undefined ? r[k] : (db[k] ?? D[k]); });
+      db.updatedAt = r.updatedAt;
+      saveLocal(); fireChange();
+    } else if ((db.updatedAt || 0) > (r.updatedAt || 0)) {
+      await push();
+    }
+    syncDone();
+  } catch (e) { syncFail(e); }
+}
+async function push() {
+  if (!db.sync.token) return;
+  clearTimeout(pushTimer); pushTimer = null;
+  try {
+    if (!db.sync.gistId) { await pull(); return; }
+    await gh('/gists/' + db.sync.gistId, { method:'PATCH', body:JSON.stringify({ files:{ [SYNC_FILE]:{ content:payload() } } }) });
+    syncDone();
+  } catch (e) { syncFail(e); }
+}
+function schedulePush() { if (db.sync && db.sync.token) { clearTimeout(pushTimer); pushTimer = setTimeout(push, 1500); } }
+function syncDone() { syncInfo = { ok:true, at:new Date(), err:'' }; showSync(); }
+function syncFail(e) { syncInfo = { ok:false, at:new Date(), err: e instanceof TypeError ? 'Sin conexión con GitHub.' : e.message }; showSync(); }
+function showSync() {
+  const t = !db.sync.token ? '' : syncInfo.ok ? '☁ Sincronizado' : syncInfo.ok === false ? '☁ ⚠ ' + syncInfo.err : '☁ Conectando…';
+  $('sync').textContent = t;
+  $('sync').style.color = syncInfo.ok === false ? '#ffb020' : '';
+  const s = $('syncState');
+  if (s) { s.textContent = !db.sync.token ? 'No conectado: cada dispositivo tiene su propia lista.' : t; s.className = 'msg ' + (syncInfo.ok ? 'ok' : syncInfo.ok === false ? 'err' : ''); }
+}
+
+/* ---------- Avisos ---------- */
+function warn(t) { $('warns').innerHTML = `<div class="warn">${esc(t)}<button onclick="this.parentNode.remove()">OK</button></div>`; }
+function toast(html, { cls = '', ms = 9000, onclick } = {}) {
+  const d = document.createElement('div');
+  d.className = 'toast ' + cls; d.innerHTML = html;
+  d.onclick = () => { if (onclick) onclick(); d.remove(); };
+  $('toasts').appendChild(d);
+  while ($('toasts').children.length > 4) $('toasts').firstChild.remove();
+  setTimeout(() => d.remove(), ms);
+}
+// Sonido corto generado (no necesita archivos). El navegador lo habilita después de tu primer toque.
+let actx = null;
+document.addEventListener('pointerdown', () => { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); } catch {} }, { once:true });
+function beep() {
+  if (!actx) return;
+  const t = actx.currentTime;
+  [[880, 0], [1175, .16], [1568, .32]].forEach(([f, d]) => {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.frequency.value = f; o.type = 'triangle';
+    g.gain.setValueAtTime(0, t + d); g.gain.linearRampToValueAtTime(.25, t + d + .02); g.gain.exponentialRampToValueAtTime(.001, t + d + .35);
+    o.connect(g).connect(actx.destination); o.start(t + d); o.stop(t + d + .4);
+  });
+}
+
+/* ---------- Carga de librerías externas, una sola vez ---------- */
+const libs = {};
+function loadScript(src) {
+  if (!libs[src]) libs[src] = new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = src; s.async = true;
+    s.onload = () => res(); s.onerror = () => { delete libs[src]; rej(new Error('No cargó ' + src)); };
+    document.head.appendChild(s);
+  });
+  return libs[src];
+}

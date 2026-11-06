@@ -1,0 +1,17 @@
+{
+  "_ayuda": "Temas que GitHub junta cada 30 minutos desde Google Noticias. 'topic' usa las secciones de Google; 'q' es una búsqueda libre.",
+  "topics": [
+    { "id": "portada",      "label": "Portada",        "home": true },
+    { "id": "argentina",    "label": "Argentina",      "topic": "NATION" },
+    { "id": "deportes",     "label": "Deportes",       "topic": "SPORTS" },
+    { "id": "futbol",       "label": "Fútbol argentino", "q": "fútbol argentino Liga Profesional when:2d" },
+    { "id": "economia",     "label": "Economía",       "topic": "BUSINESS" },
+    { "id": "mundo",        "label": "Mundo",          "topic": "WORLD" },
+    { "id": "espectaculos", "label": "Espectáculos",   "topic": "ENTERTAINMENT" },
+    { "id": "tecnologia",   "label": "Tecnología",     "topic": "TECHNOLOGY" },
+    { "id": "ciencia",      "label": "Ciencia",        "topic": "SCIENCE" },
+    { "id": "salud",        "label": "Salud",          "topic": "HEALTH" },
+    { "id": "velez",        "label": "Vélez",          "q": "\"Vélez Sarsfield\" when:7d" },
+    { "id": "exvelez",      "label": "Ex-Vélez",       "q": "\"ex Vélez\" OR \"ex-Vélez\" OR \"exVélez\" when:14d" }
+  ]
+}
