@@ -48,7 +48,7 @@ const TV = (() => {
     // el grafismo va sobre toda la página (esquinas de la pantalla), no sobre el reproductor
     document.body.insertAdjacentHTML('beforeend', `<div class="hud" id="hud">
         <div class="hud-np" id="tvNp"></div>
-        <div class="hud-logo"><span class="f">FUN</span><span class="v">VS</span><i></i></div>
+        <div class="hud-logo"><img class="pet" src="img/vaca.jpg" alt=""><span class="f">FUN</span><span class="v">VS</span><i></i></div>
         <div class="hud-clock">
           <div class="hud-time" id="tvTime"></div>
           <div class="hud-date" id="tvDate"></div>
@@ -65,7 +65,7 @@ const TV = (() => {
       </div>`);
     // en la página: arriba, dentro del encabezado; abajo, una franja propia (como un canal de TV)
     document.querySelector('header .top').insertAdjacentHTML('afterbegin', '<div class="nph" id="npHead"></div>');
-    document.querySelector('header .top').insertAdjacentHTML('beforeend', '<div class="hlogo" id="hLogo"><span class="f">FUN</span><span class="v">VS</span><i></i></div>');
+    document.querySelector('header .top').insertAdjacentHTML('beforeend', '<div class="hlogo" id="hLogo"><img class="pet" src="img/vaca.jpg" alt=""><span class="f">FUN</span><span class="v">VS</span><i></i></div>');
     $('bottom').insertAdjacentHTML('beforeend', `<footer id="tvfoot">
         <div class="fclock"><div class="ftime" id="fTime"></div><div><div class="fdate" id="fDate"></div><div class="fwx" id="fWx"></div></div></div>
         <div class="fctl" id="fCtl"><button data-c="play" title="Pausa / seguir">❚❚</button><button data-c="mute" title="Silenciar">🔊</button>
@@ -176,7 +176,7 @@ const TV = (() => {
         <button class="tvart-play">${a.paused ? '▶' : '❚❚'}</button>
         <div class="eq big"><i></i><i></i><i></i><i></i><i></i></div>
         ${picks}`
-      : `<div class="tvart-logo idle"><span class="f">FUN</span><span class="v">VS</span></div>
+      : `<div class="tvart-logo idle"><img class="pet" src="img/vaca.jpg" alt=""><span class="f">FUN</span><span class="v">VS</span></div>
         <div class="tvart-name">¿Qué ponemos?</div>
         <div class="tvart-sub">Elegí una radio o un canal en vivo</div>
         ${picks || '<div class="tvart-sub">Guardá radios en la sección Radios o canales en Canales.</div>'}`;
