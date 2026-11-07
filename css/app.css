@@ -739,3 +739,40 @@ body.hudon:not(.tvlock) #tvfoot { display:flex; }
 .srcard:hover .sredit { opacity:1; }
 .srprog { height:4px; background:#ffffff1a; border-radius:2px; margin:7px 0 5px; overflow:hidden; } .srprog i { display:block; height:100%; background:#ffb020; }
 @media (max-width:800px) { .sredit { opacity:1; } }
+
+/* ===== Juegos ===== */
+.jghero { display:flex; gap:14px; align-items:center; margin-bottom:14px; }
+.jghero .jgi { font-size:42px; }
+.jghero h2 { margin:0; } .jghero p { color:var(--mut); margin:2px 0 0; font-size:14px; }
+.jgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:10px; }
+.jgcard { display:flex; flex-direction:column; align-items:flex-start; gap:4px; text-align:left; padding:16px; border-radius:12px; background:var(--panel); border:1px solid transparent; min-height:130px; }
+.jgcard:hover { border-color:var(--acc); }
+.jgcard .ic { font-size:30px; } .jgcard b { font-size:16px; } .jgcard span { font-size:13px; color:var(--mut); line-height:1.4; }
+.jgcard small { margin-top:auto; color:var(--acc); font-size:12px; }
+.jgback { margin-bottom:10px; }
+.jgbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+.jgbar h2 { margin:0; font-size:20px; } .jgsc { margin-left:auto; color:var(--mut); font-size:14px; } .jgsc b { color:var(--txt, #fff); font-size:18px; }
+.duels { display:flex; gap:12px; align-items:stretch; justify-content:center; }
+.duel { flex:1; max-width:320px; display:flex; flex-direction:column; align-items:center; gap:6px; padding:14px; border-radius:14px; background:var(--panel); border:2px solid transparent; text-align:center; }
+.duel:hover:not(:disabled) { border-color:var(--acc); transform:translateY(-2px); }
+.duel.ok { border-color:#2ecc71; } .duel.no { border-color:#e74c3c; opacity:.8; }
+.duel b { font-size:17px; } .duel span { font-size:12px; color:var(--mut); min-height:2.6em; }
+.dimg { width:130px; height:130px; border-radius:50%; background:#222 center/cover no-repeat; display:grid; place-items:center; font-size:50px; flex:none; }
+.dres { font-size:15px; font-weight:600; margin-top:4px; } .dres small { font-weight:400; color:var(--mut); }
+.vsx { align-self:center; font-family:Oswald, sans-serif; font-size:26px; color:var(--acc); }
+.jgmsg { text-align:center; margin:14px 0 10px; font-size:16px; }
+.qbox { background:var(--panel); border-radius:12px; padding:16px; max-width:720px; }
+.qclues { margin:0 0 12px; padding-left:22px; line-height:1.9; font-size:15px; }
+.qans { display:flex; gap:12px; align-items:center; margin-bottom:12px; } .qans .dimg { width:80px; height:80px; } .qans b { font-size:20px; }
+.dbq { font-size:18px; font-weight:600; margin-bottom:14px; line-height:1.4; }
+.dbopts { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+.dbo { padding:12px; border-radius:10px; text-align:left; border:2px solid transparent; }
+.dbo.ok { border-color:#2ecc71; background:rgba(46,204,113,.15); } .dbo.no { border-color:#e74c3c; background:rgba(231,76,60,.15); }
+.wrow { display:grid; grid-template-columns:auto 1fr; gap:8px 10px; align-items:center; margin-bottom:10px; }
+.wbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:var(--panel); padding:8px 12px; border-radius:10px; margin-bottom:6px; position:sticky; top:0; z-index:3; }
+.wclk { font-family:Oswald, sans-serif; font-size:20px; color:var(--acc); }
+.wpath { font-size:12px; color:var(--mut); margin:6px 0 10px; line-height:1.5; }
+.wart { max-width:820px; line-height:1.65; font-size:15px; }
+.wart h2 { font-size:26px; margin:6px 0 10px; } .wart h3 { margin:18px 0 6px; } .wart p { margin:0 0 10px; }
+.wart a { color:#6fb3ff; cursor:pointer; text-decoration:none; } .wart a:hover { text-decoration:underline; }
+@media (max-width:600px) { .duels { gap:6px; } .duel { padding:10px 6px; } .dimg { width:90px; height:90px; } .vsx { font-size:18px; } .dbopts { grid-template-columns:1fr; } }
