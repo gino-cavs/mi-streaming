@@ -2,9 +2,9 @@
    Navegación entre secciones, ajustes y arranque
    ========================================================= */
 const Nav = (() => {
-  const SECS = [['canales', '📺 Canales'], ['radios', '📻 Radios'], ['calendario', '📅 Calendario'], ['fulbito', '⚽ Fulbito'], ['prode', '🎯 Prode'], ['motor', '🏁 Automovilismo'], ['boxeo', '🥊 Boxeo'], ['musica', '🎵 Música'], ['rap', '🎤 Rap Battle'], ['420', '🍃 420 time'], ['momentos', '⭐ Momentos'], ['noticias', '📰 Noticias'], ['velez', '💙 Mundo Vélez'], ['wrapped', '✨ Wrapped']];
+  const SECS = [['canales', '📺 Canales'], ['radios', '📻 Radios'], ['calendario', '📅 Calendario'], ['fulbito', '⚽ Fulbito'], ['prode', '🎯 Prode'], ['motor', '🏁 Automovilismo'], ['boxeo', '🥊 Boxeo'], ['series', '📼 Series'], ['musica', '🎵 Música'], ['rap', '🎤 Rap Battle'], ['420', '🍃 420 time'], ['momentos', '⭐ Momentos'], ['noticias', '📰 Noticias'], ['velez', '💙 Mundo Vélez'], ['wrapped', '✨ Wrapped']];
   let current = null;
-  const renderers = { canales:() => Canales.render(), radios:() => Radio.render(), calendario:() => Calendario.render(), motor:() => Motor.render(), boxeo:() => Boxeo.render(), musica:() => Musica.render(), rap:() => Rap.render(), '420':() => T420.render(), prode:() => Prode.render(), momentos:() => Momentos.render(), wrapped:() => Stats.render(), fulbito:() => Fulbito.render(), noticias:() => Noticias.render(), velez:() => Velez.render() };
+  const renderers = { canales:() => Canales.render(), radios:() => Radio.render(), calendario:() => Calendario.render(), motor:() => Motor.render(), boxeo:() => Boxeo.render(), musica:() => Musica.render(), series:() => Series.render(), rap:() => Rap.render(), '420':() => T420.render(), prode:() => Prode.render(), momentos:() => Momentos.render(), wrapped:() => Stats.render(), fulbito:() => Fulbito.render(), noticias:() => Noticias.render(), velez:() => Velez.render() };
   function go(s) {
     if (!renderers[s]) s = 'canales';
     current = s;
@@ -17,7 +17,7 @@ const Nav = (() => {
   }
   function badges() {
     const n = { canales:Canales.liveCount(), fulbito:Fulbito.liveCount(), calendario:Calendario.liveCount(), motor:Motor.liveCount(), boxeo:Boxeo.liveCount(), prode:Prode.pendingCount() };
-    $('sections').innerHTML = SECS.map(([id, l]) => `<button data-s="${id}" class="${id === current ? 'on' : ''}">${l}${n[id] ? `<span class="cnt">${n[id]}</span>` : ''}</button>`).join('');
+    $('sections').innerHTML = SECS.map(([id, l]) => [id, id === 'series' ? Series.label() : l]).map(([id, l]) => `<button data-s="${id}" class="${id === current ? 'on' : ''}">${l}${n[id] ? `<span class="cnt">${n[id]}</span>` : ''}</button>`).join('');
   }
   function init() {
     badges();
@@ -82,7 +82,7 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------- Arranque ---------- */
 if (location.protocol === 'file:') warn('Estás abriendo el archivo desde la compu: Twitch y algunos datos solo andan con la página publicada (GitHub Pages).');
-Player.build(); TV.build(); Zap.init(); Calidad.init(); Canales.init(); Radio.init(); Fulbito.init(); Noticias.init(); Velez.init(); Calendario.init(); Motor.init(); Musica.init(); Prode.init(); Momentos.init(); Stats.init(); Rap.init(); T420.init(); Likes.init(); Boxeo.init();
+Player.build(); TV.build(); Zap.init(); Calidad.init(); Canales.init(); Radio.init(); Fulbito.init(); Noticias.init(); Velez.init(); Calendario.init(); Motor.init(); Musica.init(); Prode.init(); Momentos.init(); Stats.init(); Rap.init(); T420.init(); Likes.init(); Boxeo.init(); Series.init();
 $('btnLikeSetup').onclick = () => { $('dlgSet').close(); Likes.openSetup(); };
 $('btnDnd').onclick = () => DND.toggle(); DND.paint();
 initSettings(); Nav.init();

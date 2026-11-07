@@ -14,8 +14,8 @@ const Zap = (() => {
     const out = [];
     if (live.length) out.push(['🔴 En vivo ahora', live, 'live']);
     if (prem.length) out.push(['🎬 Estrenos ahora', prem, 'prem']);
-    db.cats.forEach(k => { const l = Canales.sortChans(db.chans.filter(c => c.cat === k && f(c))); if (l.length) out.push([k, l, 'c:' + k]); });
-    const sin = Canales.sortChans(db.chans.filter(c => !db.cats.includes(c.cat) && f(c))); if (sin.length) out.push(['Sin categoría', sin, 'c:']);
+    db.cats.forEach(k => { const l = Canales.byNum(db.chans.filter(c => c.cat === k && f(c))); if (l.length) out.push([k, l, 'c:' + k]); });
+    const sin = Canales.byNum(db.chans.filter(c => !db.cats.includes(c.cat) && f(c))); if (sin.length) out.push(['Sin categoría', sin, 'c:']);
     return out;
   }
   const playing = () => Player.slots.filter(Boolean).map(s => s.c.uid);
@@ -41,14 +41,19 @@ const Zap = (() => {
         ${list.map(c => { const s = Canales.status[c.uid] || {};
           return `<button class="zi ${now.has(c.uid) ? 'now' : ''} ${s.st === 'live' && !s.prem ? 'live' : ''}" data-z="${c.uid}" title="${esc(s.title || c.name)}">
             <span class="za" style="${c.avatar ? `background-image:url('${esc(c.avatar)}')` : `background:${PCOL[c.platform]}`}"></span>
-            <span class="zn">${esc(c.name)}${s.title && (s.st === 'live' || s.st === 'soon') ? `<em>${esc(s.title)}</em>` : ''}<small>${s.st === 'live' && s.prem ? '🎬 estreno' + (s.viewers ? ' · ' + s.viewers.toLocaleString('es-AR') : '') : s.st === 'live' ? '● en vivo' + (s.viewers ? ' · ' + s.viewers.toLocaleString('es-AR') : '') : s.st === 'soon' ? (s.prem ? '🎬 estreno ' : '🕒 ') + fmtH(s.when) : esc(c.platform)}</small></span></button>`; }).join('')}</div>`).join('')
-        : '<div class="mut" style="padding:12px;font-size:13px">Todavía no agregaste canales.</div>'}</div>`;
+            <span class="zn"><i class="znum">${Canales.numTxt(c)}</i>${esc(c.name)}${s.title && (s.st === 'live' || s.st === 'soon') ? `<em>${esc(s.title)}</em>` : ''}<small>${s.st === 'live' && s.prem ? '🎬 estreno' + (s.viewers ? ' · ' + s.viewers.toLocaleString('es-AR') : '') : s.st === 'live' ? '● en vivo' + (s.viewers ? ' · ' + s.viewers.toLocaleString('es-AR') : '') : s.st === 'soon' ? (s.prem ? '🎬 estreno ' : '🕒 ') + fmtH(s.when) : esc(c.platform)}</small></span></button>`; }).join('')}</div>`).join('')
+        : '<div class="mut" style="padding:12px;font-size:13px">Todavía no agregaste canales.</div>'}
+        ${Series.chans.length && !q ? `<div class="zgrp ${closed.has('s247') ? 'closed' : ''}"><button class="zgh" data-g="s247">${esc(Series.label())} 24/7 <span>${Series.chans.length}</span></button>
+          ${Series.chans.map(ch => { const n = Series.now(ch.id); return `<button class="zi ${now.has('s247_' + ch.id) ? 'now' : ''}" data-sr="${ch.id}"><span class="za" style="${n ? `background-image:url('https://i.ytimg.com/vi/${n.v}/default.jpg')` : 'background:#444'}"></span>
+            <span class="zn">${esc(ch.name)}${n ? `<em>${esc(n.t)}</em>` : ''}<small>● al aire 24/7</small></span></button>`; }).join('')}</div>` : ''}</div>`;
     const inp = $('zapQ');
     inp.oninput = () => { q = inp.value; const pos = inp.selectionStart; render(); $('zapQ').focus(); $('zapQ').setSelectionRange(pos, pos); };
     $('zapUp').onclick = () => step(-1); $('zapDn').onclick = () => step(1);
     z.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const g = b.dataset.g; closed.has(g) ? closed.delete(g) : closed.add(g); S.set('zapClosed', [...closed]); render(); });
     z.querySelectorAll('[data-z]').forEach(b => b.onclick = () => Player.play(db.chans.find(c => c.uid === b.dataset.z)));
+    z.querySelectorAll('[data-sr]').forEach(b => b.onclick = () => Series.play(b.dataset.sr));
   }
+  let digits = '', dTimer = null;
   function init() {
     $('zapToggle').onclick = () => { open = !open; S.set('zapOpen', open); render(); };
     // en la Pantalla TV, las flechas arriba/abajo cambian de canal (como el control remoto)
@@ -56,6 +61,11 @@ const Zap = (() => {
       if (!$('player').classList.contains('tvmode') || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
       if (e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); step(-1); }
       if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); step(1); }
+      if (/^[0-9]$/.test(e.key)) {
+        digits = (digits + e.key).slice(-3); clearTimeout(dTimer);
+        toast(`<b style="font-size:26px">${digits}</b>`, { cls:'info zapt', ms:1300 });
+        dTimer = setTimeout(() => { const c = db.chans.find(x => +x.num === +digits); digits = ''; if (c) Player.play(c); }, 1200);
+      }
     });
     onChange(render);
     render();
