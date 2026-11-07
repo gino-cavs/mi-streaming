@@ -1,10 +1,11 @@
-// Datos para "¿Jugó con?": jugadores que pasaron por clubes argentinos desde 2000, con cada etapa
-// (club, desde, hasta). Todo de Wikidata; se renueva una vez por semana.
+// Datos para "¿Jugó con?": jugadores que pasaron por clubes argentinos desde 2000, con cada etapa (club, desde, hasta).
+// Lista de jugadores, nombres y fotos: Wikidata. Trayectoria: la ficha ("Senior career") de Wikipedia en inglés,
+// que está mucho mejor cuidada que la de Wikidata. Se renueva una vez por semana.
 // Uso: node scripts/fetch-jugo.mjs carpeta_salida [usuario/repo]
 import { writeFile, mkdir } from 'node:fs/promises';
 const dir = process.argv[2] || '.', repo = process.argv[3] || 'klasito7/mi-streaming';
-const VER = 3;   // subir este número obliga a rearmar los datos
-const UA = { 'User-Agent':'FUNVS-juegos/1.0 (https://github.com/' + repo + ')', Accept:'application/sparql-results+json' };
+const VER = 4;   // subir este número obliga a rearmar los datos
+const UA = { 'User-Agent':'FUNVS-juegos/1.0 (https://github.com/' + repo + ')' };
 await mkdir(dir, { recursive:true });
 
 try {
@@ -12,90 +13,125 @@ try {
   if (prev && prev.v === VER && Date.now() - Date.parse(prev.updated) < 7 * 864e5 && prev.p?.length) { await writeFile(dir + '/jugo.json', JSON.stringify(prev)); console.log('Jugó con: reuso los datos de', prev.updated); process.exit(0); }
 } catch {}
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function q(sparql, label) {
   for (let i = 0; i < 3; i++) {
     try {
-      const r = await fetch('https://query.wikidata.org/sparql', { method:'POST', headers:{ ...UA, 'Content-Type':'application/x-www-form-urlencoded' }, body:'query=' + encodeURIComponent(sparql) });
+      const r = await fetch('https://query.wikidata.org/sparql', { method:'POST', headers:{ ...UA, Accept:'application/sparql-results+json', 'Content-Type':'application/x-www-form-urlencoded' }, body:'query=' + encodeURIComponent(sparql) });
       if (r.ok) { const j = await r.json(); console.log(label + ':', j.results.bindings.length, 'filas'); return j.results.bindings; }
       console.log(label, 'HTTP', r.status, (await r.text()).slice(0, 200));
     } catch (e) { console.log(label, e.message); }
-    await new Promise(r => setTimeout(r, 8000));
+    await sleep(8000);
   }
   return [];
 }
+async function wp(params) {
+  for (let i = 0; i < 3; i++) {
+    try {
+      const r = await fetch('https://en.wikipedia.org/w/api.php', { method:'POST', headers:{ ...UA, 'Content-Type':'application/x-www-form-urlencoded' },
+        body:new URLSearchParams({ format:'json', formatversion:'2', maxlag:'5', ...params }) });
+      if (r.ok) { const j = await r.json(); if (!j.error) return j; console.log('WP', j.error.code); }
+      else console.log('WP HTTP', r.status);
+    } catch (e) { console.log('WP', e.message); }
+    await sleep(5000);
+  }
+  return null;
+}
 const v = (b, k) => b[k] ? b[k].value : null;
 const id = u => u.split('/').pop();
-const yr = s => { if (!s || s.startsWith('-')) return null; const [y, m] = s.slice(0, 7).split('-'); return +y + (+m - 1) / 12; };
+const enTitle = u => decodeURIComponent(u.split('/wiki/').pop()).replace(/_/g, ' ');
 
-// 1) jugadores con alguna etapa en un club argentino que llegue a 2000 o después
-const rows = await q(`SELECT DISTINCT ?p ?sl WHERE {
-  ?club wdt:P17 wd:Q414. ?p p:P54 ?st. ?st ps:P54 ?club.
-  OPTIONAL { ?st pq:P580 ?s } OPTIONAL { ?st pq:P582 ?e }
-  FILTER(BOUND(?s) || BOUND(?e))
-  FILTER((BOUND(?e) && YEAR(?e) >= 2000) || (!BOUND(?e) && YEAR(?s) >= 1990))
-  ?p wdt:P106 wd:Q937857; wikibase:sitelinks ?sl. }`, 'Jugadores');
-const ids = [...new Map(rows.map(b => [id(v(b, 'p')), +v(b, 'sl')])).entries()];
-console.log('Jugadores distintos:', ids.length);
+// 1) clubes argentinos (los que tienen jugadores cargados), con su artículo en inglés
+const clubRows = await q(`SELECT DISTINCT ?club ?art ?es ?en WHERE {
+  ?p wdt:P106 wd:Q937857; wdt:P54 ?club. ?club wdt:P17 wd:Q414.
+  ?art schema:about ?club; schema:isPartOf <https://en.wikipedia.org/>.
+  OPTIONAL { ?club rdfs:label ?es FILTER(LANG(?es) = "es") } OPTIONAL { ?club rdfs:label ?en FILTER(LANG(?en) = "en") } }`, 'Clubes argentinos');
+const short = n => n.replace(/^(Club Atlético y Social|Club Social y Atlético|Club Social y Deportivo|Club Atlético|Club Deportivo|Asociación Atlética|Asociación Mutual Social y Deportiva|Corporación|Club)\s+/i, '').replace(/\s+\(.*\)$/, '').replace(/^de\s+/i, '');
+const clubByTitle = new Map();   // título en inglés -> nombre corto en castellano
+for (const b of clubRows) {
+  const n = v(b, 'es') || v(b, 'en'); if (!n || /reserva|juvenil|femenin|women|\bB\b/i.test(n)) continue;
+  clubByTitle.set(enTitle(v(b, 'art')), short(n));
+}
+console.log('Clubes con artículo:', clubByTitle.size);
 
-// 2) todas sus etapas (también afuera, para saber cuándo se fueron de un club argentino) + nombre
-const players = new Map();   // id -> { n, sl, sp:[{c, arg, s, e}] }
-const clubs = new Map();     // id -> nombre
-for (const [k, sl] of ids) players.set(k, { n:null, sl, sp:[] });
-for (let i = 0; i < ids.length; i += 250) {
-  const vals = ids.slice(i, i + 250).map(([k]) => 'wd:' + k).join(' ');
-  for (const b of await q(`SELECT ?p ?club ?s ?e ?arg ?nat WHERE { VALUES ?p { ${vals} }
-      ?p p:P54 ?st. ?st ps:P54 ?club. OPTIONAL { ?st pq:P580 ?s } OPTIONAL { ?st pq:P582 ?e }
-      BIND(EXISTS { ?club wdt:P17 wd:Q414 } AS ?arg) BIND(EXISTS { ?club wdt:P31/wdt:P279* wd:Q6979593 } AS ?nat) }`, 'Etapas ' + i)) {
-    if (v(b, 'nat') === 'true') continue;
+// 2) jugadores que alguna vez jugaron en un club argentino, nacidos desde 1962, con artículo en inglés
+const rows = await q(`SELECT DISTINCT ?p ?art ?sl ?b WHERE {
+  ?club wdt:P17 wd:Q414. ?p wdt:P54 ?club; wdt:P106 wd:Q937857; wdt:P569 ?b; wikibase:sitelinks ?sl.
+  FILTER(YEAR(?b) >= 1962) ?art schema:about ?p; schema:isPartOf <https://en.wikipedia.org/>. }`, 'Jugadores');
+const players = new Map();
+for (const b of rows) { const k = id(v(b, 'p')); if (!players.has(k)) players.set(k, { title:enTitle(v(b, 'art')), sl:+v(b, 'sl'), b:+v(b, 'b').slice(0, 4), n:null, img:null, sp:[] }); }
+console.log('Jugadores distintos:', players.size);
+const ids = [...players.keys()];
+for (let i = 0; i < ids.length; i += 300) {
+  const vals = ids.slice(i, i + 300).map(k => 'wd:' + k).join(' ');
+  for (const b of await q(`SELECT ?p ?n ?img WHERE { VALUES ?p { ${vals} } OPTIONAL { ?p wdt:P18 ?img }
+      OPTIONAL { ?p rdfs:label ?es FILTER(LANG(?es) = "es") } OPTIONAL { ?p rdfs:label ?en FILTER(LANG(?en) = "en") } BIND(COALESCE(?es, ?en) AS ?n) }`, 'Nombres ' + i)) {
     const pl = players.get(id(v(b, 'p'))); if (!pl) continue;
-    pl.sp.push({ c:id(v(b, 'club')), arg:v(b, 'arg') === 'true', s:yr(v(b, 's')), e:yr(v(b, 'e')) });
+    if (v(b, 'n')) pl.n = v(b, 'n'); if (v(b, 'img') && !pl.img) pl.img = decodeURIComponent(v(b, 'img').split('/').pop());
   }
-  for (const b of await q(`SELECT ?p ?n ?b ?img WHERE { VALUES ?p { ${vals} } OPTIONAL { ?p wdt:P569 ?b } OPTIONAL { ?p wdt:P18 ?img } OPTIONAL { ?p rdfs:label ?es FILTER(LANG(?es) = "es") } OPTIONAL { ?p rdfs:label ?en FILTER(LANG(?en) = "en") } BIND(COALESCE(?es, ?en) AS ?n) }`, 'Nombres ' + i)) {
-    const pl = players.get(id(v(b, 'p'))); if (pl && v(b, 'n')) pl.n = v(b, 'n'); if (pl && v(b, 'b')) pl.b = yr(v(b, 'b')); if (pl && v(b, 'img') && !pl.img) pl.img = decodeURIComponent(v(b, 'img').split('/').pop());
-  }
-}
-// nombres de los clubes argentinos
-const argClubs = [...new Set([...players.values()].flatMap(p => p.sp.filter(s => s.arg).map(s => s.c)))];
-for (let i = 0; i < argClubs.length; i += 300) {
-  for (const b of await q(`SELECT ?c ?n WHERE { VALUES ?c { ${argClubs.slice(i, i + 300).map(c => 'wd:' + c).join(' ')} } OPTIONAL { ?c rdfs:label ?es FILTER(LANG(?es) = "es") } OPTIONAL { ?c rdfs:label ?en FILTER(LANG(?en) = "en") } BIND(COALESCE(?es, ?en) AS ?n) }`, 'Clubes'))
-    if (v(b, 'n')) clubs.set(id(v(b, 'c')), v(b, 'n'));
 }
 
-// 3) completar las fechas que faltan: si no dice hasta cuándo, se toma hasta la siguiente etapa (o hasta hoy si es la última)
-const NOW = new Date().getFullYear() + new Date().getMonth() / 12;
-const out = { v:VER, updated:new Date().toISOString(), p:[], c:[], s:[] };
-const ci = new Map(), short = n => n.replace(/^(Club Atlético|Club Social y Deportivo|Club Deportivo|Asociación Atlética|Club Atlético y Social|Club Social y Atlético|Club|Asociación Mutual Social y Deportiva|Corporación)\s+/i, '').replace(/\s+\(.*\)$/, '').replace(/^de\s+/i, '');
-for (const pl of players.values()) {
-  if (!pl.n || /^Q\d+$/.test(pl.n)) continue;
-  const sp = pl.sp.filter(s => s.s != null || s.e != null).sort((a, b) => (a.s ?? a.e) - (b.s ?? b.e));
-  const mine = [];
-  sp.forEach((s, i) => {
-    if (!s.arg || !clubs.has(s.c)) return;
-    if (/reserva|juvenil|sub-?\d|\bB\b/i.test(clubs.get(s.c))) return;
-    let st = s.s, en = s.e;
-    if (en == null) { const nx = sp.slice(i + 1).find(x => (x.s ?? x.e) > st); en = nx ? (nx.s ?? nx.e) : (NOW - st < 25 ? NOW : null); }
-    // sin fecha de retiro en Wikidata: como mucho hasta los 38 años
-    if (en != null && pl.b && en > pl.b + 38) en = Math.max(st ?? 0, pl.b + 38);
-    if (st == null) { const pv = sp.slice(0, i).reverse().find(x => (x.e ?? x.s) != null); st = pv ? (pv.e ?? pv.s) : null; }
-    if (st == null || en == null || en < 2000 || en <= st) return;
-    // préstamos: los ratos en que estuvo en otro club no cuentan como etapa en este
-    let segs = [[st, en]];
-    for (const o of sp) {
-      if (o === s) continue;
-      const os = o.s, oe = o.e ?? (os != null ? os + 1 : null); if (os == null || oe == null) continue;
-      if (os <= st + 0.05 && oe >= en - 0.05) continue;            // otra etapa que lo cubre entera: dato raro, se ignora
-      segs = segs.flatMap(([a, b]) => os >= b || oe <= a ? [[a, b]] : [[a, os], [oe, b]].filter(([x, y]) => y - x > 0.05));
+// 3) la ficha de Wikipedia en inglés de cada uno: years1/clubs1, years2/clubs2…
+const byTitle = new Map([...players.values()].map(p => [p.title, p]));
+const linkTargets = new Set();
+const titles = [...byTitle.keys()];
+let fichas = 0;
+for (let i = 0; i < titles.length; i += 50) {
+  const j = await wp({ action:'query', prop:'revisions', rvprop:'content', rvslots:'main', redirects:'1', titles:titles.slice(i, i + 50).join('|') });
+  if (!j) continue;
+  const back = new Map(); for (const x of [...(j.query.normalized || []), ...(j.query.redirects || [])]) back.set(x.to, x.from);
+  for (const pg of j.query.pages) {
+    let t = pg.title; while (!byTitle.has(t) && back.has(t)) t = back.get(t);
+    const pl = byTitle.get(t); const txt = pg.revisions?.[0]?.slots?.main?.content; if (!pl || !txt) continue;
+    // la ficha está antes del texto (que empieza con el nombre en negrita); "youthyears" y "nationalyears" no matchean con "| years"
+    const cut = txt.indexOf("\n'''"), box = txt.slice(0, cut > 0 ? cut : 15000).replace(/\{\{\s*(snd|ndash|spaced ndash)\s*\}\}|&ndash;/gi, '–');
+    const years = {}, clubs = {};
+    for (const m of box.matchAll(/\|\s*years(\d+)\s*=\s*([^\n|]*)/g)) years[m[1]] = m[2];
+    for (const m of box.matchAll(/\|\s*clubs(\d+)\s*=\s*([^\n]*)/g)) clubs[m[1]] = m[2];
+    for (const k of Object.keys(clubs)) {
+      const link = clubs[k].match(/\[\[([^\]|#]+)/); const y = (years[k] || '').match(/(\d{4})\s*(?:([–—-])\s*(\d{4})?)?/);
+      if (!link || !y) continue;
+      const s = +y[1], e = y[3] ? +y[3] : y[2] ? null : s;            // "2016–" = sigue (o se retiró ahí)
+      pl.sp.push({ t:link[1].trim(), s, e, loan:/→|\(loan\)/i.test(clubs[k]) });
+      linkTargets.add(link[1].trim());
     }
-    for (const [a, b] of segs) if (b >= 2000) mine.push([s.c, Math.round(a * 100) / 100, Math.round(b * 100) / 100]);
+    if (pl.sp.length) fichas++;
+  }
+  await sleep(300);
+}
+console.log('Fichas con trayectoria:', fichas);
+
+// 4) los links de la ficha a veces apuntan a redirecciones: los llevo al título real
+const canon = new Map(), lt = [...linkTargets];
+for (let i = 0; i < lt.length; i += 50) {
+  const j = await wp({ action:'query', redirects:'1', titles:lt.slice(i, i + 50).join('|') }); if (!j) continue;
+  const fwd = new Map(); for (const x of [...(j.query.normalized || []), ...(j.query.redirects || [])]) fwd.set(x.from, x.to);
+  for (const t of lt.slice(i, i + 50)) { let c = t, n = 0; while (fwd.has(c) && n++ < 3) c = fwd.get(c); canon.set(t, c); }
+  await sleep(200);
+}
+
+// 5) etapas: los años de la ficha se toman de mitad de año a mitad de año; los préstamos se descuentan del club dueño del pase
+const NOW = new Date().getFullYear() + new Date().getMonth() / 12;
+const out = { v:VER, updated:new Date().toISOString(), p:[], c:[], s:[] }, ci = new Map();
+for (const pl of players.values()) {
+  if (!pl.n || /^Q\d+$/.test(pl.n) || !pl.sp.length) continue;
+  const sp = pl.sp.map((x, i) => {
+    let st = x.s === x.e ? x.s : x.s + 0.5, en = x.e == null ? null : x.s === x.e ? x.s + 1 : x.e + 0.5;
+    if (en == null) { const nx = pl.sp.slice(i + 1).find(o => o.s >= x.s); en = nx ? nx.s + 0.5 : Math.min(NOW, pl.b + 40); }
+    return { ...x, club:clubByTitle.get(canon.get(x.t) || x.t), st, en };
   });
+  const mine = [];
+  for (const s of sp) {
+    if (!s.club || s.en <= s.st) continue;
+    let segs = [[s.st, s.en]];
+    for (const o of sp) if (o !== s && o.loan && !s.loan) segs = segs.flatMap(([a, b]) => o.st >= b || o.en <= a ? [[a, b]] : [[a, o.st], [o.en, b]].filter(([x, y]) => y - x > 0.05));
+    for (const [a, b] of segs) if (b > 2000) mine.push([s.club, a, b]);
+  }
   if (!mine.length) continue;
   const pi = out.p.length; out.p.push(pl.img ? [pl.n, pl.sl, pl.img] : [pl.n, pl.sl]);
-  for (const [c, st, en] of mine) {
-    if (!ci.has(c)) { ci.set(c, out.c.length); out.c.push(short(clubs.get(c))); }
-    out.s.push([pi, ci.get(c), st, en]);
-  }
+  for (const [c, a, b] of mine) { if (!ci.has(c)) { ci.set(c, out.c.length); out.c.push(c); } out.s.push([pi, ci.get(c), Math.round(a * 100) / 100, Math.round(b * 100) / 100]); }
 }
-for (const n of ['Javier Pastore', 'Juan Carlos Olave', 'Lucas Pratto', 'Mario Bolatti', 'Leandro Somoza', 'Lucas Biglia']) {
+for (const n of ['Mariano Pavone', 'Javier Pastore', 'Juan Carlos Olave', 'Mario Bolatti', 'Lucas Pratto', 'Leandro Somoza']) {
   const i = out.p.findIndex(p => p[0] === n);
   console.log(n, i < 0 ? 'NO ESTÁ' : out.s.filter(s => s[0] === i).map(s => `${out.c[s[1]]} ${s[2]}-${s[3]}`).join(' | '));
 }
