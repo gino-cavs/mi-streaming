@@ -3,7 +3,7 @@
 // Uso: node scripts/fetch-jugo.mjs carpeta_salida [usuario/repo]
 import { writeFile, mkdir } from 'node:fs/promises';
 const dir = process.argv[2] || '.', repo = process.argv[3] || 'gino-cavs/mi-streaming';
-const VER = 2;   // subir este número obliga a rearmar los datos
+const VER = 3;   // subir este número obliga a rearmar los datos
 const UA = { 'User-Agent':'FUNVS-juegos/1.0 (https://github.com/' + repo + ')', Accept:'application/sparql-results+json' };
 await mkdir(dir, { recursive:true });
 
@@ -50,8 +50,8 @@ for (let i = 0; i < ids.length; i += 250) {
     const pl = players.get(id(v(b, 'p'))); if (!pl) continue;
     pl.sp.push({ c:id(v(b, 'club')), arg:v(b, 'arg') === 'true', s:yr(v(b, 's')), e:yr(v(b, 'e')) });
   }
-  for (const b of await q(`SELECT ?p ?n ?b WHERE { VALUES ?p { ${vals} } OPTIONAL { ?p wdt:P569 ?b } OPTIONAL { ?p rdfs:label ?es FILTER(LANG(?es) = "es") } OPTIONAL { ?p rdfs:label ?en FILTER(LANG(?en) = "en") } BIND(COALESCE(?es, ?en) AS ?n) }`, 'Nombres ' + i)) {
-    const pl = players.get(id(v(b, 'p'))); if (pl && v(b, 'n')) pl.n = v(b, 'n'); if (pl && v(b, 'b')) pl.b = yr(v(b, 'b'));
+  for (const b of await q(`SELECT ?p ?n ?b ?img WHERE { VALUES ?p { ${vals} } OPTIONAL { ?p wdt:P569 ?b } OPTIONAL { ?p wdt:P18 ?img } OPTIONAL { ?p rdfs:label ?es FILTER(LANG(?es) = "es") } OPTIONAL { ?p rdfs:label ?en FILTER(LANG(?en) = "en") } BIND(COALESCE(?es, ?en) AS ?n) }`, 'Nombres ' + i)) {
+    const pl = players.get(id(v(b, 'p'))); if (pl && v(b, 'n')) pl.n = v(b, 'n'); if (pl && v(b, 'b')) pl.b = yr(v(b, 'b')); if (pl && v(b, 'img') && !pl.img) pl.img = decodeURIComponent(v(b, 'img').split('/').pop());
   }
 }
 // nombres de los clubes argentinos
@@ -89,7 +89,7 @@ for (const pl of players.values()) {
     for (const [a, b] of segs) if (b >= 2000) mine.push([s.c, Math.round(a * 100) / 100, Math.round(b * 100) / 100]);
   });
   if (!mine.length) continue;
-  const pi = out.p.length; out.p.push([pl.n, pl.sl]);
+  const pi = out.p.length; out.p.push(pl.img ? [pl.n, pl.sl, pl.img] : [pl.n, pl.sl]);
   for (const [c, st, en] of mine) {
     if (!ci.has(c)) { ci.set(c, out.c.length); out.c.push(short(clubs.get(c))); }
     out.s.push([pi, ci.get(c), st, en]);
@@ -100,4 +100,4 @@ for (const n of ['Javier Pastore', 'Juan Carlos Olave', 'Lucas Pratto', 'Mario B
   console.log(n, i < 0 ? 'NO ESTÁ' : out.s.filter(s => s[0] === i).map(s => `${out.c[s[1]]} ${s[2]}-${s[3]}`).join(' | '));
 }
 await writeFile(dir + '/jugo.json', JSON.stringify(out));
-console.log(`Jugó con: ${out.p.length} jugadores, ${out.c.length} clubes, ${out.s.length} etapas`);
+console.log(`Jugó con: ${out.p.length} jugadores (${out.p.filter(p => p[2]).length} con foto), ${out.c.length} clubes, ${out.s.length} etapas`);
