@@ -257,25 +257,31 @@ const Juegos = (() => {
   function wiki(v) {
     const W = state;
     if (!W.phase) {
-      const noChili = data && data.wiki && data.wiki['Chili Parker'] === null;   // todavía no tiene artículo en Wikipedia
-      W.from = W.from || 'Flavio Mendoza'; W.to = W.to || (noChili ? 'Aczino' : 'Chili Parker');
+      W.from = W.from || ''; W.to = W.to || '';
       const recs = Object.entries(J().wiki).sort((a, b) => b[1].at - a[1].at).slice(0, 8);
       v.innerHTML = `${back()}<div class="jgbar"><h2>🏁 Wikirace</h2></div>
         <div class="qbox"><p class="mut" style="margin-bottom:10px">Llegá de un artículo de Wikipedia al otro tocando solo los links, lo más rápido posible. Sin buscador.</p>
-          ${noChili && W.to === 'Aczino' ? `<p class="mut" style="margin-bottom:10px;font-size:13px">🎤 Chili Parker (ni la Liga Bazooka) tienen artículo en Wikipedia en español todavía, así que la llegada por defecto es Aczino, su rival en la Liga Bazooka. Cuando aparezca el artículo, cambia solo.</p>` : ''}
-          <div class="wrow"><label>Salida</label><input id="wFrom" value="${esc(W.from)}"><label>Llegada</label><input id="wTo" value="${esc(W.to)}"></div>
-          <div class="btns"><button id="wRand">🎲 Carrera al azar</button><span class="sp"></span><button class="pri" id="wGo">¡Largar! 🏁</button></div>
+          <div class="wrow"><label>Salida</label><input id="wFrom" list="wSugF" autocomplete="off" placeholder="Cualquier persona o tema…" value="${esc(W.from)}"><label>Llegada</label><input id="wTo" list="wSugT" autocomplete="off" placeholder="Cualquier persona o tema…" value="${esc(W.to)}"></div>
+          <datalist id="wSugF"></datalist><datalist id="wSugT"></datalist>
+          <div class="btns"><button id="wRand">🎲 Carrera al azar</button><button id="wSwap">⇄ Dar vuelta</button><span class="sp"></span><button class="pri" id="wGo">¡Largar! 🏁</button></div>
           <div class="msg" id="wMsg"></div></div>
-        ${recs.length ? `<h2 class="sec" style="margin-top:14px">🏆 Tus mejores tiempos</h2><div class="news">${recs.map(([k, r]) => `<div class="nitem"><b>${esc(k)}</b><span>${r.secs} s · ${r.clicks} clics</span></div>`).join('')}</div>` : ''}`;
+        ${recs.length ? `<h2 class="sec" style="margin-top:14px">🏆 Tus mejores tiempos</h2><div class="news">${recs.map(([k, r]) => `<button class="nitem wrec" data-k="${esc(k)}" style="width:100%;text-align:left"><b>${esc(k)}</b><span>${r.secs} s · ${r.clicks} clics · tocá para correrla de nuevo</span></button>`).join('')}</div>` : ''}`;
       bindBack();
+      // sugerencias de Wikipedia mientras escribís
+      [['wFrom', 'wSugF'], ['wTo', 'wSugT']].forEach(([inp, dl]) => { let t; $(inp).oninput = () => { clearTimeout(t); const q = $(inp).value.trim(); if (q.length < 2) return; t = setTimeout(async () => {
+        try { const j = await (await fetch(API + 'action=opensearch&namespace=0&limit=8&search=' + encodeURIComponent(q))).json(); if ($(dl)) $(dl).innerHTML = (j[1] || []).map(x => `<option value="${esc(x)}">`).join(''); } catch {} }, 250); }; });
+      $('wSwap').onclick = () => { const f = $('wFrom').value; $('wFrom').value = $('wTo').value; $('wTo').value = f; };
+      v.querySelectorAll('.wrec').forEach(b => b.onclick = () => { const [f, t] = b.dataset.k.split(' → '); $('wFrom').value = f; $('wTo').value = t; $('wGo').click(); });
       $('wRand').onclick = async () => { $('wMsg').textContent = 'Buscando artículos al azar…'; try { $('wFrom').value = await randomTitle(); $('wTo').value = await randomTitle(); $('wMsg').textContent = ''; } catch { $('wMsg').textContent = 'No pude conectar con Wikipedia.'; } };
       $('wGo').onclick = async () => {
         const m = $('wMsg'); m.className = 'msg'; m.textContent = 'Revisando los artículos…';
         try {
+          if (!$('wFrom').value.trim() || !$('wTo').value.trim()) { m.className = 'msg err'; m.textContent = 'Elegí la salida y la llegada (o tocá 🎲).'; return; }
           const [a, b] = await Promise.all([resolve($('wFrom').value.trim()), resolve($('wTo').value.trim())]);
+          if (a && b && a === b) { m.className = 'msg err'; m.textContent = 'La salida y la llegada son el mismo artículo 😅'; return; }
           if (!a || !b) {
             m.className = 'msg err';
-            m.innerHTML = `${!a ? `“${esc($('wFrom').value)}”` : `“${esc($('wTo').value)}”`} no tiene artículo en Wikipedia en español. Probá con otro${!b && /chili parker|bazooka/i.test($('wTo').value) ? ' (por ejemplo “Aczino”)' : ''}.`;
+            m.innerHTML = `${!a ? `“${esc($('wFrom').value)}”` : `“${esc($('wTo').value)}”`} no tiene artículo en Wikipedia en español. Probá con otro nombre o elegí una de las sugerencias.`;
             return;
           }
           Object.assign(W, { phase:'run', from:a, to:b, path:[a], t0:Date.now(), clicks:0 }); render(); go(a);
