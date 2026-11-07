@@ -92,7 +92,7 @@ const Stats = (() => {
     v.innerHTML = `
       <div class="subbar"><div class="tabs">${qs.map(k => `<button data-q="${k}" class="${k === sel ? 'on' : ''}">${esc(qName(k))}</button>`).join('')}</div>
         <button class="pri" id="wPlay">▶ Ver mi Wrapped</button></div>
-      <div class="whero"><div class="wlogo"><span class="f">FUN</span><span class="v">VS</span></div><div><b>WRAPPED</b><div>${esc(qName(sel))} · ${esc(qMonths(sel))}${isCur ? ' · <i>en curso</i>' : ''}</div></div></div>
+      <div class="whero"><div class="wlogo"><img class="pet" src="img/vaca.jpg" alt=""><span class="f">FUN</span><span class="v">VS</span></div><div><b>WRAPPED</b><div>${esc(qName(sel))} · ${esc(qMonths(sel))}${isCur ? ' · <i>en curso</i>' : ''}</div></div></div>
       <div class="wgrid">
         <div class="wcard"><div class="wk">Tiempo total</div><div class="wn">${hrs(tot)}</div><div class="mut">${Object.keys(d.days).length} días usando FUNVS</div></div>
         <div class="wcard"><div class="wk">Prode + Llave</div><div class="wn">${P.pts} pts</div><div class="mut">${P.exact} exacto${P.exact === 1 ? "" : "s"} · ${P.goals} goleador${P.goals === 1 ? "" : "es"}</div></div>
