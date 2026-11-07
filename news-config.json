@@ -114,6 +114,24 @@
       "label": "Jorge Martín",
       "q": "\"Jorge Martín\" MotoGP when:7d",
       "hidden": true
+    },
+    {
+      "id": "box-bdp",
+      "label": "Boxeo de Primera",
+      "q": "\"Boxeo de Primera\" OR \"BDP Promocional\" when:10d",
+      "hidden": true
+    },
+    {
+      "id": "box-ar",
+      "label": "Boxeo argentino",
+      "q": "boxeo argentino when:5d",
+      "hidden": true
+    },
+    {
+      "id": "box-mundo",
+      "label": "Boxeo mundial",
+      "q": "boxeo título mundial when:4d",
+      "hidden": true
     }
   ]
 }
