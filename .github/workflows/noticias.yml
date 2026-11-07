@@ -18,7 +18,7 @@ concurrency:
 jobs:
   noticias:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -37,6 +37,10 @@ jobs:
       - name: Boxeo de Primera (TyC Sports)
         continue-on-error: true
         run: node scripts/fetch-boxeo.mjs /tmp/datos
+      - name: Datos para Juegos (Wikidata, una vez por semana)
+        continue-on-error: true
+        timeout-minutes: 6
+        run: node scripts/fetch-juegos.mjs /tmp/datos "$GITHUB_REPOSITORY"
       - name: Publicar en la rama "datos"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
