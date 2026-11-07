@@ -348,6 +348,7 @@ const Juegos = (() => {
     return G;
   }
   const yy = x => Math.floor(x);
+  const foto = (i, cls = 'jph') => { const f = G.d.p[i][2]; return `<span class="${cls}" ${f ? `style="background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(f)}?width=160')"` : ''}>${f ? '' : '👤'}</span>`; };
   const span = (a, b) => yy(a) === yy(b - 0.01) ? '' + yy(a) : `${yy(a)}–${yy(b - 0.01)}`;
   const linkTxt = l => `${G.d.c[l[0]]} (${span(l[1], l[2])})`;
   function bfs(a, b) {
@@ -396,10 +397,10 @@ const Juegos = (() => {
     v.innerHTML = `${back()}
       <div class="jgbar"><h2>🤝 ¿Jugó con?</h2><div class="chips" style="margin:0"><button id="jNew">🎲 Otro par</button><button id="jPick">✍️ Elegir yo</button></div>
         <span class="jgsc">Resueltas <b>${J().rec.jugo || 0}</b></span></div>
-      <div class="jvs"><b>${esc(P(st.chain[0]))}</b><span>→ ¿? →</span><b>${esc(P(st.to))}</b></div>
+      <div class="jvs"><div class="jvp">${foto(st.chain[0], 'jph big')}<b>${esc(P(st.chain[0]))}</b></div><span>→ ¿? →</span><div class="jvp">${foto(st.to, 'jph big')}<b>${esc(P(st.to))}</b></div></div>
       <div class="qbox">
-        <ol class="jchain">${st.chain.map((p, i) => `<li><b>${esc(P(p))}</b>${i ? `<small>${st.links[i - 1] ? 'jugaron juntos en ' + esc(linkTxt(st.links[i - 1])) : st.shown && i === st.chain.length - 1 ? '🏳️' : '✋ validado por vos'}</small>` : ''}</li>`).join('')}
-          ${done ? '' : `<li class="jto"><b>${esc(P(st.to))}</b><small>🎯 meta</small></li>`}</ol>
+        <ol class="jchain">${st.chain.map((p, i) => `<li>${foto(p)}<div><b>${esc(P(p))}</b>${i ? `<small>${st.links[i - 1] ? 'jugaron juntos en ' + esc(linkTxt(st.links[i - 1])) : st.shown && i === st.chain.length - 1 ? '🏳️' : '✋ validado por vos'}</small>` : ''}</div></li>`).join('')}
+          ${done ? '' : `<li class="jto">${foto(st.to)}<div><b>${esc(P(st.to))}</b><small>🎯 meta</small></div></li>`}</ol>
         ${done ? `<div class="jgmsg">${st.msg}</div>
             ${st.shown ? '' : best && best.length < st.chain.length ? `<p class="mut" style="text-align:center">El camino más corto era: ${best.map(i => esc(P(i))).join(' → ')}</p>` : ''}
             <div class="btns" style="justify-content:center"><button class="pri" id="jNew2">🎲 Otro par</button></div>`
