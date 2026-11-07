@@ -697,3 +697,4 @@ body.hudon:not(.tvlock) #tvfoot { display:flex; }
 }
 .likebtn.on { background:#1238b5; border-color:#2f6bff; color:#fff; font-weight:700; }
 #musicbar .likebtn { font-size:13px; }
+.badge.prem { background:#7b2fff; color:#fff; }

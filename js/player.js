@@ -123,7 +123,7 @@ const Player = (() => {
         p.addEventListener(Twitch.Player.READY, () => { if (s.audio) setAudioQuality(s, true); else Calidad.applyTwitch(p); });
         p.addEventListener(Twitch.Player.PLAY, () => { if (!s.mutedByApp) AudioMgr.focus(sid); });
         AudioMgr.register(sid, { mute() { p.setMuted(true); setMutedUI(true); }, unmute() { p.setMuted(false); setMutedUI(false); },
-          label:() => s.c.name, live:() => (Canales.status[s.c.uid] || {}).st === 'live',
+          label:() => s.c.name, live:() => { const x = Canales.status[s.c.uid] || {}; return x.st === 'live' && !x.prem; }, prem:() => !!(Canales.status[s.c.uid] || {}).prem && (Canales.status[s.c.uid] || {}).st === 'live',
           paused:() => p.isPaused(), toggle:() => p.isPaused() ? p.play() : p.pause(),
           muted:() => p.getMuted(), getVol:() => p.getVolume(), setVol:v => { p.setVolume(v); if (v > 0 && p.getMuted()) AudioMgr.focus(sid); } });
       }).catch(() => { vw.innerHTML = `<iframe src="${s.e.v}" allow="autoplay; fullscreen" allowfullscreen></iframe>`; });
@@ -144,7 +144,7 @@ const Player = (() => {
         } } });
         s.api = { p, destroy() {} };
         AudioMgr.register(sid, { mute() { try { p.mute(); } catch {} setMutedUI(true); }, unmute() { try { p.unMute(); } catch {} setMutedUI(false); },
-          label:() => s.c.name, live:() => (Canales.status[s.c.uid] || {}).st === 'live',
+          label:() => s.c.name, live:() => { const x = Canales.status[s.c.uid] || {}; return x.st === 'live' && !x.prem; }, prem:() => !!(Canales.status[s.c.uid] || {}).prem && (Canales.status[s.c.uid] || {}).st === 'live',
           paused:() => { try { return p.getPlayerState() !== 1; } catch { return false; } },
           toggle:() => { try { p.getPlayerState() === 1 ? p.pauseVideo() : p.playVideo(); } catch {} },
           muted:() => { try { return p.isMuted(); } catch { return false; } },
@@ -158,7 +158,7 @@ const Player = (() => {
       AudioMgr.register(sid, {
         mute() { if (!s.mutedByApp) { f.src = s.e.v + '&muted=true'; setMutedUI(true); } },
         unmute() { if (s.mutedByApp) { f.src = s.e.v + '&muted=false'; setMutedUI(false); } }
-        , label:() => s.c.name, live:() => (Canales.status[s.c.uid] || {}).st === 'live', muted:() => s.mutedByApp
+        , label:() => s.c.name, live:() => { const x = Canales.status[s.c.uid] || {}; return x.st === 'live' && !x.prem; }, prem:() => !!(Canales.status[s.c.uid] || {}).prem && (Canales.status[s.c.uid] || {}).st === 'live', muted:() => s.mutedByApp
       });
       setTimeout(() => AudioMgr.focus(sid), 0);
     }
