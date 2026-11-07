@@ -695,3 +695,5 @@ body.hudon:not(.tvlock) #tvfoot { display:flex; }
   body.hudon .top::before { content:''; margin-right:auto; }
   body.hudon.npon .top::before { display:none; }
 }
+.likebtn.on { background:#1238b5; border-color:#2f6bff; color:#fff; font-weight:700; }
+#musicbar .likebtn { font-size:13px; }
