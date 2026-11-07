@@ -5,7 +5,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 const dir = process.argv[2] || '.', repo = process.argv[3] || 'gino-cavs/mi-streaming';
 const UA = { 'User-Agent':'FUNVS-juegos/1.0 (https://github.com/' + repo + ')', Accept:'application/sparql-results+json' };
 await mkdir(dir, { recursive:true });
-const VER = 2;   // subir este número obliga a rearmar los datos aunque no haya pasado la semana
+const VER = 3;   // subir este número obliga a rearmar los datos aunque no haya pasado la semana
 
 // si ya hay datos de menos de 7 días, los reuso
 try {
@@ -71,7 +71,7 @@ for (let i = 0; i < fb.length; i += 100) {
     const d = details.get(id(v(b, 'p'))); if (!d) continue;
     const name = v(b, 'clubLabel'); if (!name || /^Q\d+$/.test(name)) continue;
     if (v(b, 'nat') === 'true' || /^selecci[oó]n|national (football )?team/i.test(name)) { if (!/sub-|olímpic|olympic|U-?\d/i.test(name)) d.sel.add(name); }
-    else if (!/sub-|reserva|juvenil|\bB\b|\bII\b|U-?\d|youth|academy|"[A-C]"|atl[eè]tic$|castilla|promesas|primavera|\bjong\b|\breserves?\b|juniors?$/i.test(name) && !d.clubs.some(c => c.n === name)) d.clubs.push({ n:name, y:v(b, 'start') ? +v(b, 'start').slice(0, 4) : null });
+    else if (!/sub-|reserva|juvenil|\bB\b|\bII\b|U-?\d|youth|academy|"[A-C]"|atl[eè]tic$|castilla|promesas|primavera|\bjong\b|\breserves?\b/i.test(name) && !d.clubs.some(c => c.n === name)) d.clubs.push({ n:name, y:v(b, 'start') ? +v(b, 'start').slice(0, 4) : null });
   }
 }
 // país deportivo (el de la selección) primero; si no, la nacionalidad, con Argentina adelante
