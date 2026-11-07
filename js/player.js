@@ -188,12 +188,14 @@ const Player = (() => {
     const pip = PIP_OK || ANDROID ? `<button data-a="pip" title="Ventana flotante">⧉ Flotante</button>` : '';
     box.innerHTML = `${layout > 1 ? `<span class="pa-lbl">Pantalla ${focus + 1}:</span>` : ''}
       <button data-a="snd" class="${AudioMgr.current === 'slot' + focus ? 'on' : ''}" title="Escuchar esta pantalla">🔊</button>
+      ${s.e.kind === 'youtube' && s.e.id ? Likes.btn(s.e.id, s.c.name) : ''}
       <button data-a="audio" class="${s.audio ? 'on' : ''}" title="Solo audio (sin video)">🎧 Solo audio</button>
       ${s.e.ch ? `<button data-a="chat" class="${s.chat ? 'on' : ''}" title="Mostrar u ocultar el chat">💬 ${s.chat ? 'Ocultar chat' : 'Mostrar chat'}</button>` : ''}
       ${s.e.out ? `<button data-a="out" title="Abrir el chat en otra ventana">↗ Chat aparte</button>` : ''}
       ${pip}<button data-a="star" title="Guardar este momento">⭐ Momento</button>
       <button data-a="x" title="Cerrar esta pantalla">✕</button>`;
-    box.querySelectorAll('button').forEach(b => b.onclick = () => action(focus, b.dataset.a));
+    box.querySelectorAll('button[data-a]').forEach(b => b.onclick = () => action(focus, b.dataset.a));
+    if (s.e.kind === 'youtube' && s.e.id) Likes.status(s.e.id);
   }
   const paintChatBtn = () => paintActs();
   function setChat(i, on) {

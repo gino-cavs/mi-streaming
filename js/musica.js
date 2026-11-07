@@ -105,6 +105,7 @@ const Musica = (() => {
     const t = $('muT'); if (!t) return;
     t.innerHTML = `<b>${esc(track?.title || cur?.name || '')}</b><span>${esc(track?.by || cur?.by || '')}${cur && cur.kind === 'playlist' ? ' · ' + esc(cur.name || '') : ''}</span>`;
     $('muPlay').textContent = st() === 1 ? '❚❚' : '▶';
+    if (track && track.vid && $('muLike').dataset.v !== track.vid) { $('muLike').dataset.v = track.vid; $('muLike').innerHTML = Likes.btn(track.vid, track.title); Likes.status(track.vid); }
     $('muSnd').textContent = p.isMuted && p.isMuted() ? '🔇' : '🔊';
   }
   function bar() {
@@ -118,7 +119,7 @@ const Musica = (() => {
         <button id="muShuf" title="Aleatorio">🔀</button><button id="muSnd" title="Escuchar esto">🔊</button>
         <input type="range" id="muVol" min="0" max="100" step="5" value="100">
         <button id="muHide" title="Mostrar u ocultar el video">🎬</button>
-        <button id="muStar" title="Guardar este momento">⭐</button><button id="muTv" title="Pantalla TV">📺</button><button id="muX" title="Cerrar">✕</button>`;
+        <span id="muLike"></span><button id="muStar" title="Guardar este momento">⭐</button><button id="muTv" title="Pantalla TV">📺</button><button id="muX" title="Cerrar">✕</button>`;
       $('muPrev').onclick = () => { try { p.previousVideo(); } catch {} };
       $('muNext').onclick = () => { try { p.nextVideo(); } catch {} };
       $('muPlay').onclick = toggle;
