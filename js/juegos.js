@@ -22,6 +22,7 @@ const Juegos = (() => {
     ['mayor', '🎂', '¿Quién es mayor?', 'Dos famosos: elegí al más grande. ¿Hasta dónde llega tu racha?'],
     ['murio', '🕯️', '¿Quién murió antes?', 'Dos famosos que ya no están: ¿cuál se fue primero?'],
     ['wiki', '🏁', 'Wikirace', 'De un artículo de Wikipedia a otro solo con links. Contra reloj.'],
+    ['jugo', '🤝', '¿Jugó con?', 'Uní dos jugadores con compañeros de equipo. Fútbol argentino, 2000 a hoy.'],
     ['quien', '⚽', '¿Quién soy? Fútbol', 'Pistas de a una: país, puesto, clubes… adiviná el jugador.'],
     ['db', '🐉', 'Quiz Dragon Ball', 'Hasta Dragon Ball Z. Versión normal o difícil.']
   ];
@@ -32,10 +33,10 @@ const Juegos = (() => {
   }
   function menu(v) {
     const r = J().rec;
-    const best = id => ({ mayor:Math.max(r['mayor-ar'] || 0, r['mayor-pop'] || 0), murio:Math.max(r['murio-ar'] || 0, r['murio-pop'] || 0), quien:r.quien || 0, db:Math.max(r['db-normal'] || 0, r['db-dificil'] || 0), wiki:Object.keys(J().wiki).length })[id];
+    const best = id => ({ mayor:Math.max(r['mayor-ar'] || 0, r['mayor-pop'] || 0), murio:Math.max(r['murio-ar'] || 0, r['murio-pop'] || 0), quien:r.quien || 0, jugo:r.jugo || 0, db:Math.max(r['db-normal'] || 0, r['db-dificil'] || 0), wiki:Object.keys(J().wiki).length })[id];
     v.innerHTML = `<div class="jghero"><div class="jgi">🎮</div><div><h2>Juegos</h2><p>Para pasar el rato. Tus récords se guardan y se sincronizan.</p></div></div>
       <div class="jgrid">${GAMES.map(([id, ic, t, d]) => `<button class="jgcard" data-g="${id}"><span class="ic">${ic}</span><b>${t}</b><span>${d}</span>
-        ${best(id) ? `<small>${id === 'wiki' ? '🏆 ' + best(id) + ' carrera(s) completada(s)' : '🏆 Récord: ' + best(id)}</small>` : ''}</button>`).join('')}</div>`;
+        ${best(id) ? `<small>${id === 'wiki' ? '🏆 ' + best(id) + ' carrera(s) completada(s)' : id === 'jugo' ? '🏆 ' + best(id) + ' cadena(s) resuelta(s)' : '🏆 Récord: ' + best(id)}</small>` : ''}</button>`).join('')}</div>`;
     v.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { game = b.dataset.g; state = {}; render(); });
   }
   const back = () => `<button class="sm jgback" id="jgBack">← Juegos</button>`;
@@ -323,7 +324,136 @@ const Juegos = (() => {
     } catch { const art = $('wArt'); if (art) art.innerHTML = '<div class="empty">No pude cargar el artículo. Probá “Atrás”.</div>'; }
   }
 
-  const VIEWS = { mayor:v => duel(v, 'mayor'), murio:v => duel(v, 'murio'), quien, db:quiz, wiki };
+
+  /* ---------- ¿Jugó con? (fútbol argentino, 2000 a hoy) ---------- */
+  let G = null;   // grafo de compañeros
+  async function loadJugo() {
+    if (G) return G;
+    const d = await (await fetch(REPO.data + 'jugo.json?t=' + Math.floor(Date.now() / 3600e3))).json();
+    const adj = d.p.map(() => new Map()), byClub = new Map(), sp = d.p.map(() => []);
+    for (const x of d.s) { sp[x[0]].push(x); if (!byClub.has(x[1])) byClub.set(x[1], []); byClub.get(x[1]).push(x); }
+    for (const [c, arr] of byClub) {
+      arr.sort((a, b) => a[2] - b[2]);
+      for (let i = 0; i < arr.length; i++) for (let j = i + 1; j < arr.length && arr[j][2] < arr[i][3]; j++) {
+        const [a, , s1, e1] = arr[i], [b, , s2, e2] = arr[j]; if (a === b) continue;
+        const from = Math.max(s1, s2), to = Math.min(e1, e2);
+        if (to - from < 0.08 || to < 2000) continue;          // tienen que haber coincidido al menos ~1 mes, desde 2000
+        if (!adj[a].has(b)) { const l = [c, Math.max(2000, from), to]; adj[a].set(b, l); adj[b].set(a, l); }
+      }
+    }
+    const byName = new Map(), bySur = new Map();
+    d.p.forEach(([n], i) => { const k = norm(n); if (!byName.has(k)) byName.set(k, i); const su = k.split(' ').pop(); bySur.set(su, bySur.has(su) ? -1 : i); });
+    const famous = d.p.map((p, i) => [i, p[1]]).filter(([i]) => adj[i].size >= 8).sort((a, b) => b[1] - a[1]).slice(0, 250).map(x => x[0]);
+    G = { d, adj, sp, byName, bySur, famous };
+    return G;
+  }
+  const yy = x => Math.floor(x);
+  const span = (a, b) => yy(a) === yy(b - 0.01) ? '' + yy(a) : `${yy(a)}–${yy(b - 0.01)}`;
+  const linkTxt = l => `${G.d.c[l[0]]} (${span(l[1], l[2])})`;
+  function bfs(a, b) {
+    const prev = new Map([[a, -1]]), qq = [a];
+    while (qq.length) { const x = qq.shift(); if (x === b) break; for (const y of G.adj[x].keys()) if (!prev.has(y)) { prev.set(y, x); qq.push(y); } }
+    if (!prev.has(b)) return null;
+    const path = []; for (let x = b; x !== -1; x = prev.get(x)) path.unshift(x); return path;
+  }
+  function find(txt) {
+    const k = norm(txt); if (!k) return -1;
+    if (G.byName.has(k)) return G.byName.get(k);
+    const su = G.bySur.get(k.split(' ').pop()); if (k.split(' ').length === 1 && su >= 0) return su;
+    return -1;
+  }
+  function newPair() {
+    for (let t = 0; t < 400; t++) {
+      const a = pick(G.famous), b = pick(G.famous); if (a === b || G.adj[a].has(b)) continue;
+      const path = bfs(a, b); if (path && path.length >= 3 && path.length <= 4) return [a, b];
+    }
+    return null;
+  }
+  function jugo(v) {
+    if (!G) { v.innerHTML = back() + '<div class="empty">Armando la red de compañeros…</div>'; bindBack();
+      loadJugo().then(() => game === 'jugo' && render()).catch(() => { if (game === 'jugo') { v.innerHTML = back() + '<div class="empty">Todavía no están los datos. GitHub los junta en unos minutos.</div>'; bindBack(); } }); return; }
+    const st = state, P = i => G.d.p[i][0];
+    if (!st.mode) st.mode = 'rand';
+    if (st.mode === 'rand' && !st.chain) { const pr = newPair(); if (!pr) st.mode = 'pick'; else Object.assign(st, { chain:[pr[0]], to:pr[1], links:[], hints:0 }); }
+    if (st.mode === 'pick') {
+      v.innerHTML = `${back()}<div class="jgbar"><h2>🤝 ¿Jugó con?</h2></div>
+        <div class="qbox"><p class="mut" style="margin-bottom:10px">Elegí los dos jugadores (que hayan jugado en el fútbol argentino desde 2000).</p>
+          <div class="wrow"><label>Desde</label><input id="jA" list="jList" autocomplete="off" placeholder="Ej: Pastore"><label>Hasta</label><input id="jB" list="jList" autocomplete="off" placeholder="Ej: Olave"></div>
+          <datalist id="jList">${G.d.p.map(p => `<option value="${esc(p[0])}">`).join('')}</datalist>
+          <div class="btns"><button id="jRand">🎲 Al azar</button><span class="sp"></span><button class="pri" id="jGo">Arrancar →</button></div><div class="msg" id="jMsg"></div></div>`;
+      bindBack();
+      $('jRand').onclick = () => { state = { mode:'rand' }; render(); };
+      $('jGo').onclick = () => {
+        const a = find($('jA').value), b = find($('jB').value), m = $('jMsg'); m.className = 'msg err';
+        if (a < 0 || b < 0) { m.textContent = `No encuentro a “${a < 0 ? $('jA').value : $('jB').value}”. Elegilo de la lista (nombre y apellido).`; return; }
+        if (a === b) { m.textContent = 'Es el mismo jugador 😅'; return; }
+        state = { mode:'pick2', chain:[a], to:b, links:[], hints:0 }; render();
+      };
+      return;
+    }
+    const last = st.chain[st.chain.length - 1], done = st.chain[st.chain.length - 1] === st.to;
+    const best = st.best || (st.best = bfs(st.chain[0], st.to));
+    v.innerHTML = `${back()}
+      <div class="jgbar"><h2>🤝 ¿Jugó con?</h2><div class="chips" style="margin:0"><button id="jNew">🎲 Otro par</button><button id="jPick">✍️ Elegir yo</button></div>
+        <span class="jgsc">Resueltas <b>${J().rec.jugo || 0}</b></span></div>
+      <div class="jvs"><b>${esc(P(st.chain[0]))}</b><span>→ ¿? →</span><b>${esc(P(st.to))}</b></div>
+      <div class="qbox">
+        <ol class="jchain">${st.chain.map((p, i) => `<li><b>${esc(P(p))}</b>${i ? `<small>${st.links[i - 1] ? 'jugaron juntos en ' + esc(linkTxt(st.links[i - 1])) : st.shown && i === st.chain.length - 1 ? '🏳️' : '✋ validado por vos'}</small>` : ''}</li>`).join('')}
+          ${done ? '' : `<li class="jto"><b>${esc(P(st.to))}</b><small>🎯 meta</small></li>`}</ol>
+        ${done ? `<div class="jgmsg">${st.msg}</div>
+            ${st.shown ? '' : best && best.length < st.chain.length ? `<p class="mut" style="text-align:center">El camino más corto era: ${best.map(i => esc(P(i))).join(' → ')}</p>` : ''}
+            <div class="btns" style="justify-content:center"><button class="pri" id="jNew2">🎲 Otro par</button></div>`
+        : `<form id="jForm" class="rsearch"><input id="jIn" list="jList" autocomplete="off" placeholder="¿Con quién jugó ${esc(P(last))}?"><button class="pri">Agregar</button></form>
+          <datalist id="jList">${G.d.p.map(p => `<option value="${esc(p[0])}">`).join('')}</datalist>
+          <div class="msg" id="jMsg">${st.err || ''}</div>
+          <div class="btns">${st.pending != null ? `<button id="jForce">✋ Sí jugaron, lo valido yo</button>` : ''}
+            <button id="jHint">💡 Pista</button>${st.chain.length > 1 ? '<button id="jUndo">↶ Sacar el último</button>' : ''}<button id="jGive">🏳️ Me rindo</button></div>`}
+      </div>`;
+    bindBack();
+    $('jNew').onclick = () => { state = { mode:'rand' }; render(); };
+    $('jPick').onclick = () => { state = { mode:'pick' }; render(); };
+    if (done) { $('jNew2').onclick = $('jNew').onclick; return; }
+    const add = (p, l) => {
+      st.chain.push(p); st.links.push(l); st.err = ''; st.pending = null;
+      const fin = p === st.to ? null : G.adj[p].get(st.to);
+      if (p === st.to || fin) {
+        if (fin) { st.chain.push(st.to); st.links.push(fin); }
+        const mid = st.chain.length - 2, min = best ? best.length - 2 : null;
+        st.msg = `🎉 ¡Conectados con ${mid} jugador${mid === 1 ? '' : 'es'} en el medio!` + (min != null && mid <= min ? ' Camino más corto posible 🏆' : min != null ? ` (se podía con ${min})` : '') + (st.hints ? ` · ${st.hints} pista(s)` : '');
+        J().rec.jugo = (J().rec.jugo || 0) + 1; save();
+      }
+      render(); if ($('jIn')) $('jIn').focus();
+    };
+    $('jForm').onsubmit = e => {
+      e.preventDefault();
+      const txt = $('jIn').value, p = find(txt);
+      if (p < 0) { st.err = `❓ No encuentro a “${esc(txt)}”. Elegilo de la lista.`; st.pending = null; return render(); }
+      if (st.chain.includes(p)) { st.err = 'Ese ya está en la cadena.'; return render(); }
+      const l = G.adj[last].get(p);
+      if (l) return add(p, l);
+      const sp = i => G.sp[i].map(x => `${G.d.c[x[1]]} ${span(x[2], x[3])}`).join(', ') || '—';
+      st.err = `❌ Según Wikidata, ${esc(P(last))} y ${esc(P(p))} no coincidieron en un club argentino desde 2000.<br><small>${esc(P(last))}: ${esc(sp(last))}<br>${esc(P(p))}: ${esc(sp(p))}</small>`;
+      st.pending = p; render();
+    };
+    if ($('jForce')) $('jForce').onclick = () => add(st.pending, null);
+    $('jHint').onclick = () => {
+      const path = bfs(last, st.to); st.hints++;
+      if (!path) { st.err = 'Desde acá no encuentro camino. Probá sacar el último.'; return render(); }
+      const nx = path[1], l = G.adj[last].get(nx);
+      st.hintN = st.hintFor === last ? (st.hintN || 0) + 1 : 1; st.hintFor = last;
+      st.err = st.hintN === 1 ? `💡 Pensá en alguien que jugó en ${esc(linkTxt(l))} con ${esc(P(last))}.`
+        : `💡 Sus iniciales: <b>${P(nx).split(/\s+/).map(w => w[0]).join('. ')}.</b> (${esc(linkTxt(l))})`;
+      st.pending = null; render();
+    };
+    if ($('jUndo')) $('jUndo').onclick = () => { st.chain.pop(); st.links.pop(); st.err = ''; st.pending = null; render(); };
+    $('jGive').onclick = () => {
+      const path = bfs(last, st.to);
+      st.msg = path ? 'Un camino posible: ' + path.map(i => esc(P(i))).join(' → ') : 'No encontré camino desde acá 🤷';
+      st.shown = true; st.chain.push(st.to); st.links.push(null); render();
+    };
+  }
+
+  const VIEWS = { jugo, mayor:v => duel(v, 'mayor'), murio:v => duel(v, 'murio'), quien, db:quiz, wiki };
   function init() { onChange(() => { if (Nav.current === 'juegos' && !game) render(); }); }
   return { init, render: () => { load(); render(); } };
 })();

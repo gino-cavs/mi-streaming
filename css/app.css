@@ -776,3 +776,9 @@ body.hudon:not(.tvlock) #tvfoot { display:flex; }
 .wart h2 { font-size:26px; margin:6px 0 10px; } .wart h3 { margin:18px 0 6px; } .wart p { margin:0 0 10px; }
 .wart a { color:#6fb3ff; cursor:pointer; text-decoration:none; } .wart a:hover { text-decoration:underline; }
 @media (max-width:600px) { .duels { gap:6px; } .duel { padding:10px 6px; } .dimg { width:90px; height:90px; } .vsx { font-size:18px; } .dbopts { grid-template-columns:1fr; } }
+.jvs { display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; font-size:20px; margin:4px 0 12px; text-align:center; }
+.jvs span { color:var(--acc); font-family:Oswald, sans-serif; }
+.jchain { list-style:none; margin:0 0 12px; padding:0; }
+.jchain li { padding:8px 12px; border-left:3px solid var(--acc); margin-left:8px; }
+.jchain li b { display:block; font-size:16px; } .jchain li small { color:var(--mut); font-size:12px; }
+.jchain li.jto { border-left-style:dashed; opacity:.6; }
