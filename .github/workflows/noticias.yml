@@ -34,6 +34,9 @@ jobs:
       - name: Automovilismo (F1, MotoGP, NASCAR, TC, TC2000, Top Race)
         continue-on-error: true
         run: node scripts/fetch-motor.mjs /tmp/datos
+      - name: Prueba temporal de fuentes
+        continue-on-error: true
+        run: node scripts/probe.mjs /tmp/datos
       - name: Publicar en la rama "datos"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
