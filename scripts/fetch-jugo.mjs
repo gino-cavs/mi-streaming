@@ -4,7 +4,7 @@
 // Uso: node scripts/fetch-jugo.mjs carpeta_salida [usuario/repo]
 import { writeFile, mkdir } from 'node:fs/promises';
 const dir = process.argv[2] || '.', repo = process.argv[3] || 'gino-cavs/mi-streaming';
-const VER = 4;   // subir este número obliga a rearmar los datos
+const VER = 5;   // subir este número obliga a rearmar los datos
 const UA = { 'User-Agent':'FUNVS-juegos/1.0 (https://github.com/' + repo + ')' };
 await mkdir(dir, { recursive:true });
 
@@ -124,7 +124,7 @@ for (const pl of players.values()) {
   for (const s of sp) {
     if (!s.club || s.en <= s.st) continue;
     let segs = [[s.st, s.en]];
-    for (const o of sp) if (o !== s && o.loan && !s.loan) segs = segs.flatMap(([a, b]) => o.st >= b || o.en <= a ? [[a, b]] : [[a, o.st], [o.en, b]].filter(([x, y]) => y - x > 0.05));
+    for (const o of sp) if (o !== s && o.loan && !s.loan && o.st >= s.st - 0.01 && o.en <= s.en + 0.01) segs = segs.flatMap(([a, b]) => o.st >= b || o.en <= a ? [[a, b]] : [[a, o.st], [o.en, b]].filter(([x, y]) => y - x > 0.05));
     for (const [a, b] of segs) if (b > 2000) mine.push([s.club, a, b]);
   }
   if (!mine.length) continue;
