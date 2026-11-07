@@ -9,9 +9,11 @@ const Zap = (() => {
   // orden de la lista: primero los que están en vivo, después cada categoría
   function groups() {
     const f = c => !q || norm(c.name).includes(norm(q)) || norm(c.cat).includes(norm(q));
-    const live = Canales.sortChans(db.chans.filter(c => st(c) === 'live' && f(c)));
+    const live = Canales.sortChans(db.chans.filter(c => Canales.isLive(c) && f(c)));
+    const prem = Canales.sortChans(db.chans.filter(c => st(c) === 'live' && Canales.status[c.uid].prem && f(c)));
     const out = [];
     if (live.length) out.push(['🔴 En vivo ahora', live, 'live']);
+    if (prem.length) out.push(['🎬 Estrenos ahora', prem, 'prem']);
     db.cats.forEach(k => { const l = Canales.sortChans(db.chans.filter(c => c.cat === k && f(c))); if (l.length) out.push([k, l, 'c:' + k]); });
     const sin = Canales.sortChans(db.chans.filter(c => !db.cats.includes(c.cat) && f(c))); if (sin.length) out.push(['Sin categoría', sin, 'c:']);
     return out;
@@ -37,9 +39,9 @@ const Zap = (() => {
       <div class="zlist">${db.chans.length ? groups().map(([name, list, id]) => `
         <div class="zgrp ${closed.has(id) && !q ? 'closed' : ''}"><button class="zgh" data-g="${esc(id)}">${esc(name)} <span>${list.length}</span></button>
         ${list.map(c => { const s = Canales.status[c.uid] || {};
-          return `<button class="zi ${now.has(c.uid) ? 'now' : ''} ${s.st === 'live' ? 'live' : ''}" data-z="${c.uid}" title="${esc(s.title || c.name)}">
+          return `<button class="zi ${now.has(c.uid) ? 'now' : ''} ${s.st === 'live' && !s.prem ? 'live' : ''}" data-z="${c.uid}" title="${esc(s.title || c.name)}">
             <span class="za" style="${c.avatar ? `background-image:url('${esc(c.avatar)}')` : `background:${PCOL[c.platform]}`}"></span>
-            <span class="zn">${esc(c.name)}${s.title && (s.st === 'live' || s.st === 'soon') ? `<em>${esc(s.title)}</em>` : ''}<small>${s.st === 'live' ? '● en vivo' + (s.viewers ? ' · ' + s.viewers.toLocaleString('es-AR') : '') : s.st === 'soon' ? '🕒 ' + fmtH(s.when) : esc(c.platform)}</small></span></button>`; }).join('')}</div>`).join('')
+            <span class="zn">${esc(c.name)}${s.title && (s.st === 'live' || s.st === 'soon') ? `<em>${esc(s.title)}</em>` : ''}<small>${s.st === 'live' && s.prem ? '🎬 estreno' + (s.viewers ? ' · ' + s.viewers.toLocaleString('es-AR') : '') : s.st === 'live' ? '● en vivo' + (s.viewers ? ' · ' + s.viewers.toLocaleString('es-AR') : '') : s.st === 'soon' ? (s.prem ? '🎬 estreno ' : '🕒 ') + fmtH(s.when) : esc(c.platform)}</small></span></button>`; }).join('')}</div>`).join('')
         : '<div class="mut" style="padding:12px;font-size:13px">Todavía no agregaste canales.</div>'}</div>`;
     const inp = $('zapQ');
     inp.oninput = () => { q = inp.value; const pos = inp.selectionStart; render(); $('zapQ').focus(); $('zapQ').setSelectionRange(pos, pos); };

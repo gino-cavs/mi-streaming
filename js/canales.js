@@ -76,13 +76,16 @@ const Canales = (() => {
     const ids = [...new Set(Object.values(want).flat())];
     const vids = {};
     for (let i = 0; i < ids.length; i += 50) {
-      const j = await yt('videos', { part:'snippet,liveStreamingDetails', id:ids.slice(i, i + 50).join(',') });
+      const j = await yt('videos', { part:'snippet,liveStreamingDetails,contentDetails', id:ids.slice(i, i + 50).join(',') });
       j.items.forEach(v => vids[v.id] = v);
     }
     const now = Date.now();
     for (const [u, l2] of Object.entries(want)) {
       const vs = l2.map(id => vids[id]).filter(Boolean);
-      const live = vs.find(v => v.snippet.liveBroadcastContent === 'live');
+      // estreno = video ya grabado que se "emite" (tiene duración); vivo de verdad = duración P0D
+      const isPrem = v => !!(v.contentDetails && v.contentDetails.duration && v.contentDetails.duration !== 'P0D');
+      const lives = vs.filter(v => v.snippet.liveBroadcastContent === 'live');
+      const live = lives.find(v => !isPrem(v)) || lives[0];
       const soon = vs.filter(v => v.snippet.liveBroadcastContent === 'upcoming' && v.liveStreamingDetails?.scheduledStartTime
                      && Date.parse(v.liveStreamingDetails.scheduledStartTime) > now - 3 * 3600e3)
                      .sort((a, b) => Date.parse(a.liveStreamingDetails.scheduledStartTime) - Date.parse(b.liveStreamingDetails.scheduledStartTime))[0];
@@ -92,7 +95,7 @@ const Canales = (() => {
                      .map(v => ({ vid:v.id, title:v.snippet.title, end:v.liveStreamingDetails.actualEndTime, thumb:(v.snippet.thumbnails.medium || v.snippet.thumbnails.default).url }));
       if (pick) {
         const th = pick.snippet.thumbnails;
-        status[u] = { st: live ? 'live' : 'soon', vid:pick.id, title:pick.snippet.title,
+        status[u] = { st: live ? 'live' : 'soon', prem:isPrem(pick), vid:pick.id, title:pick.snippet.title,
           thumb:(th.maxres || th.high || th.medium || th.default).url,
           when: live ? pick.liveStreamingDetails?.actualStartTime : pick.liveStreamingDetails.scheduledStartTime,
           viewers: live ? +pick.liveStreamingDetails?.concurrentViewers || null : null, past };
@@ -152,7 +155,9 @@ const Canales = (() => {
   function card(c) {
     const s = status[c.uid] || { st:'?' };
     let badge;
-    if (s.st === 'live') badge = `<span class="badge live">● EN VIVO${s.viewers ? ' · ' + kfmt(s.viewers) : ''}</span>`;
+    if (s.st === 'live' && s.prem) badge = `<span class="badge prem">🎬 ESTRENO${s.viewers ? ' · ' + kfmt(s.viewers) : ''}</span>`;
+    else if (s.st === 'live') badge = `<span class="badge live">● EN VIVO${s.viewers ? ' · ' + kfmt(s.viewers) : ''}</span>`;
+    else if (s.st === 'soon' && s.prem) badge = `<span class="badge prem">🎬 Estreno · ${esc(whenTxt(s.when))}</span>`;
     else if (s.st === 'soon') badge = `<span class="badge soon">🕒 ${esc(whenTxt(s.when))}</span>`;
     else if (s.st === 'off') badge = `<span class="badge">Sin vivo</span>`;
     else badge = `<span class="badge">${c.platform === 'youtube' && !db.key ? 'Falta clave de YouTube' : 'Estado desconocido'}</span>`;
@@ -179,7 +184,8 @@ const Canales = (() => {
     });
     el.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset.u) Player.play(db.chans.find(c => c.uid === e.target.dataset.u)); });
   }
-  const liveCount = () => db.chans.filter(c => status[c.uid]?.st === 'live').length;
+  const isLive = c => status[c.uid]?.st === 'live' && !status[c.uid]?.prem;
+  const liveCount = () => db.chans.filter(isLive).length;
 
   function render() {
     const tabs = [{ id:'live', label:'🔴 En vivo ahora', n:liveCount() }, { id:'all', label:'Todos', n:db.chans.length },
@@ -192,11 +198,13 @@ const Canales = (() => {
     if (!db.chans.length) {
       m.innerHTML = `<div class="empty">Todavía no agregaste canales.<br>Tocá <b>＋ Canal</b> y pegá el link, por ejemplo <b>youtube.com/@NombreDelCanal</b>.<br>Para ver si están en vivo o programados, cargá la clave de YouTube en ⚙.</div>`;
     } else if (tab === 'live') {
-      const live = sortChans(db.chans.filter(c => status[c.uid]?.st === 'live'));
-      const soon = sortChans(db.chans.filter(c => status[c.uid]?.st === 'soon'));
-      m.innerHTML = (live.length ? `<h2 class="sec">En vivo ahora</h2><div class="grid">${live.map(card).join('')}</div>`
-                                 : `<div class="empty">Nadie de tu lista está en vivo en este momento.</div>`)
-                  + (soon.length ? `<h2 class="sec">Próximos programados</h2><div class="grid">${soon.map(card).join('')}</div>` : '');
+      const live = sortChans(db.chans.filter(isLive));
+      const prem = sortChans(db.chans.filter(c => status[c.uid]?.st === 'live' && status[c.uid]?.prem));
+      const soon = sortChans(db.chans.filter(c => status[c.uid]?.st === 'soon' && !status[c.uid]?.prem));
+      const soonP = sortChans(db.chans.filter(c => status[c.uid]?.st === 'soon' && status[c.uid]?.prem));
+      const sec = (t, l) => l.length ? `<h2 class="sec">${t}</h2><div class="grid">${l.map(card).join('')}</div>` : '';
+      m.innerHTML = (live.length ? sec('● En vivo ahora', live) : `<div class="empty">Nadie de tu lista está transmitiendo en vivo en este momento.</div>`)
+                  + sec('🎬 Estrenos ahora', prem) + sec('🕒 Próximos vivos', soon) + sec('🎬 Próximos estrenos', soonP);
     } else {
       const list = tab === 'all' ? db.chans : tab === 'c:' ? db.chans.filter(c => !db.cats.includes(c.cat)) : db.chans.filter(c => c.cat === tab.slice(2));
       m.innerHTML = list.length ? `<div class="grid">${sortChans(list).map(card).join('')}</div>` : `<div class="empty">No hay canales en esta categoría.</div>`;
@@ -263,5 +271,5 @@ const Canales = (() => {
     $('newCat').onkeydown = e => { if (e.key === 'Enter') $('addCat').click(); };
     onChange(render);
   }
-  return { init, render, refresh, card, bindGrid, sortChans, status, liveCount, yt, get lastUpd() { return lastUpd; } };
+  return { isLive, init, render, refresh, card, bindGrid, sortChans, status, liveCount, yt, get lastUpd() { return lastUpd; } };
 })();

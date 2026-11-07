@@ -207,7 +207,7 @@ const TV = (() => {
     $('fTime').textContent = $('tvTime').textContent; $('fDate').textContent = $('tvDate').textContent;
     const id = AudioMgr.active, s = id && AudioMgr.sink(id);
     const name = s && s.label ? s.label() : '';
-    const tag = !s ? '' : s.radio ? 'RADIO' : s.music ? 'MÚSICA' : s.live && s.live() ? 'EN VIVO' : 'AHORA';
+    const tag = !s ? '' : s.radio ? 'RADIO' : s.music ? 'MÚSICA' : s.prem && s.prem() ? 'ESTRENO' : s.live && s.live() ? 'EN VIVO' : 'AHORA';
     document.body.classList.toggle('npon', !!name);
     const key = tag + '|' + name;
     if (key !== lastNp) {          // cuando cambia lo que suena, el zócalo entra animado

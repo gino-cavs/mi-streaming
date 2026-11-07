@@ -25,8 +25,9 @@ const Calendario = (() => {
     const now = new Date(), nowM = now.getHours() * 60 + now.getMinutes();
     const c = chanOf(p), s = c ? Canales.status[c.uid] || {} : {};
     const start = mins(p.time), end = start + (+p.dur || 120);
+    if (s.st === 'live' && s.prem) return { cls:'live', txt:'🎬 ESTRENO', title:s.title };
     if (s.st === 'live') return { cls:'live', txt:'● EN VIVO', title:s.title };
-    if (s.st === 'soon' && sameDay(s.when, now)) return { cls:'soon', txt:'🕒 Confirmado ' + fmtH(s.when), title:s.title };
+    if (s.st === 'soon' && sameDay(s.when, now)) return { cls:'soon', txt:(s.prem ? '🎬 Estreno ' : '🕒 Confirmado ') + fmtH(s.when), title:s.title };
     if (nowM >= end) return { cls:'off', txt:'Ya terminó' };
     if (nowM >= start) return { cls:'soon', txt: c ? 'Debería estar empezando' : 'En horario ahora' };
     return { cls:'', txt:'Hoy ' + p.time };
