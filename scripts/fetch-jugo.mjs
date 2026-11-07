@@ -3,7 +3,7 @@
 // Uso: node scripts/fetch-jugo.mjs carpeta_salida [usuario/repo]
 import { writeFile, mkdir } from 'node:fs/promises';
 const dir = process.argv[2] || '.', repo = process.argv[3] || 'klasito7/mi-streaming';
-const VER = 1;   // subir este número obliga a rearmar los datos
+const VER = 2;   // subir este número obliga a rearmar los datos
 const UA = { 'User-Agent':'FUNVS-juegos/1.0 (https://github.com/' + repo + ')', Accept:'application/sparql-results+json' };
 await mkdir(dir, { recursive:true });
 
@@ -50,8 +50,8 @@ for (let i = 0; i < ids.length; i += 250) {
     const pl = players.get(id(v(b, 'p'))); if (!pl) continue;
     pl.sp.push({ c:id(v(b, 'club')), arg:v(b, 'arg') === 'true', s:yr(v(b, 's')), e:yr(v(b, 'e')) });
   }
-  for (const b of await q(`SELECT ?p ?n WHERE { VALUES ?p { ${vals} } OPTIONAL { ?p rdfs:label ?es FILTER(LANG(?es) = "es") } OPTIONAL { ?p rdfs:label ?en FILTER(LANG(?en) = "en") } BIND(COALESCE(?es, ?en) AS ?n) }`, 'Nombres ' + i)) {
-    const pl = players.get(id(v(b, 'p'))); if (pl && v(b, 'n')) pl.n = v(b, 'n');
+  for (const b of await q(`SELECT ?p ?n ?b WHERE { VALUES ?p { ${vals} } OPTIONAL { ?p wdt:P569 ?b } OPTIONAL { ?p rdfs:label ?es FILTER(LANG(?es) = "es") } OPTIONAL { ?p rdfs:label ?en FILTER(LANG(?en) = "en") } BIND(COALESCE(?es, ?en) AS ?n) }`, 'Nombres ' + i)) {
+    const pl = players.get(id(v(b, 'p'))); if (pl && v(b, 'n')) pl.n = v(b, 'n'); if (pl && v(b, 'b')) pl.b = yr(v(b, 'b'));
   }
 }
 // nombres de los clubes argentinos
@@ -64,7 +64,7 @@ for (let i = 0; i < argClubs.length; i += 300) {
 // 3) completar las fechas que faltan: si no dice hasta cuándo, se toma hasta la siguiente etapa (o hasta hoy si es la última)
 const NOW = new Date().getFullYear() + new Date().getMonth() / 12;
 const out = { v:VER, updated:new Date().toISOString(), p:[], c:[], s:[] };
-const ci = new Map(), short = n => n.replace(/^(Club Atlético|Club Social y Deportivo|Club Deportivo|Asociación Atlética|Club Atlético y Social|Club Social y Atlético|Club|Asociación Mutual Social y Deportiva|Corporación)\s+/i, '').replace(/\s+\(.*\)$/, '');
+const ci = new Map(), short = n => n.replace(/^(Club Atlético|Club Social y Deportivo|Club Deportivo|Asociación Atlética|Club Atlético y Social|Club Social y Atlético|Club|Asociación Mutual Social y Deportiva|Corporación)\s+/i, '').replace(/\s+\(.*\)$/, '').replace(/^de\s+/i, '');
 for (const pl of players.values()) {
   if (!pl.n || /^Q\d+$/.test(pl.n)) continue;
   const sp = pl.sp.filter(s => s.s != null || s.e != null).sort((a, b) => (a.s ?? a.e) - (b.s ?? b.e));
@@ -74,9 +74,19 @@ for (const pl of players.values()) {
     if (/reserva|juvenil|sub-?\d|\bB\b/i.test(clubs.get(s.c))) return;
     let st = s.s, en = s.e;
     if (en == null) { const nx = sp.slice(i + 1).find(x => (x.s ?? x.e) > st); en = nx ? (nx.s ?? nx.e) : (NOW - st < 25 ? NOW : null); }
+    // sin fecha de retiro en Wikidata: como mucho hasta los 38 años
+    if (en != null && pl.b && en > pl.b + 38) en = Math.max(st ?? 0, pl.b + 38);
     if (st == null) { const pv = sp.slice(0, i).reverse().find(x => (x.e ?? x.s) != null); st = pv ? (pv.e ?? pv.s) : null; }
     if (st == null || en == null || en < 2000 || en <= st) return;
-    mine.push([s.c, Math.round(st * 100) / 100, Math.round(en * 100) / 100]);
+    // préstamos: los ratos en que estuvo en otro club no cuentan como etapa en este
+    let segs = [[st, en]];
+    for (const o of sp) {
+      if (o === s) continue;
+      const os = o.s, oe = o.e ?? (os != null ? os + 1 : null); if (os == null || oe == null) continue;
+      if (os <= st + 0.05 && oe >= en - 0.05) continue;            // otra etapa que lo cubre entera: dato raro, se ignora
+      segs = segs.flatMap(([a, b]) => os >= b || oe <= a ? [[a, b]] : [[a, os], [oe, b]].filter(([x, y]) => y - x > 0.05));
+    }
+    for (const [a, b] of segs) if (b >= 2000) mine.push([s.c, Math.round(a * 100) / 100, Math.round(b * 100) / 100]);
   });
   if (!mine.length) continue;
   const pi = out.p.length; out.p.push([pl.n, pl.sl]);
@@ -85,7 +95,7 @@ for (const pl of players.values()) {
     out.s.push([pi, ci.get(c), st, en]);
   }
 }
-for (const n of ['Javier Pastore', 'Juan Carlos Olave', 'Ricardo Gareca', 'Lucas Pratto']) {
+for (const n of ['Javier Pastore', 'Juan Carlos Olave', 'Lucas Pratto', 'Mario Bolatti', 'Leandro Somoza', 'Lucas Biglia']) {
   const i = out.p.findIndex(p => p[0] === n);
   console.log(n, i < 0 ? 'NO ESTÁ' : out.s.filter(s => s[0] === i).map(s => `${out.c[s[1]]} ${s[2]}-${s[3]}`).join(' | '));
 }
