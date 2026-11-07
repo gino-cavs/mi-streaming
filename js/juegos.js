@@ -257,10 +257,12 @@ const Juegos = (() => {
   function wiki(v) {
     const W = state;
     if (!W.phase) {
-      W.from = W.from || 'Flavio Mendoza'; W.to = W.to || 'Chili Parker';
+      const noChili = data && data.wiki && data.wiki['Chili Parker'] === null;   // todavía no tiene artículo en Wikipedia
+      W.from = W.from || 'Flavio Mendoza'; W.to = W.to || (noChili ? 'Aczino' : 'Chili Parker');
       const recs = Object.entries(J().wiki).sort((a, b) => b[1].at - a[1].at).slice(0, 8);
       v.innerHTML = `${back()}<div class="jgbar"><h2>🏁 Wikirace</h2></div>
         <div class="qbox"><p class="mut" style="margin-bottom:10px">Llegá de un artículo de Wikipedia al otro tocando solo los links, lo más rápido posible. Sin buscador.</p>
+          ${noChili && W.to === 'Aczino' ? `<p class="mut" style="margin-bottom:10px;font-size:13px">🎤 Chili Parker (ni la Liga Bazooka) tienen artículo en Wikipedia en español todavía, así que la llegada por defecto es Aczino, su rival en la Liga Bazooka. Cuando aparezca el artículo, cambia solo.</p>` : ''}
           <div class="wrow"><label>Salida</label><input id="wFrom" value="${esc(W.from)}"><label>Llegada</label><input id="wTo" value="${esc(W.to)}"></div>
           <div class="btns"><button id="wRand">🎲 Carrera al azar</button><span class="sp"></span><button class="pri" id="wGo">¡Largar! 🏁</button></div>
           <div class="msg" id="wMsg"></div></div>
@@ -273,7 +275,7 @@ const Juegos = (() => {
           const [a, b] = await Promise.all([resolve($('wFrom').value.trim()), resolve($('wTo').value.trim())]);
           if (!a || !b) {
             m.className = 'msg err';
-            m.innerHTML = `${!a ? `“${esc($('wFrom').value)}”` : `“${esc($('wTo').value)}”`} no tiene artículo en Wikipedia en español. Probá con otro${!b && /chili parker/i.test($('wTo').value) ? ' (por ejemplo “Aczino” o “Batalla de gallos”)' : ''}.`;
+            m.innerHTML = `${!a ? `“${esc($('wFrom').value)}”` : `“${esc($('wTo').value)}”`} no tiene artículo en Wikipedia en español. Probá con otro${!b && /chili parker|bazooka/i.test($('wTo').value) ? ' (por ejemplo “Aczino”)' : ''}.`;
             return;
           }
           Object.assign(W, { phase:'run', from:a, to:b, path:[a], t0:Date.now(), clicks:0 }); render(); go(a);
