@@ -1,4 +1,4 @@
-name: Juntar noticias, guía de TV y automovilismo
+name: Juntar noticias, guía de TV, automovilismo y boxeo
 
 on:
   schedule:
@@ -34,9 +34,9 @@ jobs:
       - name: Automovilismo (F1, MotoGP, NASCAR, TC, TC2000, Top Race)
         continue-on-error: true
         run: node scripts/fetch-motor.mjs /tmp/datos
-      - name: Prueba temporal de fuentes
+      - name: Boxeo de Primera (TyC Sports)
         continue-on-error: true
-        run: node scripts/probe.mjs /tmp/datos
+        run: node scripts/fetch-boxeo.mjs /tmp/datos
       - name: Publicar en la rama "datos"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
