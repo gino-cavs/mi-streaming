@@ -7,6 +7,15 @@ const Canales = (() => {
   const status = S.get('hub2status', {});   // uid -> {st:'live'|'soon'|'off'|'?', title, thumb, vid, when, viewers}
   let tab = S.get('hub2tab', 'live'), lastUpd = null, busy = false, editing = null;
 
+  /* ---------- Números de canal (como en la tele) ---------- */
+  function ensureNums() {
+    let max = Math.max(0, ...db.chans.map(c => +c.num || 0)), changed = false;
+    db.chans.forEach(c => { if (!c.num) { c.num = ++max; changed = true; } });
+    return changed;
+  }
+  const byNum = arr => arr.slice().sort((a, b) => (+a.num || 9999) - (+b.num || 9999));
+  const numTxt = c => String(c.num || '').padStart(2, '0');
+
   /* ---------- Leer links ---------- */
   function parse(raw) {
     let s = raw.trim();
@@ -170,7 +179,7 @@ const Canales = (() => {
     return `<div class="card ${s.st === 'off' || s.st === '?' ? 'off' : ''}" tabindex="0" data-u="${c.uid}">
       <div class="cardbtns"><button data-e="${c.uid}" title="Editar">⋯</button><button data-au="${c.uid}" title="Escuchar sin video">🎧</button></div>
       ${thumb}${badge}<span class="plat" style="background:${PCOL[c.platform]}"></span></div>
-      <div class="info"><div class="n">${esc(c.name)}</div><div class="t">${esc(sub)}</div></div></div>`;
+      <div class="info"><div class="n"><span class="cnum">${numTxt(c)}</span>${esc(c.name)}</div><div class="t">${esc(sub)}</div></div></div>`;
   }
   // cualquier grilla de tarjetas (también la de Mundo Vélez) usa esto para los clics
   function bindGrid(el) {
@@ -207,7 +216,7 @@ const Canales = (() => {
                   + sec('🎬 Estrenos ahora', prem) + sec('🕒 Próximos vivos', soon) + sec('🎬 Próximos estrenos', soonP);
     } else {
       const list = tab === 'all' ? db.chans : tab === 'c:' ? db.chans.filter(c => !db.cats.includes(c.cat)) : db.chans.filter(c => c.cat === tab.slice(2));
-      m.innerHTML = list.length ? `<div class="grid">${sortChans(list).map(card).join('')}</div>` : `<div class="empty">No hay canales en esta categoría.</div>`;
+      m.innerHTML = list.length ? `<div class="grid">${byNum(list).map(card).join('')}</div>` : `<div class="empty">No hay canales en esta categoría.</div>`;
     }
     $('upd').textContent = lastUpd ? 'Actualizado ' + fmtH(lastUpd) : '';
   }
@@ -232,7 +241,59 @@ const Canales = (() => {
     $('catList').innerHTML = db.cats.map((k, i) =>
       `<div class="catrow"><input value="${esc(k)}" data-i="${i}"><button data-up="${i}" title="Subir">↑</button><button data-del="${i}" title="Borrar">✕</button></div>`).join('');
   }
+  /* ---------- Ordenar y editar canales ---------- */
+  let work = [];
+  function openOrder() {
+    ensureNums();
+    work = byNum(db.chans).map(c => ({ uid:c.uid, name:c.name, cat:c.cat, platform:c.platform, del:false }));
+    paintOrder(); $('dlgOrder').showModal();
+  }
+  function paintOrder() {
+    const PC = { youtube:'var(--yt)', twitch:'var(--tw)', kick:'var(--kick)' };
+    const live = work.filter(w => !w.del);
+    $('ordList').innerHTML = live.map((w, i) => `<div class="ordrow" draggable="true" data-i="${work.indexOf(w)}">
+        <span class="ordh" title="Arrastrá para mover">☰</span>
+        <input class="ordn" type="number" min="1" max="${live.length}" value="${i + 1}" title="Número de canal">
+        <span class="dot" style="background:${PC[w.platform]}"></span>
+        <input class="ordname" value="${esc(w.name)}">
+        <select class="ordcat"><option value="">Sin categoría</option>${db.cats.map(k => `<option ${k === w.cat ? 'selected' : ''}>${esc(k)}</option>`).join('')}</select>
+        <button class="sm ordup" title="Subir">↑</button><button class="sm orddn" title="Bajar">↓</button><button class="sm orddel" title="Borrar">✕</button></div>`).join('')
+      || '<p>No hay canales.</p>';
+    const move = (from, to) => { const vis = work.filter(w => !w.del); to = Math.max(0, Math.min(vis.length - 1, to)); const [x] = vis.splice(from, 1); vis.splice(to, 0, x); work = [...vis, ...work.filter(w => w.del)]; paintOrder(); };
+    $('ordList').querySelectorAll('.ordrow').forEach((row, i) => {
+      const w = work[+row.dataset.i];
+      row.querySelector('.ordname').oninput = e => { w.name = e.target.value; };
+      row.querySelector('.ordcat').onchange = e => { w.cat = e.target.value; };
+      row.querySelector('.ordn').onchange = e => move(i, (+e.target.value || 1) - 1);
+      row.querySelector('.ordup').onclick = () => move(i, i - 1);
+      row.querySelector('.orddn').onclick = () => move(i, i + 1);
+      row.querySelector('.orddel').onclick = () => { w.del = true; paintOrder(); };
+      row.ondragstart = e => { e.dataTransfer.setData('text/plain', i); row.classList.add('drag'); };
+      row.ondragend = () => row.classList.remove('drag');
+      row.ondragover = e => { e.preventDefault(); row.classList.add('over'); };
+      row.ondragleave = () => row.classList.remove('over');
+      row.ondrop = e => { e.preventDefault(); move(+e.dataTransfer.getData('text/plain'), i); };
+    });
+    $('ordCount').textContent = work.some(w => w.del) ? `${work.filter(w => w.del).length} canal(es) se van a borrar al guardar.` : '';
+  }
+  function saveOrder() {
+    const keep = work.filter(w => !w.del);
+    keep.forEach((w, i) => { const c = db.chans.find(x => x.uid === w.uid); if (c) { c.num = i + 1; c.name = w.name.trim() || c.name; c.cat = w.cat; } });
+    work.filter(w => w.del).forEach(w => delete status[w.uid]);
+    db.chans = byNum(db.chans.filter(c => keep.some(w => w.uid === c.uid)));
+    save(); $('dlgOrder').close(); render(); Zap.render();
+    toast('<b>✅ Cambios guardados</b><small>El orden y los nombres se sincronizan con tus otros dispositivos.</small>', { cls:'info', ms:3500 });
+  }
+
   function init() {
+    if (ensureNums()) saveLocal();
+    document.body.insertAdjacentHTML('beforeend', `<dialog id="dlgOrder" style="width:min(760px,96vw)"><h3>🔢 Ordenar y editar canales</h3>
+      <p>Arrastrá con ☰, usá ↑ ↓ o escribí el número de canal. También podés cambiar el nombre y la categoría. Nada se guarda hasta que toques <b>Guardar cambios</b>.</p>
+      <div id="ordList" class="ordlist"></div><div class="msg err" id="ordCount"></div>
+      <div class="btns"><span class="sp"></span><button id="ordCancel">Cancelar</button><button class="pri" id="ordSave">Guardar cambios</button></div></dialog>`);
+    $('ordCancel').onclick = () => $('dlgOrder').close();
+    $('ordSave').onclick = saveOrder;
+    $('btnOrder').onclick = openOrder;
     bindGrid($('chanGrid'));
     $('tabs').onclick = e => { const b = e.target.closest('[data-t]'); if (b) { tab = b.dataset.t; S.set('hub2tab', tab); render(); } };
     $('btnRefresh').onclick = refresh;
@@ -249,6 +310,7 @@ const Canales = (() => {
         try { await resolveYT(c); if (name) c.name = name; }
         catch (e) { if (e instanceof TypeError) warn(NET_MSG + ' El canal quedó guardado igual.'); else { msg.className = 'msg err'; msg.textContent = e.message; return; } }
       }
+      c.num = Math.max(0, ...db.chans.map(x => +x.num || 0)) + 1;
       db.chans.push(c); save(); $('dlgCh').close(); render(); refresh();
     };
     $('btnCats').onclick = () => { renderCats(); $('dlgCats').showModal(); };
@@ -271,5 +333,5 @@ const Canales = (() => {
     $('newCat').onkeydown = e => { if (e.key === 'Enter') $('addCat').click(); };
     onChange(render);
   }
-  return { isLive, init, render, refresh, card, bindGrid, sortChans, status, liveCount, yt, get lastUpd() { return lastUpd; } };
+  return { byNum, numTxt, ensureNums, isLive, init, render, refresh, card, bindGrid, sortChans, status, liveCount, yt, get lastUpd() { return lastUpd; } };
 })();

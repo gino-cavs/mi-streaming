@@ -714,3 +714,28 @@ body.hudon:not(.tvlock) #tvfoot { display:flex; }
 .favn { border-color:#ffd24a !important; } mark { background:#ffd24a33; color:#ffe39a; border-radius:3px; padding:0 2px; }
 .toast.box { background:linear-gradient(90deg, #4a0d0d, #2a1010); border-color:#ff5b5b; }
 .toast.box .g { display:block; font-size:17px; font-weight:800; margin-bottom:2px; }
+
+/* ---------- Números y orden de canales ---------- */
+.cnum { display:inline-block; font-family:Oswald, system-ui, sans-serif; font-weight:700; color:#7fb0ff; background:#16213a; border-radius:4px; padding:0 5px; margin-right:6px; font-size:12px; vertical-align:1px; }
+.znum { font-style:normal; color:#7fb0ff; font-weight:700; margin-right:5px; font-family:Oswald, system-ui, sans-serif; }
+.ordlist { display:flex; flex-direction:column; gap:4px; max-height:58vh; overflow-y:auto; margin-top:8px; }
+.ordrow { display:flex; align-items:center; gap:6px; background:var(--panel2); border:1px solid transparent; border-radius:8px; padding:5px 6px; }
+.ordrow.drag { opacity:.4; } .ordrow.over { border-color:var(--acc); }
+.ordh { cursor:grab; color:var(--mut); padding:0 4px; }
+.ordn { width:58px !important; text-align:center; font-weight:800; padding:4px; }
+.ordname { flex:1; min-width:0; padding:4px 8px; }
+.ordcat { width:150px !important; padding:4px; font-size:13px; }
+.ordrow .dot { width:9px; height:9px; border-radius:50%; flex:none; }
+@media (max-width:800px) { .ordcat { width:96px !important; } .ordh { display:none; } }
+
+/* ---------- Canales 24/7 ---------- */
+.srhero { display:flex; align-items:center; gap:14px; background:linear-gradient(120deg, #3a2a08, #151822 70%); border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-bottom:14px; }
+.srico { font-size:44px; } .srhero h2 { font-family:Oswald, system-ui, sans-serif; font-size:30px; letter-spacing:1px; text-transform:uppercase; } .srhero p { opacity:.8; }
+.srgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:12px; }
+.srcard { background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; cursor:pointer; }
+.srcard:hover { border-color:#ffb020; }
+.badge.onair { background:#ffb020; color:#000; }
+.sredit { position:absolute; top:6px; right:6px; background:#000b; border:none; padding:2px 8px; font-size:13px; opacity:0; }
+.srcard:hover .sredit { opacity:1; }
+.srprog { height:4px; background:#ffffff1a; border-radius:2px; margin:7px 0 5px; overflow:hidden; } .srprog i { display:block; height:100%; background:#ffb020; }
+@media (max-width:800px) { .sredit { opacity:1; } }

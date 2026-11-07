@@ -138,6 +138,10 @@ const Player = (() => {
           // solo cuenta como "empezó a sonar" si veníamos de pausa/inicio (no al terminar de cargar)
           if (e.data === 3) return;
           if (e.data === 1 && last === null) Calidad.applyYouTube(p);
+          if (e.data === 0 && s.c.t247) {          // canal 24/7: termina un video y sigue la grilla
+            const n = Series.nextFor(s.c.t247);
+            if (n) { s.e.id = n.v; try { p.loadVideoById({ videoId:n.v, startSeconds:n.off }); } catch {} paintActs(); }
+          }
           if (e.data === 1 && last !== 1) AudioMgr.focus(sid);
           last = e.data;
           d.classList.toggle('paused', e.data === 2);
@@ -192,6 +196,7 @@ const Player = (() => {
       <button data-a="audio" class="${s.audio ? 'on' : ''}" title="Solo audio (sin video)">🎧 Solo audio</button>
       ${s.e.ch ? `<button data-a="chat" class="${s.chat ? 'on' : ''}" title="Mostrar u ocultar el chat">💬 ${s.chat ? 'Ocultar chat' : 'Mostrar chat'}</button>` : ''}
       ${s.e.out ? `<button data-a="out" title="Abrir el chat en otra ventana">↗ Chat aparte</button>` : ''}
+      ${s.c.t247 ? '<button data-a="skip" title="Pasar a otro video al azar">⏭ Otro video</button>' : ''}
       ${pip}<button data-a="star" title="Guardar este momento">⭐ Momento</button>
       <button data-a="x" title="Cerrar esta pantalla">✕</button>`;
     box.querySelectorAll('button[data-a]').forEach(b => b.onclick = () => action(focus, b.dataset.a));
@@ -217,6 +222,7 @@ const Player = (() => {
     if (a === 'audio') { s.audio = !s.audio; setAudioQuality(s, s.audio); if (s.audio && s.chat) setChat(i, false); }
     if (a === 'pip') return openPip(i);
     if (a === 'star') return Momentos.capture('slot' + i);
+    if (a === 'skip' && s.c.t247) { const n = Series.randomFor(s.c.t247); if (n && s.api && s.api.p) { s.e.id = n.v; try { s.api.p.loadVideoById({ videoId:n.v }); } catch {} paintActs(); } return; }
     paintBar(i);
   }
 
