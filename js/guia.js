@@ -29,7 +29,7 @@ const Guia = (() => {
         if (DOW[day.getDay()] !== dw) continue;
         const [sh, sm] = st.split(':').map(Number), [eh, em] = (en || st).split(':').map(Number);
         const s = new Date(day); s.setHours(sh, sm);
-        const e = new Date(day); e.setHours(eh, em); if (e <= s) e.setDate(e.getDate() + 1);
+        let e = new Date(day); e.setHours(eh, em); if (!en || en === st) e = new Date(+s + 120 * 60e3); else if (e <= s) e.setDate(e.getDate() + 1);
         if (e > from && s < to) out.push({ s, e, name, pan });
       }
     }
