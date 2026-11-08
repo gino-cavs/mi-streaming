@@ -788,3 +788,16 @@ body.hudon:not(.tvlock) #tvfoot { display:flex; }
 .jvp b { font-size:17px; line-height:1.2; }
 .jchain li { display:flex; align-items:center; gap:10px; }
 @media (max-width:600px) { .jph.big { width:72px; height:72px; } .jvp b { font-size:15px; } }
+
+/* ===== Dónde verlo / Buscar en vivo ===== */
+.tvch.ver { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.tvch.ver .vch { text-decoration:none; background:var(--panel2); border:1px solid var(--line); border-radius:5px; padding:1px 7px; color:var(--txt); }
+.tvch.ver a.vch:hover { border-color:var(--acc); color:var(--acc); }
+.vbus { font-size:12px; padding:3px 9px; border-radius:999px; background:transparent; border:1px solid var(--acc); color:var(--acc); }
+.vbus:hover { background:var(--acc); color:#fff; }
+.verl { display:flex; flex-direction:column; gap:6px; max-height:55vh; overflow:auto; }
+.veri { display:flex; gap:10px; align-items:center; text-align:left; padding:6px; border-radius:10px; }
+.veri .vimg { width:120px; aspect-ratio:16/9; border-radius:6px; background:#222 center/cover; flex:none; position:relative; }
+.veri .vimg i { position:absolute; left:4px; top:4px; background:#e3342f; color:#fff; font-style:normal; font-size:10px; padding:1px 5px; border-radius:4px; }
+.veri b { display:block; font-size:14px; line-height:1.3; } .veri small { color:var(--mut); font-size:12px; }
+@media (max-width:600px) { .veri .vimg { width:96px; } }

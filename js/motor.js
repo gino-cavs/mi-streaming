@@ -103,7 +103,7 @@ const Motor = (() => {
   function sessRow(id, s, label, tv) {
     const st = sState(id, s);
     return `<div class="msrow ${st}"><div class="mt">${st === 'live' ? '<span class="lv">● EN VIVO</span>' : esc(when(s))}</div>
-      <div class="mx">${label ? label + ' · ' : ''}${esc(s.name)}${s.key && !s.race ? '' : ''}${st === 'done' ? ' <span class="mut">(terminó)</span>' : ''}</div>${tv && st !== 'done' ? tvChips(tv) : ''}</div>`;
+      <div class="mx">${label ? label + ' · ' : ''}${esc(s.name)}${s.key && !s.race ? '' : ''}${st === 'done' ? ' <span class="mut">(terminó)</span>' : ''}</div>${st !== 'done' ? Ver.chips(tv, `${(CATS.find(c => c[0] === id) || [, ''])[1]} ${s.name}`) : ''}</div>`;
   }
   function table(list, cols) {
     return `<table class="mtab"><tbody>${list.map(r => `<tr class="${isFav(r.name) ? 'fav' : ''}"><td>${r.pos}</td><td>${isFav(r.name) ? '★ ' : ''}${esc(r.name)}${r.team && cols.team ? `<small> ${esc(r.team)}</small>` : ''}</td>${cols.pts ? `<td class="r">${r.pts}</td>` : ''}</tr>`).join('')}</tbody></table>`;

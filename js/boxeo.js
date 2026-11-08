@@ -10,10 +10,13 @@ const Boxeo = (() => {
   let data = S.get('boxData', null), tab = 'ar', seenLive = new Set(S.get('boxSeen', []));
   const B = () => { db.boxeo = db.boxeo || { fav:[] }; if (!db.boxeo.fav) db.boxeo.fav = []; return db.boxeo; };
 
+  let tried = 0;
   async function load(force) {
     if (!force && data && Date.now() - data._at < 15 * 60e3) return;
-    try { const j = await (await fetch(REPO.data + 'boxeo.json?t=' + Math.floor(Date.now() / 600e3))).json(); if (j && j.bdp) { j._at = Date.now(); data = j; S.set('boxData', j); } } catch {}
-    if (Nav.current === 'boxeo') render();
+    if (!force && Date.now() - tried < 60e3) return;   // si falla, reintenta como mucho una vez por minuto
+    tried = Date.now(); let ok = false;
+    try { const j = await (await fetch(REPO.data + 'boxeo.json?t=' + Math.floor(Date.now() / 600e3))).json(); if (j && j.bdp) { j._at = Date.now(); data = j; S.set('boxData', j); ok = true; } } catch {}
+    if (ok && Nav.current === 'boxeo') render();
   }
   const boxLives = () => db.chans.filter(c => { const s = Canales.status[c.uid] || {}; return s.st === 'live' && !s.prem && BOX.test(s.title || ''); });
   const boxSoon = () => db.chans.filter(c => { const s = Canales.status[c.uid] || {}; return s.st === 'soon' && BOX.test(s.title || ''); });
@@ -22,10 +25,11 @@ const Boxeo = (() => {
   const hl = t => { let h = esc(t); B().fav.forEach(f => { const re = new RegExp('(' + f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'); h = h.replace(re, '<mark>$1</mark>'); }); return h; };
   const nitem = i => `<a class="nitem ${isFav(i.t) ? 'favn' : ''}" href="${esc(i.l)}" target="_blank" rel="noopener"><b>${hl(i.t)}</b><span>${esc(i.s || 'TyC Sports')} · ${ago(i.d)}</span></a>`;
 
+  let newsTry = 0;   // un intento por minuto: si las noticias no cargan, no redibujar sin parar
   function render() {
     const v = $('v-boxeo');
     load();
-    if (!Noticias.loaded) Noticias.load().then(() => { if (Nav.current === 'boxeo') render(); }).catch(() => {});
+    if (!Noticias.loaded && Date.now() - newsTry > 60e3) { newsTry = Date.now(); Noticias.load().then(() => { if (Nav.current === 'boxeo' && Noticias.loaded) render(); }).catch(() => {}); }
     const lives = boxLives(), soon = boxSoon();
     const bdp = (data && data.bdp) || [];
     const news = { ar:[...Noticias.byTopic('box-bdp'), ...Noticias.byTopic('box-ar')], mundo:Noticias.byTopic('box-mundo') };
@@ -40,6 +44,7 @@ const Boxeo = (() => {
       <div class="vcols">
         <div>
           <h2 class="sec">🔴 Veladas en vivo</h2>
+          ${Ver.chips([], 'boxeo en vivo', { label:'Buscar boxeo en vivo en YouTube' })}
           ${lives.length ? `<div class="grid" id="bxLive">${lives.map(Canales.card).join('')}</div>`
             : `<div class="empty" style="padding:12px;text-align:left">Ahora no hay ninguna velada en vivo en tus canales.<br><span style="font-size:12px">Tip: sumá en 📺 Canales el YouTube de TyC Sports (o el canal donde la transmitan). Cuando un vivo tenga “Boxeo”, “BDP” o “velada” en el título, aparece acá solo y te aviso.</span></div>`}
           ${soon.length ? `<h2 class="sec" style="margin-top:12px">🕒 Próximas transmisiones</h2><div class="grid" id="bxSoon">${soon.map(Canales.card).join('')}</div>` : ''}

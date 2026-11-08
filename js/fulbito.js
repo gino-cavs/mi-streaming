@@ -117,7 +117,8 @@ const Fulbito = (() => {
     const gl = m.goals.length && m.state !== 'pre'
       ? `<div class="goals">⚽ ${m.goals.map(g => `${esc(g.who)} ${esc(g.min)}${g.pen ? ' (p)' : ''}${g.og ? ' (ec)' : ''}`).join(' · ')}</div>` : '';
     const ch = m.state !== 'post' ? channelsFor(m) : [];
-    const tv = ch.length ? `<div class="tvch">📺 ${ch.map(c => `<span>${esc(c)}</span>`).join('')}</div>` : '';
+    const nm = t => t.team.shortDisplayName || t.team.displayName;
+    const tv = m.state !== 'post' ? Ver.chips(ch, `${nm(m.h)} vs ${nm(m.a)}`) : '';
     return `<div class="match ${m.state === 'in' ? 'live' : m.state}"><div class="st">${m.state === 'in' ? '● ' : ''}${esc(m.st)}</div>${tm(m.h, 'h')}<div class="sc">${sc}</div>${tm(m.a, 'a')}${gl}${tv}</div>`;
   }
   function sortM(arr) { const r = m => ({ in:0, pre:1, post:2 }[m.state] ?? 3); return arr.slice().sort((a, b) => r(a) - r(b) || Date.parse(a.date) - Date.parse(b.date)); }

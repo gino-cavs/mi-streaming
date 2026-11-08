@@ -13,7 +13,7 @@ const Noticias = (() => {
       .finally(() => { loading = null; });
     return loading;
   }
-  const byTopic = id => data ? data.items.filter(i => i.tp.includes(id)) : [];
+  const byTopic = id => data && data.items ? data.items.filter(i => i.tp.includes(id)) : [];
   function item(i) {
     return `<a class="nitem" href="${esc(i.l)}" target="_blank" rel="noopener"><b>${esc(i.t)}</b><span>${esc(i.s || '')} · ${ago(i.d)}</span></a>`;
   }
