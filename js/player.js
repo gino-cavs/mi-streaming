@@ -184,7 +184,37 @@ const Player = (() => {
     paintSel(); paintActs();
   }
   // botones de la pantalla elegida, en la barra del reproductor (a la derecha de "Pantallas")
+  /* ---------- Control remoto abajo del video: canal ▲▼, pausa, mute y número ---------- */
+  function paintRemote() {
+    const r = $('remote'); if (!r || (document.activeElement?.id === 'rcIn' && $('rcIn').value)) return;   // no borrar el número mientras lo escribís
+    const i = slots[focus] ? focus : slots.findIndex(Boolean), s = slots[i];
+    if (!s) { r.innerHTML = ''; return; }
+    const sk = AudioMgr.sink('slot' + i), muted = sk?.muted?.(), paused = sk?.paused?.();
+    const inList = db.chans.includes(s.c);
+    r.innerHTML = `<button data-rc="up" title="Canal anterior (▲)">▲<small>CH</small></button><button data-rc="dn" title="Canal siguiente (▼)">▼<small>CH</small></button>
+      <span class="rcnow">${inList ? `<b>${esc(Canales.numTxt(s.c))}</b>` : ''}${esc(s.c.name || '')}</span>
+      <button data-rc="pp" title="Pausa / seguir" ${sk?.toggle ? '' : 'disabled'}>${paused ? '▶' : '❚❚'}</button>
+      <button data-rc="mu" title="Silenciar / con sonido">${muted ? '🔇' : '🔊'}</button>
+      <form class="rcnum" id="rcNum"><input id="rcIn" inputmode="numeric" pattern="[0-9]*" maxlength="3" placeholder="N°" autocomplete="off"><button title="Ir a ese canal">Ir</button></form>`;
+    r.onclick = e => {
+      const b = e.target.closest('[data-rc]'); if (!b) return;
+      const a = b.dataset.rc, k = AudioMgr.sink('slot' + i);
+      if (a === 'up') Zap.step(-1);
+      if (a === 'dn') Zap.step(1);
+      if (a === 'pp' && k?.toggle) k.toggle();
+      if (a === 'mu' && k) { k.muted?.() ? AudioMgr.focus('slot' + i) : k.mute(); }
+      setTimeout(() => { paintRemote(); paintActs(); }, 250);
+    };
+    $('rcNum').onsubmit = e => {
+      e.preventDefault();
+      const n = +$('rcIn').value, c = db.chans.find(x => +x.num === n);
+      if (!c) { toast(`<b>No hay canal ${esc($('rcIn').value)}</b>`, { cls:'info zapt', ms:1500 }); $('rcIn').value = ''; return; }
+      $('rcIn').value = ''; $('rcIn').blur(); play(c);
+    };
+  }
+  setInterval(() => { if ($('player')?.classList.contains('show') && !document.hidden) paintRemote(); }, 1500);   // pausa / mute al día
   function paintActs() {
+    paintRemote();
     const box = $('pbarActs'); if (!box) return;
     if (!slots[focus]) { const f = slots.findIndex(Boolean); if (f >= 0) focus = f; }
     const s = slots[focus];

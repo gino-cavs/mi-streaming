@@ -1000,3 +1000,14 @@ label.chk input[type=time] { width:auto; padding:4px 6px; }
 .zosd.out { opacity:0; transition:opacity .6s; }
 @keyframes zosdIn { from { opacity:0; } to { opacity:1; } }
 @media (prefers-reduced-motion: reduce) { .zfx canvas { animation:none; } }
+
+/* ===== Control remoto abajo del video ===== */
+.remote { display:flex; align-items:center; gap:6px; padding:8px 10px; background:#10131c; border-top:1px solid var(--line); flex-wrap:wrap; }
+.remote:empty { display:none; }
+.remote button { min-width:46px; height:40px; padding:0 12px; font-size:16px; display:inline-flex; align-items:center; justify-content:center; gap:3px; border-radius:8px; }
+.remote button small { font-size:10px; color:var(--mut); }
+.remote .rcnow { flex:1; min-width:120px; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--mut); }
+.remote .rcnow b { font-family:'VT323', monospace; font-size:22px; color:#3dff5a; margin-right:8px; vertical-align:-2px; }
+.rcnum { display:flex; gap:4px; } .rcnum input { width:70px; height:40px; text-align:center; font-family:'VT323', monospace; font-size:22px; padding:0 6px; }
+#player.tvmode .remote { display:none; }
+@media (max-width:600px) { .remote .rcnow { order:-1; flex-basis:100%; } .remote button { flex:1; min-width:0; } .rcnum { flex:1.4; } .rcnum input { flex:1; width:auto; } }
