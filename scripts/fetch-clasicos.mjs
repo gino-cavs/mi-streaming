@@ -7,11 +7,11 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 import { readDb, norm } from './gist.mjs';
 const dir = process.argv[2] || '.', repo = process.argv[3] || 'klasito7/mi-streaming';
-const VER = 2;
+const VER = 3;
 const UA = { 'User-Agent':'FUNVS-clasicos/1.0 (https://github.com/' + repo + ')' };
 await mkdir(dir, { recursive:true });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const getJ = async (u, o = {}) => { for (let i = 0; i < 3; i++) { try { const r = await fetch(u, { ...o, headers:{ ...UA, ...(o.headers || {}) } }); if (r.ok) return await r.json(); if (r.status === 404 || r.status === 400) return null; } catch {} await sleep(2000 * (i + 1)); } return null; };
+const getJ = async (u, o = {}) => { for (let i = 0; i < 3; i++) { try { const r = await fetch(u, /espn\.com/.test(u) ? o : { ...o, headers:{ ...UA, ...(o.headers || {}) } }); if (r.ok) return await r.json(); if (r.status === 404 || r.status === 400) return null; } catch {} await sleep(2000 * (i + 1)); } return null; };
 const wp = p => getJ('https://en.wikipedia.org/w/api.php?' + new URLSearchParams({ format:'json', formatversion:'2', maxlag:'5', ...p }));
 
 // País (como se muestra) · bandera · nombre en las categorías de Wikipedia · ligas de ESPN
@@ -36,7 +36,8 @@ const COPAS = ['conmebol.libertadores', 'conmebol.sudamericana', 'uefa.champions
 const SEMILLAS = [{ n:'Clásico del Oeste', a:'Club Atlético Vélez Sarsfield', b:'Ferro Carril Oeste', pais:'Argentina', es:'Clásico del Oeste' }];
 
 const STRIP = new Set(['club', 'atletico', 'atletica', 'athletico', 'fc', 'cf', 'sc', 'ac', 'as', 'sd', 'cd', 'ca', 'afc', 'football', 'futbol', 'fútbol', 'de', 'del', 'la', 'el', 'y', 'the', 'and', 'social', 'deportivo', 'sport', 'f', 'c', 'a', 'calcio', 'association', 'soccer']);
-const toks = s => norm(String(s).replace(/\(.*?\)/g, '')).split(' ').filter(w => w && !STRIP.has(w));
+const SYN = { inter:'internazionale', internazionale:'internazionale', bayern:'bayern', psg:'paris', marsella:'marseille', milan:'milan', atenas:'athens', amsterdam:'amsterdam', ajax:'ajax' };
+const toks = s => norm(String(s).replace(/\(.*?\)/g, '')).split(' ').filter(w => w && !STRIP.has(w)).map(w => SYN[w] || w);
 const cleanName = t => t.replace(/\s+(Football Club|Fútbol Club|Futebol Clube|Club de Fútbol|Calcio|Soccer Club)$/i, '').replace(/^(Fútbol Club|Football Club|Club de Fútbol|Futebol Clube|Sport Club|Associazione Calcio|Società Sportiva)\s+/i, '').replace(/\s*\((football club|soccer|football|club|[A-Za-z ]*football club)\)$/i, '').replace(/\s*\(([^)]*)\)$/, ' ($1)').replace(/\b(F\.?C\.?|A\.?F\.?C\.?|S\.?C\.?|C\.?F\.?)$/g, '').replace(/^(Club Atlético|Club Deportivo|Club Social y Deportivo|Club)\s+/i, '').trim();
 
 /* =================== catálogo =================== */
@@ -214,8 +215,9 @@ async function buildCatalog() {
           if (score > bs) { bs = score; best = e; }
         }
       }
-      if (best) { s.espn = best.id; s.lg = best.lg; s.logo = `https://a.espncdn.com/i/teamlogos/soccer/500/${best.id}.png`; }
+      if (best) { s.espn = best.id; s.lg = best.lg; s.sc = bs; s.logo = `https://a.espncdn.com/i/teamlogos/soccer/500/${best.id}.png`; }
     }
+    for (const d of out) if (d.a.espn && d.a.espn === d.b.espn) { const w = d.a.sc >= d.b.sc ? d.b : d.a; delete w.espn; delete w.logo; delete w.lg; }
   }
   const rank = d => (d.en ? 1000 : 0) + (d.nboth || 0) + (d.a.espn && d.b.espn ? 300 : 0);
   out.sort((x, y) => rank(y) - rank(x));
@@ -242,7 +244,7 @@ const pair = new Map(); for (const d of derbies) if (d.a.espn && d.b.espn) pair.
 const lgs = [...new Set([...PAISES.flatMap(p => p[3]), ...COPAS])];
 const fixtures = new Map();
 for (const lg of lgs) {
-  const j = await getJ(`https://site.api.espn.com/apis/site/v2/sports/soccer/${lg}/scoreboard?dates=${range}&limit=900`);
+  const j = await getJ(`https://site.api.espn.com/apis/site/v2/sports/soccer/${lg}/scoreboard?dates=${range}`);
   if (lg === 'eng.1' || lg === 'arg.1') console.log(`ESPN ${lg}: ${j?.events?.length ?? 'sin respuesta'} partidos en ${range}`);
   for (const ev of j?.events || []) {
     const c = ev.competitions?.[0]; if (!c) continue;
