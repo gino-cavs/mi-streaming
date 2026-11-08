@@ -239,27 +239,30 @@ let derbies = cat?.derbies, catAt = cat?.catAt;
 if (!derbies) { derbies = await buildCatalog(); catAt = new Date().toISOString(); }
 else console.log('Clásicos: reuso el catálogo de', cat.catAt);
 
-/* =================== partidos: próximos 21 días y últimos 10 =================== */
+/* =================== partidos: próximos 14 días y últimos 7 (se recalcula cada 6 horas) =================== */
 const ymd = t => new Date(t).toISOString().slice(0, 10).replace(/-/g, '');
-const range = `${ymd(Date.now() - 10 * 864e5)}-${ymd(Date.now() + 21 * 864e5)}`;
 const pair = new Map(); for (const d of derbies) if (d.a.espn && d.b.espn) pair.set([d.a.espn, d.b.espn].sort().join('-'), d.id);
-const lgs = [...new Set([...PAISES.flatMap(p => p[3]), ...COPAS])];
-const fixtures = new Map();
-const weeks = []; for (let d = -10; d < 21; d += 7) weeks.push(`${ymd(Date.now() + d * 864e5)}-${ymd(Date.now() + Math.min(d + 6, 21) * 864e5)}`);
-async function espnSB(lg, r) { try { const x = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${lg}/scoreboard?dates=${r}`); if (!x.ok) { if (lg === 'eng.1') console.log('ESPN', lg, r, 'HTTP', x.status); return []; } return (await x.json()).events || []; } catch (e) { if (lg === 'eng.1') console.log('ESPN', lg, e.message); return []; } }
-for (const lg of lgs) {
-  const evs = [];
-  for (const r of weeks) evs.push(...await espnSB(lg, r));
-  if (lg === 'eng.1' || lg === 'arg.1') console.log(`ESPN ${lg}: ${evs.length} partidos`);
-  const j = { leagues:[{ name:LGN[lg] || lg }] };
-  for (const ev of evs) {
-    const c = ev.competitions?.[0]; if (!c) continue;
-    const H = c.competitors.find(x => x.homeAway === 'home'), A = c.competitors.find(x => x.homeAway === 'away'); if (!H || !A) continue;
-    const id = pair.get([H.team.id, A.team.id].sort().join('-')); if (!id) continue;
-    fixtures.set(ev.id, { e:ev.id, d:id, date:ev.date, lg:j.leagues?.[0]?.name || lg, slug:lg, h:H.team.shortDisplayName || H.team.displayName, a:A.team.shortDisplayName || A.team.displayName,
-      hs:H.score, as:A.score, st:ev.status?.type?.state, det:ev.status?.type?.shortDetail, venue:c.venue?.fullName });
+let fx = cat && cat.fxAt && Date.now() - Date.parse(cat.fxAt) < 6 * 3600e3 ? cat.fixtures : null, fxAt = cat?.fxAt;
+if (!fx) {
+  const lgs = [...new Set([...PAISES.flatMap(p => p[3]), ...COPAS])], days = [];
+  for (let d = -7; d <= 14; d++) days.push(ymd(Date.now() + d * 864e5));
+  const jobs = lgs.flatMap(lg => days.map(day => [lg, day])), fixtures = new Map(); let i = 0, fails = 0;
+  async function worker() {
+    while (i < jobs.length) {
+      const [lg, day] = jobs[i++];
+      let j = null; try { const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${lg}/scoreboard?dates=${day}`); if (r.ok) j = await r.json(); else fails++; } catch { fails++; }
+      for (const ev of j?.events || []) {
+        const c = ev.competitions?.[0]; if (!c) continue;
+        const H = c.competitors.find(x => x.homeAway === 'home'), A = c.competitors.find(x => x.homeAway === 'away'); if (!H || !A) continue;
+        const id = pair.get([H.team.id, A.team.id].sort().join('-')); if (!id) continue;
+        fixtures.set(ev.id, { e:ev.id, d:id, date:ev.date, lg:LGN[lg] || j.leagues?.[0]?.name || lg, slug:lg, h:H.team.shortDisplayName || H.team.displayName, a:A.team.shortDisplayName || A.team.displayName,
+          hs:H.score, as:A.score, st:ev.status?.type?.state, det:ev.status?.type?.shortDetail, venue:c.venue?.fullName });
+      }
+    }
   }
+  await Promise.all(Array.from({ length:10 }, worker));
+  fx = [...fixtures.values()].sort((a, b) => Date.parse(a.date) - Date.parse(b.date)); fxAt = new Date().toISOString();
+  console.log(`Fixture: ${jobs.length} pedidos a ESPN (${fails} con error)`);
 }
-const fx = [...fixtures.values()].sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
-await writeFile(dir + '/clasicos.json', JSON.stringify({ v:VER, paises:PAISES.map(p => [p[0], p[1]]), updated:new Date().toISOString(), catAt, customKey, derbies, fixtures:fx }));
+await writeFile(dir + '/clasicos.json', JSON.stringify({ v:VER, paises:PAISES.map(p => [p[0], p[1]]), updated:new Date().toISOString(), catAt, fxAt, customKey, derbies, fixtures:fx }));
 console.log(`Clásicos: ${derbies.length} en el catálogo · ${fx.filter(f => f.st !== 'post').length} por jugarse · ${fx.filter(f => f.st === 'post').length} jugados hace poco`);
