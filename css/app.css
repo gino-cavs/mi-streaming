@@ -862,3 +862,34 @@ label.chk { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:4p
 label.chk input[type=checkbox] { width:auto; margin:0; flex:none; }
 label.chk input[type=time] { width:auto; padding:4px 6px; }
 .tgopts label.chk, .tgch label.chk { flex-wrap:nowrap; align-items:flex-start; } .tgopts label.chk input, .tgch label.chk input { margin-top:3px; }
+
+/* ===== Mundo Clásicos ===== */
+.fmode { margin-bottom:10px; } .fmode .cnt { background:var(--live); color:#fff; border-radius:10px; padding:0 6px; font-size:11px; margin-left:4px; }
+.clhero { display:flex; gap:14px; align-items:center; margin-bottom:12px; } .clhero .clx { font-size:42px; } .clhero h2 { margin:0; } .clhero p { margin:2px 0 0; color:var(--mut); font-size:14px; }
+.clday { font-size:13px; color:var(--mut); margin:10px 0 4px; font-weight:600; }
+.clfx { display:flex; align-items:center; gap:10px; background:var(--panel); border-radius:10px; padding:8px 12px; margin-bottom:5px; cursor:pointer; border:1px solid transparent; }
+.clfx:hover { border-color:var(--acc); } .clfx.live { border-color:var(--live); }
+.clfl { font-size:22px; } .clfm { flex:1; min-width:0; display:flex; flex-direction:column; } .clfm small { color:var(--mut); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.clfm b { font-size:15px; } .clsc { font-family:Oswald, sans-serif; font-size:18px; color:var(--acc); margin:0 4px; }
+.clwhen { font-size:13px; color:var(--mut); white-space:nowrap; } .clfx.live .clwhen { color:var(--live); font-weight:700; }
+.clact { display:flex; gap:4px; } .clact .lnk { text-decoration:none; padding:3px 8px; }
+.clpaises { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:6px; }
+.clpaises button { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:10px; text-align:left; }
+.clpaises span { font-size:22px; } .clpaises b { flex:1; font-size:14px; } .clpaises small { color:var(--mut); }
+.clgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:8px; }
+.clcard { display:flex; flex-direction:column; gap:3px; padding:12px; border-radius:12px; background:var(--panel); text-align:left; border:1px solid transparent; }
+.clcard:hover { border-color:var(--acc); } .clcard b { font-size:15px; } .clcard span { font-size:13px; color:var(--mut); } .clcard small { font-size:12px; color:var(--acc); }
+.clteams { display:flex; align-items:center; gap:8px; margin-bottom:4px; } .clteams span { font-size:12px; color:var(--mut); }
+.cllogo { width:34px; height:34px; object-fit:contain; display:inline-grid; place-items:center; font-size:22px; }
+.clform { display:flex; flex-wrap:wrap; gap:6px; align-items:center; } .clform input { flex:1; min-width:160px; }
+.cldh { display:grid; grid-template-columns:1fr 2fr 1fr; align-items:center; gap:10px; background:var(--panel); border-radius:14px; padding:16px; margin-bottom:12px; text-align:center; }
+.cldh .cllogo { width:72px; height:72px; font-size:44px; } .clside { display:flex; flex-direction:column; align-items:center; gap:6px; } .clside b { font-size:16px; }
+.clmid span { font-size:28px; } .clmid h2 { margin:4px 0; font-size:24px; } .clmid small { color:var(--mut); }
+.clsum p { line-height:1.6; font-size:15px; margin:0 0 6px; }
+.clinfo td:first-child { white-space:nowrap; color:var(--mut); padding-right:10px; vertical-align:top; } .clinfo td { padding:4px 6px; font-size:14px; }
+.clboth { display:flex; flex-wrap:wrap; gap:5px; } .clboth span { background:var(--panel); border-radius:999px; padding:3px 10px; font-size:13px; }
+.clwdl { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; text-align:center; }
+.clwdl div { background:var(--panel); border-radius:10px; padding:8px; } .clwdl b { display:block; font-family:Oswald, sans-serif; font-size:28px; } .clwdl span { font-size:12px; color:var(--mut); }
+.clhrow { display:flex; align-items:center; gap:10px; padding:5px 0; border-bottom:1px solid #ffffff10; font-size:14px; } .clhrow small { color:var(--mut); width:90px; flex:none; } .clhrow span { flex:1; }
+.clhrow i { width:10px; height:10px; border-radius:50%; } .clhrow i.w { background:#2ecc71; } .clhrow i.l { background:#e74c3c; } .clhrow i.d { background:#888; }
+@media (max-width:600px) { .cldh { grid-template-columns:1fr 1.4fr 1fr; padding:10px; } .cldh .cllogo { width:48px; height:48px; } .clmid h2 { font-size:18px; } .clwhen { font-size:11px; } }

@@ -123,9 +123,18 @@ const Fulbito = (() => {
   }
   function sortM(arr) { const r = m => ({ in:0, pre:1, post:2 }[m.state] ?? 3); return arr.slice().sort((a, b) => r(a) - r(b) || Date.parse(a.date) - Date.parse(b.date)); }
 
-  function render() {
+  const modeBar = () => { const m = S.get('fMode', 'partidos'), n = Clasicos.todayCount();
+    return `<div class="chips fmode" id="fMode"><button data-fm="partidos" class="${m === 'partidos' ? 'on' : ''}">⚽ Partidos</button><button data-fm="clasicos" class="${m === 'clasicos' ? 'on' : ''}">⚔️ Mundo Clásicos${n ? ` <span class="cnt">${n} hoy</span>` : ''}</button></div>`; };
+  const bindMode = v => { $('fMode').onclick = e => { const b = e.target.closest('[data-fm]'); if (!b) return; S.set('fMode', b.dataset.fm); v.dataset.built = ''; v.dataset.mode = ''; render(true); }; };
+  function render(force) {
     const v = $('v-fulbito');
-    if (!v.dataset.built) { v.dataset.built = 1; build(v); }
+    if (S.get('fMode', 'partidos') === 'clasicos') {
+      if (v.dataset.mode === 'clasicos' && !force) return;      // no redibujar con cada actualización de resultados
+      v.dataset.mode = 'clasicos'; v.dataset.built = '';
+      v.innerHTML = modeBar() + '<div id="clBody"></div>'; bindMode(v); Clasicos.render(v); return;
+    }
+    v.dataset.mode = '';
+    if (!v.dataset.built) { v.dataset.built = 1; build(v); bindMode(v); }
     $('fDays').querySelectorAll('[data-d]').forEach(b => b.classList.toggle('on', +b.dataset.d === day));
     $('fLigas').innerHTML = LIGAS.map(([id, n]) => `<button class="${db.futbol.leagues.includes(id) ? 'on' : ''}" data-liga="${id}">${esc(n)}</button>`).join('');
     $('fTeams').innerHTML = db.futbol.teams.map(t => `<button data-unfav="${esc(t)}">★ ${esc(t)} ✕</button>`).join('') || '<span class="mut" style="font-size:13px">Ninguno. Tocá ☆ al lado de un equipo.</span>';
@@ -144,7 +153,7 @@ const Fulbito = (() => {
       : `<div class="empty">No hay partidos de tus ligas ${day === 0 ? 'hoy' : day === -1 ? 'ayer' : day === 1 ? 'mañana' : 'ese día'}.${Object.keys(view).length ? '' : '<br>Si esto sigue así, puede que la fuente de resultados no esté respondiendo.'}</div>`;
   }
   function build(v) {
-    v.innerHTML = `
+    v.innerHTML = `${modeBar()}
       ${Resumenes.block(it => it.tipo === 'futbol', '🎬 Resúmenes de tus equipos')}
       <div class="subbar">
         <div class="chips" id="fDays" style="margin:0">

@@ -133,6 +133,21 @@ async function resumenes() {
     await send('res:' + it.k, `🎬 <b>Ya está el resumen</b>\n${esc(it.title)}${it.sub ? '\n' + esc(it.sub) : ''}\nhttps://youtu.be/${it.video.id}`);
 }
 
+/* ---------- ⚔️ clásicos del mundo ---------- */
+async function clasicos() {
+  if (on.clasicos === false) return;
+  const c = await getJ(raw('clasicos.json')); if (!c?.fixtures) return;
+  const by = Object.fromEntries((c.derbies || []).map(d => [d.id, d])), fl = Object.fromEntries((c.paises || []).map(p => [p[0], p[1]]));
+  const nm = d => d ? (d.es && !/rivalry|derby/i.test(d.es) ? d.es : d.n) : '';
+  const hh = t => new Date(t).toLocaleTimeString('es-AR', { timeZone:'America/Argentina/Buenos_Aires', hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
+  const n = ar(), hoy = c.fixtures.filter(f => f.st !== 'post' && new Date(f.date).toLocaleDateString('en-CA', { timeZone:'America/Argentina/Buenos_Aires' }) === n.ymd);
+  if (hoy.length && n.h >= 9) await send('cl-dia:' + n.ymd, `⚔️ <b>Clásicos de hoy</b>\n${hoy.map(f => `${fl[by[f.d]?.pais] || '⚽'} ${hh(f.date)} · ${esc(f.h)} vs ${esc(f.a)}${by[f.d] ? ' <i>(' + esc(nm(by[f.d])) + ')</i>' : ''}`).join('\n')}`);
+  for (const f of c.fixtures) {
+    const left = Date.parse(f.date) - Date.now();
+    if (f.st === 'pre' && left > 0 && left < 17 * 60e3) await send('cl15:' + f.e, `⚔️ <b>En ${Math.round(left / 60e3)} min: clásico</b>\n${fl[by[f.d]?.pais] || ''} ${esc(f.h)} vs ${esc(f.a)}\n${esc(nm(by[f.d]))} · ${esc(f.lg)}`);
+  }
+}
+
 /* ---------- 📄 REPROCANN y 🍃 4:20 ---------- */
 async function diario() {
   const n = ar();
@@ -148,7 +163,7 @@ async function diario() {
 /* ---------- vuelta principal ---------- */
 const until = Date.now() + 9 * 60e3;
 let hot = await futbol();
-await canales(); await motor(); await resumenes(); await diario();
+await canales(); await motor(); await clasicos(); await resumenes(); await diario();
 while (hot && !process.env.NO_LOOP && Date.now() + 45e3 < until) { await writeFile(stFile, JSON.stringify(st)); await sleep(45e3); hot = await futbol(); }
 await writeFile(stFile, JSON.stringify(st));
 console.log(`Telegram: ${sentCount} aviso(s) enviado(s)${first ? ' (primera corrida: aprendí el estado)' : ''}`);

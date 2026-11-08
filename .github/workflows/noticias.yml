@@ -18,7 +18,7 @@ concurrency:
 jobs:
   noticias:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -48,6 +48,13 @@ jobs:
           GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/fetch-resumenes.mjs /tmp/datos "$GITHUB_REPOSITORY"
+      - name: Mundo Clásicos (Wikipedia, Wikidata y ESPN)
+        continue-on-error: true
+        timeout-minutes: 15
+        env:
+          GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/fetch-clasicos.mjs /tmp/datos "$GITHUB_REPOSITORY"
       - name: Datos para "¿Jugó con?" (Wikidata, una vez por semana)
         continue-on-error: true
         timeout-minutes: 15
