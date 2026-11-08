@@ -7,7 +7,7 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 import { readDb, norm } from './gist.mjs';
 const dir = process.argv[2] || '.', repo = process.argv[3] || 'klasito7/mi-streaming';
-const VER = 1;
+const VER = 2;
 const UA = { 'User-Agent':'FUNVS-clasicos/1.0 (https://github.com/' + repo + ')' };
 await mkdir(dir, { recursive:true });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -37,7 +37,7 @@ const SEMILLAS = [{ n:'Clásico del Oeste', a:'Club Atlético Vélez Sarsfield',
 
 const STRIP = new Set(['club', 'atletico', 'atletica', 'athletico', 'fc', 'cf', 'sc', 'ac', 'as', 'sd', 'cd', 'ca', 'afc', 'football', 'futbol', 'fútbol', 'de', 'del', 'la', 'el', 'y', 'the', 'and', 'social', 'deportivo', 'sport', 'f', 'c', 'a', 'calcio', 'association', 'soccer']);
 const toks = s => norm(String(s).replace(/\(.*?\)/g, '')).split(' ').filter(w => w && !STRIP.has(w));
-const cleanName = t => t.replace(/\s*\((football club|soccer|football|club|[A-Za-z ]*football club)\)$/i, '').replace(/\s*\(([^)]*)\)$/, ' ($1)').replace(/\b(F\.?C\.?|A\.?F\.?C\.?|S\.?C\.?|C\.?F\.?)$/g, '').replace(/^(Club Atlético|Club Deportivo|Club Social y Deportivo|Club)\s+/i, '').trim();
+const cleanName = t => t.replace(/\s+(Football Club|Fútbol Club|Futebol Clube|Club de Fútbol|Calcio|Soccer Club)$/i, '').replace(/^(Fútbol Club|Football Club|Club de Fútbol|Futebol Clube|Sport Club|Associazione Calcio|Società Sportiva)\s+/i, '').replace(/\s*\((football club|soccer|football|club|[A-Za-z ]*football club)\)$/i, '').replace(/\s*\(([^)]*)\)$/, ' ($1)').replace(/\b(F\.?C\.?|A\.?F\.?C\.?|S\.?C\.?|C\.?F\.?)$/g, '').replace(/^(Club Atlético|Club Deportivo|Club Social y Deportivo|Club)\s+/i, '').trim();
 
 /* =================== catálogo =================== */
 let cat = null;
@@ -69,7 +69,7 @@ function params(tpl) {
   return out;
 }
 const links = s => [...(s || '').matchAll(/\[\[([^\]|#]+)(?:\|[^\]]*)?\]\]/g)].map(m => m[1].trim());
-const plain = s => (s || '').replace(/<ref[^>]*\/>/g, '').replace(/<ref[\s\S]*?<\/ref>/g, '').replace(/<br\s*\/?>/gi, ' · ').replace(/\{\{(?:nowrap|small|nobr)\|([^{}]*)\}\}/gi, '$1')
+const plain = s => (s || '').replace(/\[\[(?:File|Image|Archivo):[^\]]*\]\]/gi, '').replace(/<ref[^>]*\/>/g, '').replace(/<ref[\s\S]*?<\/ref>/g, '').replace(/<br\s*\/?>/gi, ' · ').replace(/\{\{(?:nowrap|small|nobr)\|([^{}]*)\}\}/gi, '$1')
   .replace(/\{\{(?:fb|fbaicon|flagicon|flag|fbicon)[^{}]*\}\}/gi, '').replace(/\{\{[^{}]*\}\}/g, '').replace(/\[\[(?:[^\]|]*\|)?([^\]]*)\]\]/g, '$1').replace(/'''?/g, '')
   .replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/\s*·\s*·\s*/g, ' · ').replace(/\s+/g, ' ').replace(/^[\s·]+|[\s·]+$/g, '').trim();
 const pick = (p, ...ks) => { for (const k of ks) if (p[k] && plain(p[k])) return plain(p[k]).slice(0, 220); return undefined; };
@@ -85,11 +85,17 @@ async function buildCatalog() {
   const LISTS = ['List of association football club rivalries in Europe', 'List of association football rivalries in the United Kingdom', 'List of association football club rivalries in South America',
     'List of association football club rivalries in North America', 'List of association football club rivalries in the Americas', 'List of association football club rivalries in Asia and Oceania',
     'List of association football club rivalries in Africa', 'List of association football club rivalries in Oceania', 'List of association football club rivalries in Asia'];
+  const extraArt = new Map();   // artículos sueltos que aparecen como "artículo principal"
   const LINK = /\[\[([^\]|#]+)(?:\|([^\]]*))?\]\]/g;
-  for (const L of LISTS) {
+  const queue = LISTS.map(L => [L, null]), done = new Set();
+  for (const [, , en] of PAISES) queue.push([`List of association football rivalries in ${en}`, null], [`List of football rivalries in ${en}`, null]);
+  while (queue.length) {
+    const [L, fixed] = queue.shift(); if (done.has(L)) continue; done.add(L);
     const j = await wp({ action:'query', prop:'revisions', rvprop:'content', rvslots:'main', redirects:'1', titles:L });
-    const txt = j?.query?.pages?.[0]?.revisions?.[0]?.slots?.main?.content; if (!txt) { console.log('Lista no encontrada:', L); continue; }
-    let pais = /United Kingdom/.test(L) ? null : null, n0 = derbies.length;
+    const txt = j?.query?.pages?.[0]?.revisions?.[0]?.slots?.main?.content; if (!txt) continue;
+    const ownCountry = PAISES.find(p => L.endsWith(' in ' + p[2]));
+    let pais = fixed || (ownCountry ? ownCountry[0] : null), n0 = derbies.length;
+    const keep = !!pais;   // lista de un solo país: los títulos de adentro son regiones, no países
     const lines = txt.split('\n');
     let row = [];
     const flushRow = () => {   // filas de tabla: | Equipo 1 || Equipo 2 || Artículo
@@ -101,7 +107,9 @@ async function buildCatalog() {
     };
     for (const ln of lines) {
       const h = ln.match(/^(={2,5})\s*(.+?)\s*\1\s*$/);
-      if (h) { flushRow(); const p = paisOf(h[2]); if (p) pais = p; else if (h[1].length <= 2 && !/united kingdom/i.test(L)) pais = null; continue; }
+      if (h) { flushRow(); if (keep) continue; const p = paisOf(h[2]); if (p) pais = p; else if (h[1].length <= 2 && !/united kingdom/i.test(L)) pais = null; continue; }
+      const mainT = ln.match(/\{\{\s*(?:main|main article|further|see also)\s*\|([^}|]+)/i);
+      if (mainT && pais && /rivalr|derb/i.test(mainT[1])) { const t = mainT[1].trim(); if (/^List/i.test(t)) queue.push([t, pais]); else extraArt.set(t, pais); continue; }
       if (/^\|-/.test(ln) || /^\|\}/.test(ln)) { flushRow(); continue; }
       if (/^\|(?!\})/.test(ln)) { row.push(...ln.slice(1).split('||')); continue; }
       if (!pais || !/^\*/.test(ln) || !/\bvs?\.?\b|\bv\b/i.test(ln)) continue;
@@ -118,10 +126,11 @@ async function buildCatalog() {
     }
     flushRow();
     console.log(`${L}: ${derbies.length - n0} clásicos`);
+    await sleep(200);
   }
   // 2) también los artículos de las categorías por país (por si alguno no está en las listas)
-  const extra = new Map();
-  for (const [pais, , en] of PAISES) for (const cName of [`Association football rivalries in ${en}`, `Football rivalries in ${en}`]) {
+  const extra = new Map(extraArt);
+  for (const [pais, , en] of PAISES) for (const cName of [`Association football rivalries in ${en}`, `Football rivalries in ${en}`, `Football derbies in ${en}`]) {
     const j = await wp({ action:'query', list:'categorymembers', cmtitle:'Category:' + cName, cmlimit:'500', cmtype:'page' });
     for (const m of j?.query?.categorymembers || []) if (!/^List/i.test(m.title)) extra.set(m.title, pais);
   }
@@ -136,7 +145,7 @@ async function buildCatalog() {
       let t0 = pg.title; while (!arts.has(t0) && back.has(t0)) t0 = back.get(t0);
       const d = arts.get(t0); if (!d) continue;
       const txt = pg.revisions?.[0]?.slots?.main?.content || '';
-      const tpl = template(txt, /\{\{\s*Infobox (sports|football|association football|soccer) rivalry/i), p = tpl ? params(tpl) : {};
+      const tpl = template(txt, /\{\{\s*Infobox[^|}\n]*(rivalry|derby)/i), p = tpl ? params(tpl) : {};
       d.en = pg.title; d.es = pg.langlinks?.[0]?.title;
       d.n = pick(p, 'name') || d.n || pg.title.replace(/ rivalry$/i, '');
       d.alias = pick(p, 'other_names', 'nickname');
@@ -234,6 +243,7 @@ const lgs = [...new Set([...PAISES.flatMap(p => p[3]), ...COPAS])];
 const fixtures = new Map();
 for (const lg of lgs) {
   const j = await getJ(`https://site.api.espn.com/apis/site/v2/sports/soccer/${lg}/scoreboard?dates=${range}&limit=900`);
+  if (lg === 'eng.1' || lg === 'arg.1') console.log(`ESPN ${lg}: ${j?.events?.length ?? 'sin respuesta'} partidos en ${range}`);
   for (const ev of j?.events || []) {
     const c = ev.competitions?.[0]; if (!c) continue;
     const H = c.competitors.find(x => x.homeAway === 'home'), A = c.competitors.find(x => x.homeAway === 'away'); if (!H || !A) continue;
