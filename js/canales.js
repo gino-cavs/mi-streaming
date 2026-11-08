@@ -216,7 +216,11 @@ const Canales = (() => {
                   + sec('🎬 Estrenos ahora', prem) + sec('🕒 Próximos vivos', soon) + sec('🎬 Próximos estrenos', soonP);
     } else {
       const list = tab === 'all' ? db.chans : tab === 'c:' ? db.chans.filter(c => !db.cats.includes(c.cat)) : db.chans.filter(c => c.cat === tab.slice(2));
-      m.innerHTML = list.length ? `<div class="grid">${byNum(list).map(card).join('')}</div>` : `<div class="empty">No hay canales en esta categoría.</div>`;
+      // separados en: online (vivos y estrenos al aire), más tarde (programados) y offline; cada grupo en el orden de tus números
+      const st = c => status[c.uid]?.st, on = byNum(list.filter(c => st(c) === 'live')), later = byNum(list.filter(c => st(c) === 'soon'));
+      const off = byNum(list.filter(c => st(c) !== 'live' && st(c) !== 'soon'));
+      const sec = (t, l, cls = '') => l.length ? `<h2 class="sec ${cls}">${t} <span class="mut" style="font-weight:400;font-size:13px">${l.length}</span></h2><div class="grid ${cls}">${l.map(card).join('')}</div>` : '';
+      m.innerHTML = list.length ? sec('● Online', on) + sec('🕒 Más tarde', later) + sec('⚫ Offline', off, 'offg') : `<div class="empty">No hay canales en esta categoría.</div>`;
     }
     $('upd').textContent = lastUpd ? 'Actualizado ' + fmtH(lastUpd) : '';
   }

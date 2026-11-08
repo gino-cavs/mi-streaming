@@ -825,3 +825,4 @@ body.hudon:not(.tvlock) #tvfoot { display:flex; }
 .f1leg { display:flex; flex-wrap:wrap; gap:12px; font-size:12px; color:var(--mut); margin:4px 0 6px; }
 .f1lbl { font-size:12px; margin-top:6px; }
 .f1map { width:100%; max-width:420px; height:auto; display:block; margin:auto; }
+.grid.offg .card { opacity:.7; } .grid.offg .card:hover { opacity:1; }
