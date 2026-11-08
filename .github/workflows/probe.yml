@@ -1,0 +1,10 @@
+name: probe-openf1
+on: workflow_dispatch
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for q in "sessions?year=2026&session_name=Race" "session_result?session_key=latest" "drivers?session_key=latest" "stints?session_key=latest" "pit?session_key=latest" "laps?session_key=latest&driver_number=43&lap_number=5"; do
+            echo "=== $q"; curl -s -A "FUNVS/1.0" "https://api.openf1.org/v1/$q" | head -c 700; echo; sleep 1; done
+          echo "=== car_data window"; curl -s "https://api.openf1.org/v1/car_data?session_key=latest&driver_number=43&speed>=330" | head -c 300; echo
