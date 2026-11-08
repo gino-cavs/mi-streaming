@@ -33,7 +33,7 @@ const Telegram = (() => {
         <div class="tgch">${yt.map(c => `<label class="chk"><input type="checkbox" data-ch="${c.uid}" ${t.chans.includes(c.uid) ? 'checked' : ''}> ${esc(c.name)}</label>`).join('') || '<p class="mut">No tenés canales.</p>'}</div></details>
       <label class="chk" style="margin-top:8px"><input type="checkbox" id="tgQ" ${t.quiet.on ? 'checked' : ''}> Silencio de <input type="time" id="tgQf" value="${t.quiet.from}" style="width:auto"> a <input type="time" id="tgQt" value="${t.quiet.to}" style="width:auto"> (los goles de tus equipos llegan igual)</label>
       <details style="margin-top:10px"><summary style="cursor:pointer;font-size:14px">⚙️ El paso de GitHub (una sola vez)</summary><ol style="font-size:13px;line-height:1.6">
-        <li>Entrá a <a href="https://github.com/klasito7/mi-streaming/settings/secrets/actions/new" target="_blank" rel="noopener" style="color:var(--acc)">Settings → Secrets → New repository secret</a> del repo.</li>
+        <li>Entrá a <a href="https://github.com/${REPO.owner}/${REPO.repo}/settings/secrets/actions/new" target="_blank" rel="noopener" style="color:var(--acc)">Settings → Secrets → New repository secret</a> del repo.</li>
         <li>Nombre: <code>GIST_ID</code>. Valor: el código de sincronización de FUNVS (está en ⚙ Ajustes, “Sincronizar”: la parte larga de letras y números). Guardá.</li>
         <li>Listo: GitHub lee tu configuración privada de ahí. El token y tus datos nunca quedan en el repo público.</li></ol>
         <p class="mut" style="font-size:12px">Ojo: GitHub corre los chequeos cada ~10 minutos (a veces se atrasa). Durante los partidos de tus equipos revisa cada 45 segundos.</p></details>
