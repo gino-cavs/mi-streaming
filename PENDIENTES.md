@@ -7,7 +7,7 @@ Ideas y cosas que quedaron para hacer más adelante.
 
 ## 📺 General
 - **Control remoto desde el celu** para manejar FUNVS en la tele (cuando pasemos al Fire Stick).
-- **Pasar FUNVS al Fire Stick / APK.**
+- ~~Pasar FUNVS al Fire Stick / APK~~ (hecho: Releases → FUNVS.apk).
 - **Noticias de los programas del Calendario**: falta configurar el código de sincronización (está en ⚙) en GitHub.
 - **Redes**: accesos directos a X y Reddit, o probar la API de Reddit.
 - **Automatizaciones** (radio a cierta hora, abrir el partido de Vélez solo, resumen del día): recordatorio programado para el 20/11.
