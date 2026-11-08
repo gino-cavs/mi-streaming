@@ -4,7 +4,7 @@
    Si tenés la sesión de YouTube (Premium) iniciada en ese navegador, YouTube la reconoce.
    ========================================================= */
 const Musica = (() => {
-  let p = null, cur = null, track = null, ready = false, shuffle = S.get('musShuffle', false), poll = null, hidden = S.get('musHideVid', false);
+  let p = null, cur = null, track = null, ready = false, errs = 0, shuffle = S.get('musShuffle', false), poll = null, hidden = S.get('musHideVid', false);
 
   /* ---------- Leer links de YouTube Music / YouTube ---------- */
   function parse(raw) {
@@ -88,17 +88,31 @@ const Musica = (() => {
     if (it.kind === 'playlist') { vars.listType = 'playlist'; vars.list = it.ref; }
     p = new YT.Player('muYT', { width:'100%', height:'100%', videoId:it.kind === 'video' ? it.ref : (it.first || undefined), playerVars:vars,
       events:{
-        onReady:() => { ready = true; if (shuffle && it.kind === 'playlist') { try { p.setShuffle(true); p.playVideoAt(0); } catch {} } p.playVideo(); },
-        onStateChange:e => { if (e.data === 1) AudioMgr.focus('music'); upd(); },
+        onReady:() => { ready = true; errs = 0; p.playVideo(); if (shuffle && it.kind === 'playlist') applyShuffle(true); },
+        onStateChange:e => { if (e.data === 1) { AudioMgr.focus('music'); errs = 0; } upd(); },
         onError:e => {
-          if (e.data === 101 || e.data === 150 || e.data === 100) {
-            toast('<b>Ese tema no se puede escuchar fuera de YouTube</b><small>Paso al siguiente.</small>', { cls:'info', ms:5000 });
+          if (e.data === 101 || e.data === 150 || e.data === 100 || e.data === 153) {
+            errs++;
+            if (errs >= 3 || it.kind !== 'playlist') {
+              toast(`<b>${it.kind === 'playlist' ? 'Varios temas seguidos' : 'Este tema'} no se pueden escuchar fuera de YouTube</b><small>Los sellos bloquean algunos temas. Tocá acá para abrirlo en YouTube Music.</small>`, { cls:'info', ms:12000, onclick:() => window.open(ytmUrl(), '_blank') });
+              if (errs >= 6 || it.kind !== 'playlist') return;
+            }
             try { p.nextVideo(); } catch {}
           }
         } } });
     clearInterval(poll); poll = setInterval(upd, 2000);
     if (Nav.current === 'musica') render();
   }
+  // el aleatorio necesita que YouTube ya haya cargado la lista: espero a que esté y arranco en un tema al azar
+  function applyShuffle(start) {
+    let n = 0;
+    const t = setInterval(() => {
+      let pl = null; try { pl = p && p.getPlaylist(); } catch {}
+      if (pl && pl.length) { clearInterval(t); try { p.setShuffle(true); if (start) p.playVideoAt(Math.floor(Math.random() * pl.length)); } catch {} }
+      else if (++n > 40) clearInterval(t);
+    }, 250);
+  }
+  const ytmUrl = () => track?.vid ? `https://music.youtube.com/watch?v=${track.vid}${cur?.kind === 'playlist' ? '&list=' + cur.ref : ''}` : cur?.kind === 'playlist' ? `https://music.youtube.com/playlist?list=${cur.ref}` : `https://music.youtube.com/watch?v=${cur?.ref}`;
   function upd() {
     if (!p || !p.getVideoData) return;
     try { const d = p.getVideoData(); if (d && d.title) track = { title:d.title, by:(d.author || '').replace(/ - Topic$/, ''), vid:d.video_id }; } catch {}
@@ -107,6 +121,8 @@ const Musica = (() => {
     $('muPlay').textContent = st() === 1 ? '❚❚' : '▶';
     if (track && track.vid && $('muLike').dataset.v !== track.vid) { $('muLike').dataset.v = track.vid; $('muLike').innerHTML = Likes.btn(track.vid, track.title); Likes.status(track.vid); }
     $('muSnd').textContent = p.isMuted && p.isMuted() ? '🔇' : '🔊';
+    // las tarjetas de la sección muestran lo que suena de verdad
+    document.querySelectorAll('#v-musica [data-mu]').forEach(c => { const on = cur && c.dataset.mu === cur.id; c.classList.toggle('playing', !!on); const pb = c.querySelector('.muplay'); if (pb) pb.textContent = on && st() === 1 ? '❚❚' : '▶'; });
   }
   function bar() {
     const b = $('musicbar');
@@ -119,11 +135,12 @@ const Musica = (() => {
         <button id="muShuf" title="Aleatorio">🔀</button><button id="muSnd" title="Escuchar esto">🔊</button>
         <input type="range" id="muVol" min="0" max="100" step="5" value="100">
         <button id="muHide" title="Mostrar u ocultar el video">🎬</button>
-        <span id="muLike"></span><button id="muStar" title="Guardar este momento">⭐</button><button id="muTv" title="Pantalla TV">📺</button><button id="muX" title="Cerrar">✕</button>`;
+        <span id="muLike"></span><button id="muYtm" title="Abrir en YouTube Music">↗</button><button id="muStar" title="Guardar este momento">⭐</button><button id="muTv" title="Pantalla TV">📺</button><button id="muX" title="Cerrar">✕</button>`;
       $('muPrev').onclick = () => { try { p.previousVideo(); } catch {} };
       $('muNext').onclick = () => { try { p.nextVideo(); } catch {} };
       $('muPlay').onclick = toggle;
-      $('muShuf').onclick = () => { shuffle = !shuffle; S.set('musShuffle', shuffle); $('muShuf').classList.toggle('on', shuffle); try { p.setShuffle(shuffle); } catch {} };
+      $('muShuf').onclick = () => { shuffle = !shuffle; S.set('musShuffle', shuffle); $('muShuf').classList.toggle('on', shuffle); try { if (shuffle) { applyShuffle(false); } else p.setShuffle(false); } catch {} toast(shuffle ? '🔀 Aleatorio activado' : '➡️ En orden', { ms:2000 }); };
+      $('muYtm').onclick = () => window.open(ytmUrl(), '_blank');
       $('muSnd').onclick = () => AudioMgr.focus('music');
       $('muVol').oninput = e => { try { p.setVolume(+e.target.value); if (p.isMuted()) AudioMgr.focus('music'); } catch {} };
       $('muHide').onclick = () => { hidden = !hidden; S.set('musHideVid', hidden); b.classList.toggle('novid', hidden); document.body.classList.toggle('musnovid', hidden); };

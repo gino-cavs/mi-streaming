@@ -401,7 +401,8 @@ body.hasmusic.musnovid #radiobar { bottom:58px; }
 @media (max-width:800px) {
   #musicbar { flex-wrap:wrap; }
   #musicbar .muvid { width:120px; height:68px; }
-  #musicbar input[type=range], #musicbar #muShuf, #musicbar #muHide { display:none; }
+  #musicbar input[type=range], #musicbar #muYtm { display:none; }
+  #musicbar button { padding:5px 7px; }
   #musicbar .tx { flex-basis:calc(100% - 140px); }
 }
 
