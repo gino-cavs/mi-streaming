@@ -801,3 +801,27 @@ body.hudon:not(.tvlock) #tvfoot { display:flex; }
 .veri .vimg i { position:absolute; left:4px; top:4px; background:#e3342f; color:#fff; font-style:normal; font-size:10px; padding:1px 5px; border-radius:4px; }
 .veri b { display:block; font-size:14px; line-height:1.3; } .veri small { color:var(--mut); font-size:12px; }
 @media (max-width:600px) { .veri .vimg { width:96px; } }
+
+/* ===== F1 en vivo + telemetría ===== */
+.f1live { background:var(--panel); border-radius:12px; padding:14px; margin-top:14px; border:1px solid transparent; }
+.f1live.on { border-color:var(--live); }
+.btnl { display:inline-flex; align-items:center; padding:8px 14px; border-radius:8px; text-decoration:none; background:var(--acc); color:#fff; }
+.f1h { font-size:16px; margin:18px 0 8px; }
+.f1tab td { white-space:nowrap; } .f1tab th { font-size:12px; color:var(--mut); text-align:left; font-weight:500; } .f1tab .r { text-align:right; }
+.f1bar { display:inline-block; width:4px; height:14px; border-radius:2px; margin-right:6px; vertical-align:-2px; }
+.tyre { display:inline-grid; place-items:center; width:18px; height:18px; border-radius:50%; border:3px solid; font-size:9px; font-weight:700; margin-right:2px; background:#111; color:#fff; vertical-align:middle; }
+.f1strat { display:flex; flex-direction:column; gap:3px; }
+.f1sr { display:grid; grid-template-columns:40px 1fr; gap:6px; align-items:center; font-size:12px; }
+.f1st { display:flex; gap:2px; height:14px; }
+.f1st span { height:100%; border-radius:4px; font-size:10px; font-weight:700; color:#111; display:grid; place-items:center; }
+.f1dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; }
+.f1chart { position:relative; }
+.f1svg { width:100%; height:auto; display:block; }
+.f1svg text { fill:var(--mut); font-size:11px; }
+.f1svg .gr { stroke:#ffffff14; } .f1svg .xh { stroke:#ffffff55; stroke-width:1; }
+.f1tip { position:absolute; background:#000d; border:1px solid #333; border-radius:8px; padding:6px 9px; font-size:12px; pointer-events:none; min-width:150px; z-index:2; }
+.f1tip i, .f1leg i { display:inline-block; width:14px; margin-right:5px; vertical-align:middle; }
+.f1tip i { height:8px; border-radius:2px; }
+.f1leg { display:flex; flex-wrap:wrap; gap:12px; font-size:12px; color:var(--mut); margin:4px 0 6px; }
+.f1lbl { font-size:12px; margin-top:6px; }
+.f1map { width:100%; max-width:420px; height:auto; display:block; margin:auto; }

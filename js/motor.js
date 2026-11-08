@@ -65,6 +65,7 @@ const Motor = (() => {
     if (f) f.onsubmit = e => { e.preventDefault(); const n = $('mFavIn').value.trim(); if (n && !db.motor.drivers.some(d => norm(d) === norm(n))) { db.motor.drivers.push(n); save(); } render(); };
     v.querySelectorAll('[data-unfav]').forEach(b => b.onclick = () => { db.motor.drivers = db.motor.drivers.filter(d => d !== b.dataset.unfav); save(); render(); });
     const pr = $('mPractice'); if (pr) pr.onchange = () => { db.motor.practice = pr.checked; save(); };
+    if (tab === 'f1') F1Live.mount($('f1Box'), { live:live.some(x => x.id === 'f1') });
   }
 
   function resumen() {
@@ -126,6 +127,7 @@ const Motor = (() => {
         ${nx.dayOnly ? '<div class="mut" style="font-size:12px;margin-top:6px">Los horarios de las categorías argentinas se confirman cerca de cada fecha.</div>' : ''}</div>
         <div class="msess">${nx.sessions.map(s => sessRow(id, s, '', null)).join('')}</div>`
         : '<div class="empty">No hay próximas fechas: la temporada terminó.</div>'}
+      ${id === 'f1' ? '<div id="f1Box"></div>' : ''}
       <div class="vcols" style="margin-top:16px">
         <div>
           ${c.last && lastTop.length ? `<h2 class="sec">🏆 Último resultado · ${esc(c.last.name)}</h2>${table(lastTop, { team:true })}` : ''}
