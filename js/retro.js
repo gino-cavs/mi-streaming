@@ -93,7 +93,7 @@ const Retro = (() => {
   function render(el, mode) {
     if (mode === 'pap') tab = 'pap'; else if (tab === 'pap') tab = 'partidos';
     const key = keyOf(tab), c = cache[key];
-    if (db.key && !busy && (!c || Date.now() - (c.at || 0) > 7 * 864e5)) setTimeout(() => refresh(key), 50);
+    if (db.key && !busy && (!c || (key === 'pap' && Date.now() - (c.at || 0) > 7 * 864e5))) setTimeout(() => refresh(key), 50);   // retro: listas cerradas, se leen una sola vez
     const hid = new Set(hidden());
     let all = lists[tab]().filter(x => !hid.has(x.v));
     const counts = {}; if (tab !== 'pap') for (const x of all) { const n = norm(x.t); for (const tm of TEAMS) if (teamRe(tm).test(n)) counts[tm] = (counts[tm] || 0) + 1; }
@@ -109,7 +109,7 @@ const Retro = (() => {
         <input id="rtQ" placeholder="Buscar (rival, año, torneo…)" value="${esc(q)}">
         <button id="rtRand" title="Uno al azar">🎲</button>
         ${mode === 'pap' ? (edit ? `<button class="pri" id="rtSave">💾 Guardar cambios (${edit.size})</button><button id="rtCancel">Cancelar</button>` : '<button id="rtEdit" title="Sacar los videos que no son informes">✏️ Corregir lista</button>') : ''}
-        <button id="rtRef" title="Buscar videos nuevos">⟳</button><span class="mut" id="rtProg" style="font-size:12px">${esc(prog)}</span>
+        ${mode === 'pap' ? '<button id="rtRef" title="Buscar informes nuevos">⟳</button>' : ''}<span class="mut" id="rtProg" style="font-size:12px">${esc(prog)}</span>
       </div>
       ${!db.key ? '<div class="empty">Necesita la clave de YouTube (⚙) para leer los canales.</div>'
         : !c ? `<div class="empty">Leyendo ${tab === 'ascenso' ? 'las playlists del ascenso' : mode === 'pap' ? 'los informes de Paso a Paso' : 'el canal de Fútbol Para Todos'}… la primera vez tarda un poco.</div>`
@@ -123,7 +123,7 @@ const Retro = (() => {
     if ($('rtTeam')) $('rtTeam').onchange = e => { team = e.target.value; S.set('retroTeam', team); limit = 60; re(); };
     $('rtQ').onchange = e => { q = e.target.value.trim(); limit = 60; re(); };
     $('rtRand').onclick = () => { if (all.length) play(all[Math.floor(Math.random() * all.length)]); };
-    $('rtRef').onclick = () => refresh(key);
+    if ($('rtRef')) $('rtRef').onclick = () => refresh(key);
     if ($('rtMore')) $('rtMore').onclick = () => { limit += 60; re(); };
     if ($('rtEdit')) $('rtEdit').onclick = () => { edit = new Set(); re(); };
     if ($('rtCancel')) $('rtCancel').onclick = () => { edit = null; re(); };

@@ -39,7 +39,7 @@ function make247(C) {
         const j = await Canales.yt('playlistItems', { part:'contentDetails', playlistId:list, maxResults:50, ...(token ? { pageToken:token } : {}) });
         (j.items || []).forEach(i => i.contentDetails?.videoId && ids.push(i.contentDetails.videoId));
         token = j.nextPageToken; pages++;
-      } while (token && pages < 6);
+      } while (token && pages < 20);
       const vids = [];
       for (let i = 0; i < ids.length; i += 50) {
         const j = await Canales.yt('videos', { part:'snippet,contentDetails,status', id:ids.slice(i, i + 50).join(',') });
@@ -117,7 +117,7 @@ function make247(C) {
   const fmt = s => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? `${h} h ${m} min` : `${m} min`; };
   function render() {
     const v = $('v-' + SEC), s = SR();
-    s.chans.forEach(ch => { if (db.key && (!cache[ch.id] || Date.now() - cache[ch.id].at > 24 * 3600e3) && !busy[ch.id] && !(ch.errAt && Date.now() - ch.errAt < 30 * 60e3)) fetchVids(ch).then(() => { saveLocal(); if (Nav.current === 'series') render(); }); });
+    s.chans.forEach(ch => { if (db.key && !cache[ch.id] && !busy[ch.id] && !(ch.errAt && Date.now() - ch.errAt < 30 * 60e3)) fetchVids(ch).then(() => { saveLocal(); if (Nav.current === SEC) render(); }); });   // se lee una sola vez: son series que ya no suben capítulos
     const list = s.chans.filter(ch => grp === 'all' || ch.group === grp);
     v.innerHTML = `
       <div class="srhero"><div class="srico">${esc(s.icon)}</div><div style="flex:1"><h2>${esc(s.title)}</h2><p>${esc(C.sub)}</p></div>
@@ -184,7 +184,7 @@ function make247(C) {
         <label>Nombre del canal (opcional)</label><input id="${P}scName" placeholder="Ej: Policías en Acción 24/7">
         <label>Apartado</label><select id="${P}scGroup"></select>
         <label>Sección</label><select id="${P}scSec"></select>
-        <p style="margin-top:6px">Toma hasta los últimos 300 videos (sin vivos ni shorts) y los pasa al azar sin parar.</p>
+        <p style="margin-top:6px">Toma todos los videos (hasta 1000, sin vivos ni shorts) una sola vez y los pasa al azar sin parar.</p>
         <div class="msg" id="${P}scMsg"></div>
         <div class="btns"><button id="${P}scDel" style="color:#ff7b7b">Borrar</button><span class="sp"></span><button data-close>Cancelar</button><button class="pri" id="${P}scSave">Guardar</button></div></dialog>
       <dialog id="${P}dlgSrGroups"><h3>Apartados</h3><p>Renombrá, borrá o agregá apartados (por ejemplo: Series, Policiales, Documentales).</p>
