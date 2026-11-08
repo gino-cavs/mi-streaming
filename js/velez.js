@@ -70,6 +70,7 @@ const Velez = (() => {
 
     v.innerHTML = `
       <div class="vhero"><div class="v">V</div><div><h2>Mundo Vélez</h2><p>Partidos, streams, noticias, goles y cómo les va a los ex-Vélez.</p></div></div>
+      ${Resumenes.block(it => Resumenes.isTeam(it, 'velez'), '🎬 Resumen del último partido')}
       <div class="vcols">
         <div>
           <div class="vblock"><h2 class="sec">⚽ Partidos</h2>${matchesBlock()}</div>

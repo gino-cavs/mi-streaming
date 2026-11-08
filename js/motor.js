@@ -127,7 +127,7 @@ const Motor = (() => {
         ${nx.dayOnly ? '<div class="mut" style="font-size:12px;margin-top:6px">Los horarios de las categorías argentinas se confirman cerca de cada fecha.</div>' : ''}</div>
         <div class="msess">${nx.sessions.map(s => sessRow(id, s, '', null)).join('')}</div>`
         : '<div class="empty">No hay próximas fechas: la temporada terminó.</div>'}
-      ${id === 'f1' ? '<div id="f1Box"></div>' : ''}
+      ${id === 'f1' ? Resumenes.block(it => it.tipo === 'f1', '🎬 Resumen de la última carrera') + '<div id="f1Box"></div>' : ''}
       <div class="vcols" style="margin-top:16px">
         <div>
           ${c.last && lastTop.length ? `<h2 class="sec">🏆 Último resultado · ${esc(c.last.name)}</h2>${table(lastTop, { team:true })}` : ''}

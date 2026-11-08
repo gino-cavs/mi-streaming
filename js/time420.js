@@ -116,10 +116,14 @@ const T420 = (() => {
     return x.name;
   }
 
+  let tab = S.get('t4Tab', 'fun');
   function render() {
     const v = $('v-420');
-    v.innerHTML = `
-      <div class="t4hero"><div class="t4leaf">🍃</div><div><h2>420 time</h2><p>Cosas al azar para colgarse un rato.</p></div></div>
+    const head = `<div class="t4hero"><div class="t4leaf">🍃</div><div><h2>420 time</h2><p>${tab === 'diario' ? 'Tu diario: días, rachas, genéticas y REPROCANN.' : 'Cosas al azar para colgarse un rato.'}</p></div></div>
+      <div class="chips" id="t4Tabs" style="margin-bottom:12px"><button data-t4="fun" class="${tab === 'fun' ? 'on' : ''}">🎲 Para colgarse</button><button data-t4="diario" class="${tab === 'diario' ? 'on' : ''}">📓 Diario</button></div>`;
+    const bindTabs = () => { $('t4Tabs').onclick = e => { const b = e.target.closest('[data-t4]'); if (b) { tab = b.dataset.t4; S.set('t4Tab', tab); render(); } }; };
+    if (tab === 'diario') { v.innerHTML = head + '<div id="t4Diario"></div>'; bindTabs(); Diario.render($('t4Diario')); return; }
+    v.innerHTML = `${head}
       <div class="t4btns">
         <button class="pri t4big" id="t4Any">🎲 Dame algo</button>
         <button class="t4big" id="t4Dato">🧠 Dato curioso</button>
@@ -145,6 +149,7 @@ const T420 = (() => {
     $('t4Music').onclick = () => show({ k:'musica', ic:'🎶', t:'Tema al azar', body:'' });
     $('t4Viaje').onclick = startViaje;
     $('t4Alert').onchange = e => { local.alert = e.target.checked; S.set('t420', local); };
+    bindTabs();
     if (!$('t4Card').innerHTML) show(anything());
   }
 

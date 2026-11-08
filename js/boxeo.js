@@ -41,6 +41,7 @@ const Boxeo = (() => {
       .filter(i => Date.now() - Date.parse(i.d) < 6 * 864e5 && PROX.test(i.t) && !PASADO.test(i.t)).slice(0, 6);
     v.innerHTML = `
       <div class="bxhero"><div class="bxg">🥊</div><div><h2>Boxeo</h2><p>Boxeo de Primera, veladas en vivo y la actualidad del boxeo.</p></div></div>
+      ${Resumenes.block(it => it.tipo === 'boxeo', '🎬 Resumen de la última velada')}
       <div class="vcols">
         <div>
           <h2 class="sec">🔴 Veladas en vivo</h2>

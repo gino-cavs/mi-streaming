@@ -27,7 +27,7 @@ jobs:
       - name: Buscar noticias
         run: node scripts/fetch-news.mjs /tmp/datos/news.json
         env:
-          GIST_ID: ${{ vars.GIST_ID }}
+          GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
       - name: Guía de TV (canales de cada partido, futbolenvivoargentina.com)
         continue-on-error: true
         run: node scripts/fetch-tv.mjs /tmp/datos
@@ -41,6 +41,13 @@ jobs:
         continue-on-error: true
         timeout-minutes: 6
         run: node scripts/fetch-juegos.mjs /tmp/datos "$GITHUB_REPOSITORY"
+      - name: Resúmenes automáticos (YouTube, con la clave guardada en FUNVS)
+        continue-on-error: true
+        timeout-minutes: 4
+        env:
+          GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/fetch-resumenes.mjs /tmp/datos "$GITHUB_REPOSITORY"
       - name: Datos para "¿Jugó con?" (Wikidata, una vez por semana)
         continue-on-error: true
         timeout-minutes: 15

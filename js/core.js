@@ -30,7 +30,7 @@ const REPO = (() => {
 
 /* ---------- Datos ---------- */
 const DEVICE = S.get('deviceId', null) || (() => { const d = 'd' + Math.random().toString(36).slice(2, 8); S.set('deviceId', d); return d; })();
-const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music', 'prode', 'moments', 'stats', 'rap', 'oauth', 'boxeo', 'series', 'juegos'];
+const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music', 'prode', 'moments', 'stats', 'rap', 'oauth', 'boxeo', 'series', 'juegos', 'diario', 'tg'];
 const DEFAULTS = () => ({
   cats:['Fútbol', 'Streamers'], chans:[], key:'', refresh:5,
   radios:[],
@@ -48,7 +48,8 @@ const DEFAULTS = () => ({
   oauth:{ clientId:'' },
   boxeo:{ fav:[] },
   series:{ title:'Series', icon:'📼', groups:['Series'], chans:[] },
-  juegos:{ rec:{}, wiki:{} }
+  juegos:{ rec:{}, wiki:{} },
+  diario:{ log:{}, gens:[], repro:{} }
 });
 let db = S.get('hub2', null);
 if (!db) {

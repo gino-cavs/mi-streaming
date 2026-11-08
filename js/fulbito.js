@@ -145,6 +145,7 @@ const Fulbito = (() => {
   }
   function build(v) {
     v.innerHTML = `
+      ${Resumenes.block(it => it.tipo === 'futbol', '🎬 Resúmenes de tus equipos')}
       <div class="subbar">
         <div class="chips" id="fDays" style="margin:0">
           <button data-d="-1">Ayer</button><button data-d="0">Hoy</button><button data-d="1">Mañana</button><button data-d="2">Pasado</button>
