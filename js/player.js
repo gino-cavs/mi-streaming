@@ -256,8 +256,42 @@ const Player = (() => {
     } catch (e) { toast('<b>No se pudo abrir la ventana flotante</b><small>' + esc(e.message) + '</small>', { cls:'info' }); }
   }
 
+  /* ---------- Efecto de tele vieja al cambiar de canal: la imagen se cierra en una línea, nieve, y el número del canal en verde ---------- */
+  const fxPrefs = () => S.get('zapFx', { on:true, sound:false });
+  let fxAudio = null;
+  function zapSound() {
+    try {
+      fxAudio = fxAudio || new (window.AudioContext || window.webkitAudioContext)();
+      const len = fxAudio.sampleRate * 0.35, buf = fxAudio.createBuffer(1, len, fxAudio.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      const src = fxAudio.createBufferSource(), g = fxAudio.createGain(), f = fxAudio.createBiquadFilter();
+      f.type = 'bandpass'; f.frequency.value = 3000; g.gain.value = 0.12; src.buffer = buf; src.connect(f).connect(g).connect(fxAudio.destination); src.start();
+    } catch {}
+  }
+  function zapFx(i, c) {
+    const p = fxPrefs(), d = els[i]; if (!p.on || !d) return;
+    // se dibuja sobre la parte del video (no encima del chat)
+    const vw = d.querySelector('.vw'), box = vw ? `left:${vw.offsetLeft}px;top:${vw.offsetTop}px;width:${vw.offsetWidth}px;height:${vw.offsetHeight}px` : 'inset:0';
+    d.querySelectorAll('.zfx, .zosd').forEach(x => x.remove());
+    const fx = document.createElement('div'); fx.className = 'zfx'; fx.style.cssText = box;
+    const cv = document.createElement('canvas'); cv.width = 160; cv.height = 90; fx.appendChild(cv); d.appendChild(fx);
+    const ctx = cv.getContext('2d'), img = ctx.createImageData(160, 90), t0 = performance.now();
+    const snow = now => {
+      if (!fx.isConnected) return;
+      for (let k = 0; k < img.data.length; k += 4) { const v = Math.random() * 255 | 0; img.data[k] = img.data[k + 1] = img.data[k + 2] = v; img.data[k + 3] = 255; }
+      ctx.putImageData(img, 0, 0);
+      if (now - t0 < 650) requestAnimationFrame(snow); else { fx.classList.add('out'); setTimeout(() => fx.remove(), 300); }
+    };
+    requestAnimationFrame(snow);
+    if (p.sound) zapSound();
+    const num = c && db.chans.includes(c) ? Canales.numTxt(c) : '';
+    const osd = document.createElement('div'); osd.className = 'zosd'; if (vw) osd.style.right = (d.offsetWidth - vw.offsetLeft - vw.offsetWidth) + vw.offsetWidth * 0.05 + 'px';
+    osd.innerHTML = `${num ? `<b>${esc(num)}</b>` : ''}<span>${esc((c?.name || '').toUpperCase())}</span>`;
+    d.appendChild(osd); setTimeout(() => osd.classList.add('out'), 2600); setTimeout(() => osd.remove(), 3200);
+  }
   function play(c, opts = {}) {
     const e = embedOf(c), st = Canales.status[c.uid] || {};
+    const target = sel;
     if (opts.start && e.kind === 'youtube') e.v += '&start=' + Math.floor(opts.start);
     clear(sel);
     const liveish = st.st === 'live' || st.st === 'soon' || (c.platform !== 'youtube' && st.st !== 'off');
@@ -266,11 +300,12 @@ const Player = (() => {
     mountVideo(sel); paintBar(sel);
     // con una sola pantalla, el chat se abre solo al lado si es un vivo
     if (layout === 1 && e.ch && liveish && !opts.audio && chatOn) setChat(sel, true);
+    zapFx(target, c);
     if (layout > 1) { const empty = slots.findIndex((x, j) => !x && j < layout); if (empty >= 0) sel = empty; paintSel(); }
     $('scroller').scrollTo({ top:0, behavior:'smooth' });
     TV.refresh(); Zap.render(); paintChatBtn();
   }
   function closeAll() { for (let i = 0; i < 4; i++) clear(i); if (!$('player').classList.contains('tvmode')) $('player').classList.remove('show'); TV.refresh(); }
 
-  return { paintActs, build, play, closeAll, embedOf, get layout() { return layout; }, get slots() { return slots; }, get sel() { return sel; } };
+  return { zapFx, paintActs, build, play, closeAll, embedOf, get layout() { return layout; }, get slots() { return slots; }, get sel() { return sel; } };
 })();

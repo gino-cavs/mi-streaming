@@ -68,8 +68,11 @@ const Nav = (() => {
 function initSettings() {
   document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
   $('setHud').onchange = e => TV.setOn(e.target.checked);
+  const zf = () => S.get('zapFx', { on:true, sound:false });
+  $('setZfx').onchange = e => { S.set('zapFx', { ...zf(), on:e.target.checked }); if (e.target.checked && Player.slots[Player.sel]) Player.zapFx(Player.sel, Player.slots[Player.sel].c); };
+  $('setZfxS').onchange = e => S.set('zapFx', { ...zf(), sound:e.target.checked });
   $('btnSettings').onclick = () => {
-    $('setHud').checked = TV.on;
+    $('setHud').checked = TV.on; $('setZfx').checked = S.get('zapFx', { on:true }).on; $('setZfxS').checked = !!S.get('zapFx', {}).sound;
     $('setKey').value = db.key;
     $('setRef').value = String(db.refresh);
     $('setTok').value = db.sync.token;
