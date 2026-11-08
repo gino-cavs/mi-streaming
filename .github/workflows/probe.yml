@@ -10,4 +10,4 @@ jobs:
         env:
           GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
       - run: |
-          ls -la /tmp/x; node -e "const j=require('/tmp/x/clasicos.json');const by={};j.derbies.forEach(d=>by[d.pais]=(by[d.pais]||0)+1);console.log(JSON.stringify(by));console.log(j.fixtures.slice(0,12).map(f=>f.date.slice(0,10)+' '+f.h+' vs '+f.a+' ('+f.lg+')').join('\n'));const d=j.derbies.find(x=>/Celtic/.test(x.a.n+x.b.n));console.log(JSON.stringify(d).slice(0,1500))"
+          ls -la /tmp/x; node -e "const j=require('/tmp/x/clasicos.json');const by={};j.derbies.forEach(d=>by[d.pais]=(by[d.pais]||0)+1);console.log(JSON.stringify(by));console.log(j.fixtures.slice(0,12).map(f=>f.date.slice(0,10)+' '+f.h+' vs '+f.a+' ('+f.lg+')').join('\n'));for(const k of ["Celtic","Peñarol","Cerro","Urawa","Sydney","Athletic Club"]){const d=j.derbies.find(x=>(x.a.n+x.b.n).includes(k));console.log(k,"=>",d?JSON.stringify(d).slice(0,500):"NO")}"

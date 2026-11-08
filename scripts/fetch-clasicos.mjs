@@ -75,55 +75,90 @@ const plain = s => (s || '').replace(/<ref[^>]*\/>/g, '').replace(/<ref[\s\S]*?<
 const pick = (p, ...ks) => { for (const k of ks) if (p[k] && plain(p[k])) return plain(p[k]).slice(0, 220); return undefined; };
 
 async function buildCatalog() {
-  // 1) artículos de rivalidades por país (y una subcategoría de profundidad)
-  const arts = new Map();   // título -> país
-  for (const [pais, , en] of PAISES) {
-    let n = 0;
-    for (const cName of [`Association football rivalries in ${en}`, `Football rivalries in ${en}`, `Association football derbies in ${en}`]) {
-      const j = await wp({ action:'query', list:'categorymembers', cmtitle:'Category:' + cName, cmlimit:'500', cmtype:'page|subcat' });
-      for (const m of j?.query?.categorymembers || []) {
-        if (m.ns === 0) { if (!arts.has(m.title)) { arts.set(m.title, pais); n++; } }
-        else if (m.ns === 14 && /rivalr|derb/i.test(m.title)) {
-          const s = await wp({ action:'query', list:'categorymembers', cmtitle:m.title, cmlimit:'500', cmtype:'page' });
-          for (const x of s?.query?.categorymembers || []) if (!arts.has(x.title)) { arts.set(x.title, pais); n++; }
-        }
+  const derbies = [], pairKey = (x, y) => [x, y].map(t => t.toLowerCase()).sort().join('|'), seenPair = new Set();
+  const add = d => { const k = pairKey(d.ta, d.tb); if (seenPair.has(k)) return; seenPair.add(k); derbies.push(d); };
+  const byEn = new Map(PAISES.map(p => [norm(p[2].replace(/^the /, '')), p[0]]));
+  const ALIAS = { 'republic of ireland':'Irlanda', ireland:'Irlanda', 'czech republic':'Chequia', czechia:'Chequia', usa:'Estados Unidos', 'united states':'Estados Unidos', holland:'Países Bajos', korea:'Corea del Sur', 'korea republic':'Corea del Sur' };
+  const paisOf = h => { const n = norm(h.replace(/\[\[(?:[^\]|]*\|)?([^\]]*)\]\]/g, '$1')); return byEn.get(n) || ALIAS[n] || null; };
+
+  // 1) listas de rivalidades por continente (equipos de cada clásico, ordenados por país)
+  const LISTS = ['List of association football club rivalries in Europe', 'List of association football rivalries in the United Kingdom', 'List of association football club rivalries in South America',
+    'List of association football club rivalries in North America', 'List of association football club rivalries in the Americas', 'List of association football club rivalries in Asia and Oceania',
+    'List of association football club rivalries in Africa', 'List of association football club rivalries in Oceania', 'List of association football club rivalries in Asia'];
+  const LINK = /\[\[([^\]|#]+)(?:\|([^\]]*))?\]\]/g;
+  for (const L of LISTS) {
+    const j = await wp({ action:'query', prop:'revisions', rvprop:'content', rvslots:'main', redirects:'1', titles:L });
+    const txt = j?.query?.pages?.[0]?.revisions?.[0]?.slots?.main?.content; if (!txt) { console.log('Lista no encontrada:', L); continue; }
+    let pais = /United Kingdom/.test(L) ? null : null, n0 = derbies.length;
+    const lines = txt.split('\n');
+    let row = [];
+    const flushRow = () => {   // filas de tabla: | Equipo 1 || Equipo 2 || Artículo
+      if (pais && row.length >= 2) {
+        const cells = row.map(c => [...c.matchAll(LINK)].map(m => m[1].trim()).filter(t => !/^(File|Image|Category):/i.test(t)));
+        if (cells[0]?.length === 1 && cells[1]?.length === 1) add({ pais, ta:cells[0][0], tb:cells[1][0], art:cells[2]?.[0], n:cells[2]?.[0] ? plain('[[' + cells[2][0] + ']]') : null });
       }
+      row = [];
+    };
+    for (const ln of lines) {
+      const h = ln.match(/^(={2,5})\s*(.+?)\s*\1\s*$/);
+      if (h) { flushRow(); const p = paisOf(h[2]); if (p) pais = p; else if (h[1].length <= 2 && !/united kingdom/i.test(L)) pais = null; continue; }
+      if (/^\|-/.test(ln) || /^\|\}/.test(ln)) { flushRow(); continue; }
+      if (/^\|(?!\})/.test(ln)) { row.push(...ln.slice(1).split('||')); continue; }
+      if (!pais || !/^\*/.test(ln) || !/\bvs?\.?\b|\bv\b/i.test(ln)) continue;
+      // viñetas: * Nombre: [[Equipo A]] vs. [[Equipo B]]
+      const parts = ln.replace(/<ref[\s\S]*?(<\/ref>|\/>)/g, '').split(/\s+vs?\.?\s+|\s+v\s+/i);
+      if (parts.length !== 2) continue;
+      const lastLink = s2 => { const m = [...s2.matchAll(LINK)].filter(x => !/^(File|Image|Category):/i.test(x[1])); return m[m.length - 1]; };
+      const firstLink = s2 => [...s2.matchAll(LINK)].find(x => !/^(File|Image|Category):/i.test(x[1]));
+      const A = lastLink(parts[0]), B = firstLink(parts[1]); if (!A || !B) continue;
+      const head = parts[0].slice(0, A.index), colon = head.lastIndexOf(':');
+      const nameTxt = colon > 0 ? head.slice(0, colon).replace(/^\*+/, '') : '';
+      const art = [...nameTxt.matchAll(LINK)][0]?.[1];
+      add({ pais, ta:A[1].trim(), tb:B[1].trim(), art, n:plain(nameTxt) || null });
     }
-    console.log(`${pais}: ${n} artículos`);
+    flushRow();
+    console.log(`${L}: ${derbies.length - n0} clásicos`);
   }
-  // 2) ficha de cada artículo + título en castellano
-  const derbies = [], titles = [...arts.keys()].filter(t => !/^List of|^Lists? of|in football$|^Derbies in/i.test(t));
+  // 2) también los artículos de las categorías por país (por si alguno no está en las listas)
+  const extra = new Map();
+  for (const [pais, , en] of PAISES) for (const cName of [`Association football rivalries in ${en}`, `Football rivalries in ${en}`]) {
+    const j = await wp({ action:'query', list:'categorymembers', cmtitle:'Category:' + cName, cmlimit:'500', cmtype:'page' });
+    for (const m of j?.query?.categorymembers || []) if (!/^List/i.test(m.title)) extra.set(m.title, pais);
+  }
+  // 3) fichas de los artículos (datos del clásico) + título en castellano
+  const arts = new Map(); derbies.forEach(d => { if (d.art) arts.set(d.art, d); });
+  for (const [t, pais] of extra) if (!arts.has(t)) arts.set(t, { pais, art:t, extra:true });
+  const titles = [...arts.keys()];
   for (let i = 0; i < titles.length; i += 40) {
-    const j = await wp({ action:'query', prop:'revisions|langlinks|pageprops', rvprop:'content', rvslots:'main', lllang:'es', ppprop:'wikibase_item', redirects:'1', titles:titles.slice(i, i + 40).join('|') });
+    const j = await wp({ action:'query', prop:'revisions|langlinks', rvprop:'content', rvslots:'main', lllang:'es', redirects:'1', titles:titles.slice(i, i + 40).join('|') });
     const back = new Map(); for (const x of [...(j?.query?.normalized || []), ...(j?.query?.redirects || [])]) back.set(x.to, x.from);
     for (const pg of j?.query?.pages || []) {
-      const txt = pg.revisions?.[0]?.slots?.main?.content; if (!txt) continue;
       let t0 = pg.title; while (!arts.has(t0) && back.has(t0)) t0 = back.get(t0);
-      const tpl = template(txt, /\{\{\s*Infobox (sports|football|association football|soccer) rivalry/i);
-      const p = tpl ? params(tpl) : {};
-      let teams = [];
-      for (const k of ['team1', 'team2']) if (p[k]) teams.push(links(p[k])[0] || plain(p[k]));
-      if (teams.filter(Boolean).length < 2) teams = links(p.teams || '').filter(x => !/^(File|Image):/i.test(x));
-      if (teams.length !== 2) {   // sin ficha clara: "A–B rivalry"
-        const m = pg.title.replace(/ (rivalry|derby|derbies)( \(.*\))?$/i, '').split(/\s*[–—-]\s*|\s+vs\.?\s+/);
-        if (m.length === 2) teams = m;
+      const d = arts.get(t0); if (!d) continue;
+      const txt = pg.revisions?.[0]?.slots?.main?.content || '';
+      const tpl = template(txt, /\{\{\s*Infobox (sports|football|association football|soccer) rivalry/i), p = tpl ? params(tpl) : {};
+      d.en = pg.title; d.es = pg.langlinks?.[0]?.title;
+      d.n = pick(p, 'name') || d.n || pg.title.replace(/ rivalry$/i, '');
+      d.alias = pick(p, 'other_names', 'nickname');
+      d.info = { desde:pick(p, 'firstmeeting', 'first_meeting', 'first_contested'), total:pick(p, 'total', 'meetings_total', 'total_meetings'), record:pick(p, 'alltimerecord', 'all_time_record', 'series', 'record'),
+        masGanados:pick(p, 'most_wins', 'mostwins'), goleador:pick(p, 'top_scorer', 'topscorer', 'most_goals'), masPartidos:pick(p, 'most_player_appearances', 'most_appearances'),
+        goleada:pick(p, 'largest_victory', 'largestvictory', 'biggest_win', 'largest_win'), ultimo:pick(p, 'latest_meeting', 'latestmeeting', 'mostrecent', 'most_recent'), estadios:pick(p, 'stadiums', 'stadium'), lugar:pick(p, 'location', 'city_or_region') };
+      if (d.extra) {   // solo artículo: los equipos salen de la ficha o del título
+        let teams = [];
+        for (const k of ['team1', 'team2']) if (p[k]) teams.push(links(p[k])[0]);
+        if (teams.filter(Boolean).length < 2) teams = links(p.teams || '').filter(x => !/^(File|Image):/i.test(x));
+        if (teams.length !== 2) { const m = pg.title.replace(/ (rivalry|derby|derbies)( \(.*\))?$/i, '').split(/\s*[–—]\s*|\s+vs\.?\s+/); if (m.length === 2) teams = m; }
+        if (teams.length === 2 && teams[0] && teams[1]) add({ ...d, ta:teams[0], tb:teams[1] });
       }
-      if (teams.length !== 2 || !teams[0] || !teams[1]) continue;
-      derbies.push({
-        id:'w' + (pg.pageprops?.wikibase_item || pg.pageid), n:pick(p, 'name') || pg.title.replace(/ rivalry$/i, ''), alias:pick(p, 'other_names', 'nickname'),
-        pais:arts.get(t0), en:pg.title, es:pg.langlinks?.[0]?.title, ta:teams[0], tb:teams[1],
-        info:{ desde:pick(p, 'firstmeeting', 'first_meeting', 'first_contested'), total:pick(p, 'total', 'meetings_total', 'total_meetings'), record:pick(p, 'alltimerecord', 'all_time_record', 'series', 'record'),
-          masGanados:pick(p, 'most_wins', 'mostwins'), goleador:pick(p, 'top_scorer', 'topscorer', 'most_goals'), masPartidos:pick(p, 'most_player_appearances', 'most_appearances'),
-          goleada:pick(p, 'largest_victory', 'largestvictory', 'biggest_win', 'largest_win'), ultimo:pick(p, 'latest_meeting', 'latestmeeting', 'mostrecent', 'most_recent'), estadios:pick(p, 'stadiums', 'stadium'), lugar:pick(p, 'location', 'city_or_region') }
-      });
     }
     await sleep(300);
   }
+  derbies.forEach(d => { d.id = 'c' + norm(d.ta + ' ' + d.tb).replace(/ /g, '').slice(0, 40); d.info = d.info || {}; delete d.extra; delete d.art; });
   // 3) semillas y clásicos que agregaste en FUNVS
   for (const s of [...SEMILLAS, ...custom.map(c => ({ n:c.n || `${c.a} vs ${c.b}`, a:c.a, b:c.b, pais:c.pais || '⭐ Tuyos', custom:true }))]) {
     const ft = async q => (await wp({ action:'query', list:'search', srsearch:q + ' football club', srlimit:'1' }))?.query?.search?.[0]?.title;
     const ta = await ft(s.a), tb = await ft(s.b);
-    if (ta && tb && !derbies.some(d => [d.ta, d.tb].sort().join() === [ta, tb].sort().join())) derbies.push({ id:'s' + norm(ta + tb).replace(/ /g, ''), n:s.n, pais:s.pais, es:s.es, ta, tb, info:{}, custom:s.custom });
+    if (ta && tb) { const ex = derbies.find(d => pairKey(d.ta, d.tb) === pairKey(ta, tb)); if (ex) { if (s.custom) ex.custom = true; if (s.es && !ex.es) ex.es = s.es; } else derbies.push({ id:'s' + norm(ta + tb).replace(/ /g, '').slice(0, 40), n:s.n, pais:s.pais, es:s.es, ta, tb, info:{}, custom:s.custom }); }
   }
   // 4) equipos: título real, nombre corto y Wikidata
   const tset = [...new Set(derbies.flatMap(d => [d.ta, d.tb]))], team = new Map();
@@ -144,7 +179,7 @@ async function buildCatalog() {
     for (const b of r) { const q = b.t.value.split('/').pop(); if (b.es) lab.set(q, b.es.value); if (b.nat?.value === 'true') isNat.add(q); }
   }
   const out = list.filter(d => !isNat.has(d.a.q) && !isNat.has(d.b.q));
-  for (const d of out) for (const s of [d.a, d.b]) if (lab.has(s.q)) s.n = cleanName(lab.get(s.q));
+  for (const d of out) { for (const s of [d.a, d.b]) if (lab.has(s.q)) s.n = cleanName(lab.get(s.q)); if (!d.n) d.n = `${d.a.n} vs ${d.b.n}`; }
   for (let i = 0; i < out.length; i += 30) {
     const vals = out.slice(i, i + 30).map(d => `("${d.id}" wd:${d.a.q} wd:${d.b.q})`).join(' ');
     const r = await sparql(`SELECT ?d ?p ?n ?sl WHERE { VALUES (?d ?a ?b) { ${vals} } ?p wdt:P54 ?a; wdt:P54 ?b; wikibase:sitelinks ?sl.
@@ -173,9 +208,11 @@ async function buildCatalog() {
       if (best) { s.espn = best.id; s.lg = best.lg; s.logo = `https://a.espncdn.com/i/teamlogos/soccer/500/${best.id}.png`; }
     }
   }
-  out.sort((x, y) => (y.nboth || 0) - (x.nboth || 0));
+  const rank = d => (d.en ? 1000 : 0) + (d.nboth || 0) + (d.a.espn && d.b.espn ? 300 : 0);
+  out.sort((x, y) => rank(y) - rank(x));
   console.log(`Catálogo: ${out.length} clásicos · con ESPN los dos equipos: ${out.filter(d => d.a.espn && d.b.espn).length}`);
-  for (const k of ['Vélez', 'Celtic', 'Athletic', 'Cerro Porteño', 'Peñarol', 'Urawa', 'Sydney']) { const d = out.find(x => (x.a.n + x.b.n).includes(k)); console.log(' ·', k, '→', d ? `${d.n} (${d.a.n} vs ${d.b.n}) · ${d.nboth} jugaron en los dos · ESPN ${d.a.espn || '—'}/${d.b.espn || '—'} · ficha: ${JSON.stringify(d.info).slice(0, 160)}` : 'NO ESTÁ'); }
+  const byP = {}; out.forEach(d => byP[d.pais] = (byP[d.pais] || 0) + 1); console.log(JSON.stringify(byP));
+  for (const k of ['Vélez', 'Celtic', 'Athletic', 'Cerro Porteño', 'Peñarol', 'Urawa', 'Sydney', 'Boca']) { const d = out.find(x => (x.a.n + x.b.n).includes(k)); console.log(' ·', k, '→', d ? `${d.n} (${d.a.n} vs ${d.b.n}) · ${d.nboth} jugaron en los dos · ESPN ${d.a.espn || '—'}/${d.b.espn || '—'} · ficha: ${JSON.stringify(d.info).slice(0, 160)}` : 'NO ESTÁ'); }
   return out;
 }
 async function sparql(q) {
@@ -206,5 +243,5 @@ for (const lg of lgs) {
   }
 }
 const fx = [...fixtures.values()].sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
-await writeFile(dir + '/clasicos.json', JSON.stringify({ v:VER, updated:new Date().toISOString(), catAt, customKey, derbies, fixtures:fx }));
+await writeFile(dir + '/clasicos.json', JSON.stringify({ v:VER, paises:PAISES.map(p => [p[0], p[1]]), updated:new Date().toISOString(), catAt, customKey, derbies, fixtures:fx }));
 console.log(`Clásicos: ${derbies.length} en el catálogo · ${fx.filter(f => f.st !== 'post').length} por jugarse · ${fx.filter(f => f.st === 'post').length} jugados hace poco`);
