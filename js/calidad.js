@@ -22,7 +22,8 @@ const Calidad = (() => {
     return mbps;
   }
   // la altura de video que conviene
-  function target() {
+  function target() { const t = target0(); return Lite.on ? Math.min(t, 720) : t; }
+  function target0() {
     if (pref === 'max') return 9999;
     if (pref === 'min') return 160;
     if (pref !== 'auto') return +pref;

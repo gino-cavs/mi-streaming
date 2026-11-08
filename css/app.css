@@ -1030,3 +1030,16 @@ label.chk input[type=time] { width:auto; padding:4px 6px; }
 .rgdial { font-family:'VT323', monospace; font-size:20px; color:#3dff7a; white-space:nowrap; letter-spacing:.5px; line-height:1; }
 .rgrow .epb { cursor:pointer; }
 @media (max-width:600px) { .rgepg { --epw:120px; } .rgdial { font-size:17px; } .rgrow .epname { font-size:12px; } }
+
+/* ===== Modo liviano ===== */
+html.lite *, html.lite *::before, html.lite *::after { animation:none !important; transition:none !important; box-shadow:none !important; text-shadow:none !important; scroll-behavior:auto !important; }
+html.lite .dpad :focus, html.lite.dpad :focus { outline:3px solid #ffd400 !important; }
+html.lite .zfx canvas { display:none; }
+html.lite .zfx { background:#000; }
+
+/* ===== Aviso de versión nueva ===== */
+.updlg { text-align:center; max-width:420px; padding:26px 28px; border:2px solid var(--acc); }
+.updlg .updic { font-size:44px; line-height:1; }
+.updlg h3 { margin:10px 0 6px; font-size:22px; }
+.updlg .btns { justify-content:center; margin-top:16px; }
+.updlg .btns button { font-size:16px; padding:10px 18px; }

@@ -188,9 +188,10 @@ const Player = (() => {
   function paintRemote() {
     const r = $('remote'); if (!r || (document.activeElement?.id === 'rcIn' && $('rcIn').value)) return;   // no borrar el número mientras lo escribís
     const i = slots[focus] ? focus : slots.findIndex(Boolean), s = slots[i];
-    if (!s) { r.innerHTML = ''; return; }
+    if (!s) { r.innerHTML = ''; r.dataset.sig = ''; return; }
     const sk = AudioMgr.sink('slot' + i), muted = sk?.muted?.(), paused = sk?.paused?.();
     const inList = db.chans.includes(s.c);
+    const sig = [i, s.c.uid, s.c.name, muted, paused, !!sk?.toggle].join('|'); if (r.dataset.sig === sig && r.firstChild) return; r.dataset.sig = sig;   // nada cambió: no redibujo
     r.innerHTML = `<button data-rc="up" title="Canal anterior (▲)">▲<small>CH</small></button><button data-rc="dn" title="Canal siguiente (▼)">▼<small>CH</small></button>
       <span class="rcnow">${inList ? `<b>${esc(Canales.numTxt(s.c))}</b>` : ''}${esc(s.c.name || '')}</span>
       <button data-rc="pp" title="Pausa / seguir" ${sk?.toggle ? '' : 'disabled'}>${paused ? '▶' : '❚❚'}</button>
@@ -305,7 +306,7 @@ const Player = (() => {
     d.querySelectorAll('.zfx, .zosd').forEach(x => x.remove());
     const fx = document.createElement('div'); fx.className = 'zfx'; fx.style.cssText = box;
     const cv = document.createElement('canvas'); cv.width = 160; cv.height = 90; fx.appendChild(cv); d.appendChild(fx);
-    const ctx = cv.getContext('2d'), img = ctx.createImageData(160, 90), t0 = performance.now();
+    const ctx = cv.getContext('2d'), img = ctx.createImageData(160, 90), t0 = performance.now() - (Lite.on ? 9999 : 0);   // liviano: sin nieve, solo el número
     const snow = now => {
       if (!fx.isConnected) return;
       for (let k = 0; k < img.data.length; k += 4) { const v = Math.random() * 255 | 0; img.data[k] = img.data[k + 1] = img.data[k + 2] = v; img.data[k + 3] = 255; }

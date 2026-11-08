@@ -30,7 +30,7 @@ const FUNVSApp = (() => {
     }
     if (!best) return false;
     best.focus({ preventScroll:true });
-    best.scrollIntoView({ block:'nearest', inline:'nearest', behavior:'smooth' });
+    best.scrollIntoView({ block:'nearest', inline:'nearest', behavior:Lite.on ? 'auto' : 'smooth' });
     return true;
   }
 
@@ -63,6 +63,43 @@ const FUNVSApp = (() => {
     if (first && Nav.current && Nav.current !== first) { Nav.go(first); return true; }
     return false;
   }
-  const menu = () => $('btnSettings')?.click();
-  return { back, menu, move, inApp, tv };
+  /** Botón ☰ del control (el de Atrás se rompió): toque = volver, doble toque = recargar, mantener = Ajustes.
+      La app nueva manda cuánto se mantuvo apretado (ms); la primera versión no, y ahí "mantener" no existe. */
+  let tap = null;
+  function menu(ms) {
+    if (ms >= 600) { clearTimeout(tap); tap = null; $('btnSettings')?.click(); return; }
+    if (tap) { clearTimeout(tap); tap = null; toast('⟳ Recargando FUNVS…', { ms:1500 }); setTimeout(() => location.reload(), 150); return; }
+    tap = setTimeout(() => { tap = null; if (!back()) toast('Estás en el inicio · ☰ dos veces = recargar · mantener = Ajustes', { cls:'info', ms:2500 }); }, 380);
+  }
+
+  /** ¿Subimos algo nuevo? Compara las versiones (?v=) de la página que está abierta con la publicada.
+      Revisa al volver a la app y cada 10 minutos; si hay novedad, aviso en el medio de la pantalla. */
+  const vers = list => [...new Set(list)].sort().join(',');
+  const mine = () => vers([...document.querySelectorAll('script[src*="?v="],link[href*="?v="]')].map(e => (e.getAttribute('src') || e.getAttribute('href')).replace(/^\.\//, '')));
+  let snooze = 0, checking = false;
+  async function checkUpdate(force) {
+    if (checking || (!force && Date.now() < snooze) || $('dlgUpd')?.open) return;
+    checking = true;
+    try {
+      const h = await (await fetch(location.pathname.replace(/[^/]*$/, '') + 'index.html?u=' + Date.now(), { cache:'no-store' })).text();
+      const pub = vers([...h.matchAll(/(?:src|href)="([^"]+\?v=\d+)"/g)].map(m => m[1].replace(/^\.\//, '')));
+      if (pub && pub !== mine()) showUpdate();
+      else if (force) toast('✅ Ya tenés la última versión', { ms:2000 });
+    } catch {}
+    checking = false;
+  }
+  function showUpdate() {
+    let d = $('dlgUpd'); if (!d) { d = document.createElement('dialog'); d.id = 'dlgUpd'; d.className = 'updlg'; document.body.appendChild(d); }
+    d.innerHTML = `<div class="updic">✨</div><h3>Hay una versión nueva de FUNVS</h3><p class="mut">Se recarga en un segundo y queda todo como lo tenías.</p>
+      <div class="btns"><button id="updLater">Más tarde</button><button class="pri" id="updGo" autofocus>⟳ Actualizar ahora</button></div>`;
+    d.showModal(); $('updGo').focus();
+    $('updGo').onclick = () => location.reload();
+    $('updLater').onclick = () => { snooze = Date.now() + 30 * 60e3; d.close(); };
+    d.onclose = () => { if (!snooze || snooze < Date.now()) snooze = Date.now() + 30 * 60e3; };
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(); });
+  setInterval(() => { if (!document.hidden) checkUpdate(); }, 10 * 60e3);
+  setTimeout(checkUpdate, 20e3);
+
+  return { back, menu, move, inApp, tv, checkUpdate };
 })();

@@ -71,8 +71,9 @@ function initSettings() {
   const zf = () => S.get('zapFx', { on:true, sound:false });
   $('setZfx').onchange = e => { S.set('zapFx', { ...zf(), on:e.target.checked }); if (e.target.checked && Player.slots[Player.sel]) Player.zapFx(Player.sel, Player.slots[Player.sel].c); };
   $('setZfxS').onchange = e => S.set('zapFx', { ...zf(), sound:e.target.checked });
+  $('setLite').onchange = e => { Lite.set(e.target.checked); toast(e.target.checked ? '⚡ Modo liviano prendido en este aparato' : 'Modo liviano apagado', { ms:2500 }); };
   $('btnSettings').onclick = () => {
-    $('setHud').checked = TV.on; $('setZfx').checked = S.get('zapFx', { on:true }).on; $('setZfxS').checked = !!S.get('zapFx', {}).sound;
+    $('setHud').checked = TV.on; $('setZfx').checked = S.get('zapFx', { on:true }).on; $('setLite').checked = Lite.on; $('setZfxS').checked = !!S.get('zapFx', {}).sound;
     $('setKey').value = db.key;
     $('setRef').value = String(db.refresh);
     $('setTok').value = db.sync.token;

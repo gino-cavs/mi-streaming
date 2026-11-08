@@ -44,7 +44,7 @@ public class MainActivity extends Activity {
     s.setLoadWithOverviewMode(true); s.setUseWideViewPort(true);
     s.setSupportMultipleWindows(false); s.setJavaScriptCanOpenWindowsAutomatically(true);
     if (Build.VERSION.SDK_INT >= 21) s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-    s.setUserAgentString(s.getUserAgentString() + " FUNVSApp/1" + (tv ? " FUNVSTV" : ""));
+    s.setUserAgentString(s.getUserAgentString() + " FUNVSApp/2" + (tv ? " FUNVSTV" : ""));
     CookieManager.getInstance().setAcceptCookie(true);
     if (Build.VERSION.SDK_INT >= 21) CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);   // Twitch / YouTube
     web.setBackgroundColor(Color.rgb(23, 25, 32));
@@ -102,10 +102,15 @@ public class MainActivity extends Activity {
     });
   }
 
-  /** Teclas del control que la web no recibe sola: menú → ajustes. Play/pausa y avance/retroceso llegan como teclas multimedia. */
+  /** Botón ☰ del control: le paso a FUNVS cuánto tiempo se mantuvo apretado (toque = volver, doble = recargar, mantener = Ajustes). */
+  long menuDown = 0;
   @Override public boolean dispatchKeyEvent(KeyEvent e) {
     if (e.getKeyCode() == KeyEvent.KEYCODE_MENU && Build.VERSION.SDK_INT >= 19) {
-      if (e.getAction() == KeyEvent.ACTION_UP) web.evaluateJavascript("window.FUNVSApp&&FUNVSApp.menu&&FUNVSApp.menu()", null);
+      if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) menuDown = e.getEventTime();
+      if (e.getAction() == KeyEvent.ACTION_UP) {
+        long ms = menuDown > 0 ? e.getEventTime() - menuDown : 0; menuDown = 0;
+        web.evaluateJavascript("window.FUNVSApp&&FUNVSApp.menu&&FUNVSApp.menu(" + ms + ")", null);
+      }
       return true;
     }
     return super.dispatchKeyEvent(e);
