@@ -7,7 +7,7 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 import { readDb, norm } from './gist.mjs';
 const dir = process.argv[2] || '.', repo = process.argv[3] || 'klasito7/mi-streaming';
-const VER = 3;
+const VER = 4;
 const UA = { 'User-Agent':'FUNVS-clasicos/1.0 (https://github.com/' + repo + ')' };
 await mkdir(dir, { recursive:true });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -110,7 +110,7 @@ async function buildCatalog() {
       const h = ln.match(/^(={2,5})\s*(.+?)\s*\1\s*$/);
       if (h) { flushRow(); if (keep) continue; const p = paisOf(h[2]); if (p) pais = p; else if (h[1].length <= 2 && !/united kingdom/i.test(L)) pais = null; continue; }
       const mainT = ln.match(/\{\{\s*(?:main|main article|further|see also)\s*\|([^}|]+)/i);
-      if (mainT && pais && /rivalr|derb/i.test(mainT[1])) { const t = mainT[1].trim(); if (/^List/i.test(t)) queue.push([t, pais]); else extraArt.set(t, pais); continue; }
+      if (mainT && pais && /rivalr|derb/i.test(mainT[1])) { const t = mainT[1].trim(); if (/^List|rivalries in|derbies in|derbies$/i.test(t)) queue.push([t.split('#')[0], pais]); else extraArt.set(t, pais); continue; }
       if (/^\|-/.test(ln) || /^\|\}/.test(ln)) { flushRow(); continue; }
       if (/^\|(?!\})/.test(ln)) { row.push(...ln.slice(1).split('||')); continue; }
       if (!pais || !/^\*/.test(ln) || !/\bvs?\.?\b|\bv\b/i.test(ln)) continue;

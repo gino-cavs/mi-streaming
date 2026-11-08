@@ -6,9 +6,6 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-      - run: |
-          curl -s "https://en.wikipedia.org/w/index.php?title=List_of_association_football_club_rivalries_in_the_Americas&action=raw" | grep -n -i -A12 "=\s*Argentina" | head -40
-          curl -s "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard?dates=20261108-20261129" | head -c 300; echo
       - run: node scripts/fetch-clasicos.mjs /tmp/x "$GITHUB_REPOSITORY"
       - run: |
           cat > /tmp/i.cjs <<'JS'
