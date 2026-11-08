@@ -7,7 +7,7 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 import { readDb, norm } from './gist.mjs';
 const dir = process.argv[2] || '.', repo = process.argv[3] || 'klasito7/mi-streaming';
-const VER = 4;
+const VER = 5;
 const UA = { 'User-Agent':'FUNVS-clasicos/1.0 (https://github.com/' + repo + ')' };
 await mkdir(dir, { recursive:true });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -31,6 +31,7 @@ const PAISES = [
   ['Egipto', '🇪🇬', 'Egypt', []], ['Marruecos', '🇲🇦', 'Morocco', []], ['Sudáfrica', '🇿🇦', 'South Africa', ['rsa.1']],
   ['Arabia Saudita', '🇸🇦', 'Saudi Arabia', ['ksa.1']], ['Japón', '🇯🇵', 'Japan', ['jpn.1']], ['Corea del Sur', '🇰🇷', 'South Korea', ['kor.1']], ['Australia', '🇦🇺', 'Australia', ['aus.1']]
 ];
+const LGN = { 'arg.1':'Liga Profesional', 'arg.2':'Primera Nacional', 'arg.copa':'Copa Argentina', 'conmebol.libertadores':'Copa Libertadores', 'conmebol.sudamericana':'Copa Sudamericana', 'uefa.champions':'Champions League', 'uefa.europa':'Europa League', 'uefa.europa.conf':'Conference League', 'esp.1':'LaLiga', 'eng.1':'Premier League', 'ita.1':'Serie A', 'ger.1':'Bundesliga', 'fra.1':'Ligue 1', 'sco.1':'Premiership escocesa', 'bra.1':'Brasileirão', 'uru.1':'Liga uruguaya', 'par.1':'Liga paraguaya', 'mex.1':'Liga MX', 'usa.1':'MLS', 'jpn.1':'J1 League', 'aus.1':'A-League', 'por.1':'Liga Portugal', 'ned.1':'Eredivisie', 'tur.1':'Süper Lig' };
 const COPAS = ['conmebol.libertadores', 'conmebol.sudamericana', 'uefa.champions', 'uefa.europa', 'uefa.europa.conf', 'concacaf.champions', 'club.friendly'];
 // los que no tienen artículo en inglés pero no se pueden perder
 const SEMILLAS = [{ n:'Clásico del Oeste', a:'Club Atlético Vélez Sarsfield', b:'Ferro Carril Oeste', pais:'Argentina', es:'Clásico del Oeste' }];
@@ -79,7 +80,7 @@ async function buildCatalog() {
   const derbies = [], pairKey = (x, y) => [x, y].map(t => t.toLowerCase()).sort().join('|'), seenPair = new Set();
   const add = d => { const k = pairKey(d.ta, d.tb); if (seenPair.has(k)) return; seenPair.add(k); derbies.push(d); };
   const byEn = new Map(PAISES.map(p => [norm(p[2].replace(/^the /, '')), p[0]]));
-  const ALIAS = { 'republic of ireland':'Irlanda', ireland:'Irlanda', 'czech republic':'Chequia', czechia:'Chequia', usa:'Estados Unidos', 'united states':'Estados Unidos', holland:'Países Bajos', korea:'Corea del Sur', 'korea republic':'Corea del Sur' };
+  const ALIAS = { 'england and wales':'Inglaterra', 'england wales':'Inglaterra', 'republic of ireland':'Irlanda', ireland:'Irlanda', 'czech republic':'Chequia', czechia:'Chequia', usa:'Estados Unidos', 'united states':'Estados Unidos', holland:'Países Bajos', korea:'Corea del Sur', 'korea republic':'Corea del Sur' };
   const paisOf = h => { const n = norm(h.replace(/\[\[(?:[^\]|]*\|)?([^\]]*)\]\]/g, '$1')); return byEn.get(n) || ALIAS[n] || null; };
 
   // 1) listas de rivalidades por continente (equipos de cada clásico, ordenados por país)
@@ -122,8 +123,9 @@ async function buildCatalog() {
       const A = lastLink(parts[0]), B = firstLink(parts[1]); if (!A || !B) continue;
       const head = parts[0].slice(0, A.index), colon = head.lastIndexOf(':');
       const nameTxt = colon > 0 ? head.slice(0, colon).replace(/^\*+/, '') : '';
-      const art = [...nameTxt.matchAll(LINK)][0]?.[1];
-      add({ pais, ta:A[1].trim(), tb:B[1].trim(), art, n:plain(nameTxt) || null });
+      let art = [...nameTxt.matchAll(LINK)][0]?.[1], nm = plain(nameTxt) || null;
+      if (!art) { const after = [...parts[1].slice(B.index + B[0].length).matchAll(LINK)].find(x => !/^(File|Image|Category):/i.test(x[1])); if (after && /cl[aá]sico|derb|rival|super|old|fla|gre|choque/i.test(after[1] + ' ' + (after[2] || ''))) { art = after[1]; nm = after[2] || after[1]; } }
+      add({ pais, ta:A[1].trim(), tb:B[1].trim(), art, n:nm });
     }
     flushRow();
     console.log(`${L}: ${derbies.length - n0} clásicos`);
@@ -243,10 +245,14 @@ const range = `${ymd(Date.now() - 10 * 864e5)}-${ymd(Date.now() + 21 * 864e5)}`;
 const pair = new Map(); for (const d of derbies) if (d.a.espn && d.b.espn) pair.set([d.a.espn, d.b.espn].sort().join('-'), d.id);
 const lgs = [...new Set([...PAISES.flatMap(p => p[3]), ...COPAS])];
 const fixtures = new Map();
+const weeks = []; for (let d = -10; d < 21; d += 7) weeks.push(`${ymd(Date.now() + d * 864e5)}-${ymd(Date.now() + Math.min(d + 6, 21) * 864e5)}`);
+async function espnSB(lg, r) { try { const x = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${lg}/scoreboard?dates=${r}`); if (!x.ok) { if (lg === 'eng.1') console.log('ESPN', lg, r, 'HTTP', x.status); return []; } return (await x.json()).events || []; } catch (e) { if (lg === 'eng.1') console.log('ESPN', lg, e.message); return []; } }
 for (const lg of lgs) {
-  const j = await getJ(`https://site.api.espn.com/apis/site/v2/sports/soccer/${lg}/scoreboard?dates=${range}`);
-  if (lg === 'eng.1' || lg === 'arg.1') console.log(`ESPN ${lg}: ${j?.events?.length ?? 'sin respuesta'} partidos en ${range}`);
-  for (const ev of j?.events || []) {
+  const evs = [];
+  for (const r of weeks) evs.push(...await espnSB(lg, r));
+  if (lg === 'eng.1' || lg === 'arg.1') console.log(`ESPN ${lg}: ${evs.length} partidos`);
+  const j = { leagues:[{ name:LGN[lg] || lg }] };
+  for (const ev of evs) {
     const c = ev.competitions?.[0]; if (!c) continue;
     const H = c.competitors.find(x => x.homeAway === 'home'), A = c.competitors.find(x => x.homeAway === 'away'); if (!H || !A) continue;
     const id = pair.get([H.team.id, A.team.id].sort().join('-')); if (!id) continue;
