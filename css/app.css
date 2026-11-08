@@ -1017,3 +1017,16 @@ label.chk input[type=time] { width:auto; padding:4px 6px; }
 .dpad :focus:not(:focus-visible) { outline:3px solid #ffd400 !important; }
 .tvapp body { font-size:17px; }
 .tvapp ::-webkit-scrollbar { width:0; height:0; }
+
+/* ===== Grilla de radios ===== */
+#v-radios .secrow { gap:10px; flex-wrap:wrap; }
+.seg { display:inline-flex; background:var(--panel); border-radius:10px; padding:3px; gap:3px; }
+.seg button { border:0; background:none; padding:6px 12px; border-radius:8px; font-size:14px; }
+.seg button.on { background:var(--acc); color:#fff; }
+.rgepg { --epw:190px; }
+.rgrow .epch { cursor:pointer; gap:10px; }
+.rgrow .epch { flex-direction:column; align-items:flex-start; justify-content:center; gap:0; }
+.rgrow .epname { white-space:normal; line-height:1.15; }
+.rgdial { font-family:'VT323', monospace; font-size:20px; color:#3dff7a; white-space:nowrap; letter-spacing:.5px; line-height:1; }
+.rgrow .epb { cursor:pointer; }
+@media (max-width:600px) { .rgepg { --epw:120px; } .rgdial { font-size:17px; } .rgrow .epname { font-size:12px; } }

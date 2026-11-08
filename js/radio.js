@@ -30,7 +30,7 @@ const Radio = (() => {
     if (!v.dataset.built) {
       v.dataset.built = 1;
       v.innerHTML = `
-        <h2 class="sec">Mis radios</h2><div id="rMine"></div>
+        <div class="secrow"><h2 class="sec">Mis radios</h2><div class="seg" id="rView"><button data-rv="lista">📻 Radios</button><button data-rv="grilla">🗓 Grilla</button></div></div><div id="rMine"></div>
         <h2 class="sec">Buscar radios</h2>
         <form class="rsearch" id="rForm">
           <input id="rQ" placeholder="Nombre de la radio: Mitre, La 100, Rivadavia, Metro…">
@@ -42,6 +42,7 @@ const Radio = (() => {
         <p class="mut" style="font-size:12px;margin-top:10px">Las radios salen de radio-browser.info, una lista comunitaria y gratuita. Si alguna no suena, probá con otra versión de la misma radio.</p>`;
       $('rForm').onsubmit = e => { e.preventDefault(); search($('rQ').value.trim()); };
       $('rTop').onclick = () => search('');
+      $('rView').onclick = e => { const b = e.target.closest('[data-rv]'); if (b) { S.set('radView', b.dataset.rv); render(); } };
       v.addEventListener('click', e => {
         const add = e.target.closest('[data-add]'), del = e.target.closest('[data-del]');
         if (add) { const r = results.find(x => x.url === add.dataset.add); if (r && !db.radios.some(x => x.url === r.url)) { db.radios.push(r); save(); render(); } return; }
@@ -51,7 +52,10 @@ const Radio = (() => {
       });
       v.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset.url) e.target.click(); });
     }
-    $('rMine').innerHTML = db.radios.length ? `<div class="rgrid">${db.radios.map(r => rcard(r, true)).join('')}</div>`
+    const view = S.get('radView', 'lista');
+    $('rView').querySelectorAll('[data-rv]').forEach(b => b.classList.toggle('on', b.dataset.rv === view));
+    if (view === 'grilla') RadioGrilla.render($('rMine'), g => { $('rQ').value = g.alias[0]; $('rCountry').value = 'AR'; search(g.alias[0]); $('rForm').scrollIntoView({ behavior:'smooth' }); });
+    else $('rMine').innerHTML = db.radios.length ? `<div class="rgrid">${db.radios.map(r => rcard(r, true)).join('')}</div>`
       : `<div class="empty" style="padding:12px">Todavía no guardaste radios. Buscalas abajo y tocá ☆.</div>`;
     $('rRes').innerHTML = searching ? '<div class="empty">Buscando…</div>'
       : results.length ? `<div class="rgrid">${results.map(r => rcard(r, db.radios.some(x => x.url === r.url))).join('')}</div>` : '';
