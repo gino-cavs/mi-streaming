@@ -138,7 +138,7 @@ async function clasicos() {
   if (on.clasicos === false) return;
   const c = await getJ(raw('clasicos.json')); if (!c?.fixtures) return;
   const by = Object.fromEntries((c.derbies || []).map(d => [d.id, d])), fl = Object.fromEntries((c.paises || []).map(p => [p[0], p[1]]));
-  const nm = d => d ? (d.es && !/rivalry|derby/i.test(d.es) ? d.es : d.n) : '';
+  const nm = d => d ? (d.es && !/rivalry|derby/i.test(d.es) ? d.es : d.n || '').replace(/ rivalry$/i, '').replace(/\s*[,;:·–-]+\s*$/, '').trim() : '';
   const hh = t => new Date(t).toLocaleTimeString('es-AR', { timeZone:'America/Argentina/Buenos_Aires', hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
   const n = ar(), hoy = c.fixtures.filter(f => f.st !== 'post' && new Date(f.date).toLocaleDateString('en-CA', { timeZone:'America/Argentina/Buenos_Aires' }) === n.ymd);
   if (hoy.length && n.h >= 9) await send('cl-dia:' + n.ymd, `⚔️ <b>Clásicos de hoy</b>\n${hoy.map(f => `${fl[by[f.d]?.pais] || '⚽'} ${hh(f.date)} · ${esc(f.h)} vs ${esc(f.a)}${by[f.d] ? ' <i>(' + esc(nm(by[f.d])) + ')</i>' : ''}`).join('\n')}`);

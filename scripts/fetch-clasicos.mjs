@@ -263,6 +263,17 @@ if (!fx) {
   await Promise.all(Array.from({ length:10 }, worker));
   fx = [...fixtures.values()].sort((a, b) => Date.parse(a.date) - Date.parse(b.date)); fxAt = new Date().toISOString();
   console.log(`Fixture: ${jobs.length} pedidos a ESPN (${fails} con error)`);
+} else {
+  // se reusa el fixture, pero los que están en juego (o ya deberían haber empezado) se actualizan en cada corrida
+  const stale = fx.filter(f => f.st === 'in' || (f.st === 'pre' && Date.parse(f.date) < Date.now()));
+  const groups = {}; stale.forEach(f => { const k = f.slug + '|' + ymd(f.date); (groups[k] = groups[k] || []).push(f); });
+  for (const k of Object.keys(groups)) {
+    const [lg, day] = k.split('|'); let j = null;
+    try { const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${lg}/scoreboard?dates=${day}`); if (r.ok) j = await r.json(); } catch {}
+    for (const f of groups[k]) { const ev = j?.events?.find(e => e.id === f.e); if (!ev) continue; const c = ev.competitions[0];
+      Object.assign(f, { hs:c.competitors.find(x => x.homeAway === 'home').score, as:c.competitors.find(x => x.homeAway === 'away').score, st:ev.status.type.state, det:ev.status.type.shortDetail }); }
+  }
+  if (stale.length) console.log(`Fixture: actualicé ${stale.length} partido(s) en juego`);
 }
 await writeFile(dir + '/clasicos.json', JSON.stringify({ v:VER, paises:PAISES.map(p => [p[0], p[1]]), updated:new Date().toISOString(), catAt, fxAt, customKey, derbies, fixtures:fx }));
 console.log(`Clásicos: ${derbies.length} en el catálogo · ${fx.filter(f => f.st !== 'post').length} por jugarse · ${fx.filter(f => f.st === 'post').length} jugados hace poco`);

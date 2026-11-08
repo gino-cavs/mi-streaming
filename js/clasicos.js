@@ -11,7 +11,7 @@ const Clasicos = (() => {
     return data;
   }
   const flag = p => (data?.paises || []).find(x => x[0] === p)?.[1] || '⭐';
-  const dName = d => d.es && !/rivalry|derby/i.test(d.es) ? d.es : d.n;
+  const dName = d => (d.es && !/rivalry|derby/i.test(d.es) ? d.es : d.n || '').replace(/ rivalry$/i, '').replace(/\s*[,;:·–-]+\s*$/, '').trim();
   const hora = t => new Date(t).toLocaleString('es-AR', { weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
   const logo = s => s.logo ? `<img class="cllogo" src="${esc(s.logo)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<span class="cllogo">⚽</span>';
   const gcal = f => { const t = new Date(f.date), e = new Date(+t + 2 * 3600e3), z = x => x.toISOString().replace(/[-:]|\.\d{3}/g, '');
