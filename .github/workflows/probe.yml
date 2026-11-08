@@ -5,6 +5,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          for q in "sessions?year=2026&session_name=Race" "session_result?session_key=latest" "drivers?session_key=latest" "stints?session_key=latest" "pit?session_key=latest" "laps?session_key=latest&driver_number=43&lap_number=5"; do
-            echo "=== $q"; curl -s -A "FUNVS/1.0" "https://api.openf1.org/v1/$q" | head -c 700; echo; sleep 1; done
-          echo "=== car_data window"; curl -s "https://api.openf1.org/v1/car_data?session_key=latest&driver_number=43&speed>=330" | head -c 300; echo
+          g(){ echo "=== $1"; curl -s -A "FUNVS/1.0" "https://api.openf1.org/v1/$1" | head -c ${2:-600}; echo; sleep 1; }
+          g "sessions?year=2026&session_name=Race" 400
+          g "meetings?meeting_key=latest" 500
+          g "session_result?session_key=latest" 900
+          g "drivers?session_key=latest&driver_number=43" 600
+          g "stints?session_key=latest&driver_number=43" 500
+          g "pit?session_key=latest" 500
+          g "position?session_key=latest&driver_number=43" 300
+          g "laps?session_key=latest&driver_number=43&lap_number=5" 600
+          g "car_data?session_key=latest&driver_number=43&speed>=330" 400
+          g "location?session_key=latest&driver_number=43" 300
+          echo "=== qualy result"; k=$(curl -s "https://api.openf1.org/v1/sessions?session_key=latest" | grep -o '"meeting_key":[0-9]*' | head -1 | cut -d: -f2); curl -s "https://api.openf1.org/v1/session_result?meeting_key=$k&session_name=Qualifying" | head -c 500; echo
