@@ -43,15 +43,15 @@ const Zap = (() => {
             <span class="za" style="${c.avatar ? `background-image:url('${esc(c.avatar)}')` : `background:${PCOL[c.platform]}`}"></span>
             <span class="zn"><i class="znum">${Canales.numTxt(c)}</i>${esc(c.name)}${s.title && (s.st === 'live' || s.st === 'soon') ? `<em>${esc(s.title)}</em>` : ''}<small>${s.st === 'live' && s.prem ? '🎬 estreno' + (s.viewers ? ' · ' + s.viewers.toLocaleString('es-AR') : '') : s.st === 'live' ? '● en vivo' + (s.viewers ? ' · ' + s.viewers.toLocaleString('es-AR') : '') : s.st === 'soon' ? (s.prem ? '🎬 estreno ' : '🕒 ') + fmtH(s.when) : esc(c.platform)}</small></span></button>`; }).join('')}</div>`).join('')
         : '<div class="mut" style="padding:12px;font-size:13px">Todavía no agregaste canales.</div>'}
-        ${Series.chans.length && !q ? `<div class="zgrp ${closed.has('s247') ? 'closed' : ''}"><button class="zgh" data-g="s247">${esc(Series.label())} 24/7 <span>${Series.chans.length}</span></button>
-          ${Series.chans.map(ch => { const n = Series.now(ch.id); return `<button class="zi ${now.has('s247_' + ch.id) ? 'now' : ''}" data-sr="${ch.id}"><span class="za" style="${n ? `background-image:url('https://i.ytimg.com/vi/${n.v}/default.jpg')` : 'background:#444'}"></span>
-            <span class="zn">${esc(ch.name)}${n ? `<em>${esc(n.t)}</em>` : ''}<small>● al aire 24/7</small></span></button>`; }).join('')}</div>` : ''}</div>`;
+        ${Object.values(T247).filter(T => T.chans.length && !q).map(T => `<div class="zgrp ${closed.has(T.key + '247') ? 'closed' : ''}"><button class="zgh" data-g="${T.key}247">${esc(T.label())} 24/7 <span>${T.chans.length}</span></button>
+          ${T.chans.map(ch => { const n = T.now(ch.id); return `<button class="zi ${now.has(T.uidp + ch.id) ? 'now' : ''}" data-sr="${ch.id}" data-srk="${T.key}"><span class="za" style="${n ? `background-image:url('https://i.ytimg.com/vi/${n.v}/default.jpg')` : 'background:#444'}"></span>
+            <span class="zn">${esc(ch.name)}${n ? `<em>${esc(n.t)}</em>` : ''}<small>● al aire 24/7</small></span></button>`; }).join('')}</div>`).join('')}</div>`;
     const inp = $('zapQ');
     inp.oninput = () => { q = inp.value; const pos = inp.selectionStart; render(); $('zapQ').focus(); $('zapQ').setSelectionRange(pos, pos); };
     $('zapUp').onclick = () => step(-1); $('zapDn').onclick = () => step(1);
     z.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const g = b.dataset.g; closed.has(g) ? closed.delete(g) : closed.add(g); S.set('zapClosed', [...closed]); render(); });
     z.querySelectorAll('[data-z]').forEach(b => b.onclick = () => Player.play(db.chans.find(c => c.uid === b.dataset.z)));
-    z.querySelectorAll('[data-sr]').forEach(b => b.onclick = () => Series.play(b.dataset.sr));
+    z.querySelectorAll('[data-sr]').forEach(b => b.onclick = () => T247[b.dataset.srk].play(b.dataset.sr));
   }
   let digits = '', dTimer = null;
   function init() {

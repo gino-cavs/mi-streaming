@@ -139,7 +139,7 @@ const Player = (() => {
           if (e.data === 3) return;
           if (e.data === 1 && last === null) Calidad.applyYouTube(p);
           if (e.data === 0 && s.c.t247) {          // canal 24/7: termina un video y sigue la grilla
-            const n = Series.nextFor(s.c.t247);
+            const n = T247any.nextFor(s.c.t247);
             if (n) { s.e.id = n.v; try { p.loadVideoById({ videoId:n.v, startSeconds:n.off }); } catch {} paintActs(); }
           }
           if (e.data === 1 && last !== 1) AudioMgr.focus(sid);
@@ -222,7 +222,7 @@ const Player = (() => {
     if (a === 'audio') { s.audio = !s.audio; setAudioQuality(s, s.audio); if (s.audio && s.chat) setChat(i, false); }
     if (a === 'pip') return openPip(i);
     if (a === 'star') return Momentos.capture('slot' + i);
-    if (a === 'skip' && s.c.t247) { const n = Series.randomFor(s.c.t247); if (n && s.api && s.api.p) { s.e.id = n.v; try { s.api.p.loadVideoById({ videoId:n.v }); } catch {} paintActs(); } return; }
+    if (a === 'skip' && s.c.t247) { const n = T247any.randomFor(s.c.t247); if (n && s.api && s.api.p) { s.e.id = n.v; try { s.api.p.loadVideoById({ videoId:n.v }); } catch {} paintActs(); } return; }
     paintBar(i);
   }
 

@@ -939,3 +939,21 @@ label.chk input[type=time] { width:auto; padding:4px 6px; }
 .acard.big { padding:14px; } .acard.big b { font-size:17px; }
 .aic { font-size:24px; flex:none; } .atx { display:flex; flex-direction:column; gap:4px; min-width:0; } .atx b { font-size:14px; line-height:1.35; } .atx small { color:var(--mut); font-size:12px; }
 .amed { display:flex; flex-wrap:wrap; gap:4px; } .amed i { font-style:normal; font-size:11px; background:var(--panel2); border-radius:999px; padding:1px 8px; color:var(--mut); }
+
+/* ===== Capítulo al azar ===== */
+.azgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:8px; margin-bottom:14px; }
+.azcard { display:flex; gap:12px; background:var(--panel); border-radius:12px; padding:10px; }
+.azimg { width:120px; aspect-ratio:16/9; border-radius:8px; background:#222 center/cover; flex:none; display:grid; place-items:center; font-size:36px; }
+.aztx { display:flex; flex-direction:column; gap:2px; min-width:0; } .aztx b { font-size:16px; } .aztx small { font-size:12px; color:var(--mut); } .azep { font-size:14px; }
+
+/* ===== Fútbol retro / Paso a Paso ===== */
+.fmode { flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
+.rthero { display:flex; gap:14px; align-items:center; margin-bottom:10px; } .rthero > div:first-child { font-size:40px; } .rthero h2 { margin:0; } .rthero p { margin:2px 0 0; color:var(--mut); font-size:13px; }
+.rtbar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:10px 0; } .rtbar input { flex:1; min-width:180px; }
+.rtgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:10px; }
+.rtcard { position:relative; display:flex; flex-direction:column; gap:4px; cursor:pointer; background:var(--panel); border-radius:10px; padding:6px; border:1px solid transparent; }
+.rtcard:hover { border-color:var(--acc); } .rtcard.gone { opacity:.35; }
+.rtimg { aspect-ratio:16/9; border-radius:7px; background:#222 center/cover; position:relative; }
+.rtimg i { position:absolute; right:5px; bottom:5px; background:#000c; color:#fff; font-style:normal; font-size:11px; padding:1px 6px; border-radius:4px; }
+.rtcard b { font-size:13px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; } .rtcard small { color:var(--mut); font-size:11px; }
+.rtdel { position:absolute; top:10px; right:10px; width:30px; height:30px; padding:0; border-radius:50%; background:#e3342f; color:#fff; font-weight:700; }

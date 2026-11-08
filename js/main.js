@@ -2,9 +2,9 @@
    Navegación entre secciones, ajustes y arranque
    ========================================================= */
 const Nav = (() => {
-  const SECS = [['canales', '📺 Canales'], ['radios', '📻 Radios'], ['calendario', '📅 Calendario'], ['fulbito', '⚽ Fulbito'], ['prode', '🎯 Prode'], ['motor', '🏁 Automovilismo'], ['boxeo', '🥊 Boxeo'], ['series', '📼 Series'], ['musica', '🎵 Música'], ['rap', '🎤 Rap Battle'], ['420', '🍃 420 time'], ['momentos', '⭐ Momentos'], ['noticias', '📰 Noticias'], ['velez', '💙 Mundo Vélez'], ['juegos', '🎮 Juegos'], ['wrapped', '✨ Wrapped']];
+  const SECS = [['canales', '📺 Canales'], ['radios', '📻 Radios'], ['calendario', '📅 Calendario'], ['fulbito', '⚽ Fulbito'], ['prode', '🎯 Prode'], ['motor', '🏁 Automovilismo'], ['boxeo', '🥊 Boxeo'], ['series', '📼 Series'], ['peliculas', '🎬 Películas'], ['musica', '🎵 Música'], ['rap', '🎤 Rap Battle'], ['420', '🍃 420 time'], ['momentos', '⭐ Momentos'], ['noticias', '📰 Noticias'], ['velez', '💙 Mundo Vélez'], ['juegos', '🎮 Juegos'], ['wrapped', '✨ Wrapped']];
   let current = null;
-  const renderers = { canales:() => Canales.render(), radios:() => Radio.render(), calendario:() => Calendario.render(), motor:() => Motor.render(), boxeo:() => Boxeo.render(), musica:() => Musica.render(), series:() => Series.render(), rap:() => Rap.render(), '420':() => T420.render(), prode:() => Prode.render(), momentos:() => Momentos.render(), wrapped:() => Stats.render(), fulbito:() => Fulbito.render(), noticias:() => Noticias.render(), velez:() => Velez.render(), juegos:() => Juegos.render() };
+  const renderers = { canales:() => Canales.render(), radios:() => Radio.render(), calendario:() => Calendario.render(), motor:() => Motor.render(), boxeo:() => Boxeo.render(), musica:() => Musica.render(), series:() => Series.render(), peliculas:() => Peliculas.render(), rap:() => Rap.render(), '420':() => T420.render(), prode:() => Prode.render(), momentos:() => Momentos.render(), wrapped:() => Stats.render(), fulbito:() => Fulbito.render(), noticias:() => Noticias.render(), velez:() => Velez.render(), juegos:() => Juegos.render() };
   function go(s) {
     if (!renderers[s]) s = 'canales';
     current = s;
@@ -16,7 +16,7 @@ const Nav = (() => {
     renderers[s]();
   }
   // orden y secciones ocultas: tuyos, guardados y sincronizados (db.nav)
-  const label = id => id === 'series' ? Series.label() : (SECS.find(x => x[0] === id) || [, id])[1];
+  const label = id => T247[id] ? T247[id].label() : db.nav?.labels?.[id] || (SECS.find(x => x[0] === id) || [, id])[1];
   function ordered() {
     const o = db.nav?.order || [], hid = db.nav?.hidden || [];
     const ids = [...o.filter(id => SECS.some(x => x[0] === id)), ...SECS.map(x => x[0]).filter(id => !o.includes(id))];
@@ -30,21 +30,27 @@ const Nav = (() => {
   }
   function openOrder() {
     let work = [...(db.nav?.order || []).filter(id => SECS.some(x => x[0] === id)), ...SECS.map(x => x[0]).filter(id => !(db.nav?.order || []).includes(id))];
-    let hid = [...(db.nav?.hidden || [])];
+    let hid = [...(db.nav?.hidden || [])], names = {};
     let d = $('dlgNav'); if (!d) { d = document.createElement('dialog'); d.id = 'dlgNav'; document.body.appendChild(d); }
     const paint = () => {
-      d.innerHTML = `<h3>✎ Ordenar secciones</h3><p class="mut" style="font-size:13px;margin-top:0">Arrastrá o usá las flechas. Destildá las que no quieras ver en la barra.</p>
-        <div class="navlist">${work.map((id, i) => `<div class="ordrow" draggable="true" data-i="${i}"><span class="ordh">☰</span><label class="chk" style="flex:1;margin:0"><input type="checkbox" data-v="${id}" ${hid.includes(id) ? '' : 'checked'}> ${label(id)}</label><button class="sm" data-up="${i}">↑</button><button class="sm" data-dn="${i}">↓</button></div>`).join('')}</div>
+      d.innerHTML = `<h3>✎ Secciones</h3><p class="mut" style="font-size:13px;margin-top:0">Cambiá el nombre (con su emoji), el orden (arrastrando o con las flechas) y destildá las que no quieras ver.</p>
+        <div class="navlist">${work.map((id, i) => `<div class="ordrow" draggable="true" data-i="${i}"><span class="ordh">☰</span><input type="checkbox" data-v="${id}" ${hid.includes(id) ? '' : 'checked'} title="Mostrar en la barra" style="width:auto;flex:none"><input class="ordname" data-lb="${id}" value="${esc(names[id] ?? label(id))}" title="Nombre de la sección"><button class="sm" data-up="${i}">↑</button><button class="sm" data-dn="${i}">↓</button></div>`).join('')}</div>
         <div class="btns"><button id="navReset">Restaurar</button><span class="sp"></span><button id="navX">Cancelar</button><button class="pri" id="navOk">Guardar</button></div>`;
       const mv = (i, j) => { if (j < 0 || j >= work.length) return; const [x] = work.splice(i, 1); work.splice(j, 0, x); paint(); };
       d.querySelectorAll('[data-up]').forEach(b => b.onclick = () => mv(+b.dataset.up, +b.dataset.up - 1));
       d.querySelectorAll('[data-dn]').forEach(b => b.onclick = () => mv(+b.dataset.dn, +b.dataset.dn + 1));
+      d.querySelectorAll('[data-lb]').forEach(i => i.oninput = () => { names[i.dataset.lb] = i.value; });
       d.querySelectorAll('[data-v]').forEach(c => c.onchange = () => { hid = c.checked ? hid.filter(x => x !== c.dataset.v) : [...hid, c.dataset.v]; });
       let drag = null;
       d.querySelectorAll('.ordrow').forEach(r => { r.ondragstart = () => { drag = +r.dataset.i; }; r.ondragover = e => e.preventDefault(); r.ondrop = e => { e.preventDefault(); if (drag != null) mv(drag, +r.dataset.i); }; });
-      $('navReset').onclick = () => { work = SECS.map(x => x[0]); hid = []; paint(); };
+      $('navReset').onclick = () => { work = SECS.map(x => x[0]); hid = []; names = Object.fromEntries(SECS.filter(x => !T247[x[0]]).map(x => [x[0], x[1]])); paint(); };
       $('navX').onclick = () => d.close();
-      $('navOk').onclick = () => { if (hid.length >= work.length) hid = []; db.nav = { order:work, hidden:hid }; save(); d.close(); badges(); };
+      $('navOk').onclick = () => {
+        if (hid.length >= work.length) hid = [];
+        const labels = { ...(db.nav?.labels || {}) };
+        for (const [id, n] of Object.entries(names)) { const v = n.trim(); if (T247[id]) { if (v) T247[id].setTitle(v); continue; } const def = (SECS.find(x => x[0] === id) || [])[1]; if (!v || v === def) delete labels[id]; else labels[id] = v; }
+        db.nav = { order:work, hidden:hid, labels }; save(); d.close(); badges(); Zap.render(); if (T247[current]) T247[current].render();
+      };
     };
     paint(); d.showModal();
   }
@@ -113,7 +119,7 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------- Arranque ---------- */
 if (location.protocol === 'file:') warn('Estás abriendo el archivo desde la compu: Twitch y algunos datos solo andan con la página publicada (GitHub Pages).');
-Player.build(); TV.build(); Zap.init(); Calidad.init(); Canales.init(); Radio.init(); Fulbito.init(); Noticias.init(); Velez.init(); Calendario.init(); Motor.init(); Musica.init(); Prode.init(); Momentos.init(); Stats.init(); Rap.init(); T420.init(); Likes.init(); Boxeo.init(); Series.init(); Juegos.init(); Ver.init(); Diario.init(); Resumenes.init(); Clasicos.init(); Actualidad.init();
+Player.build(); TV.build(); Zap.init(); Calidad.init(); Canales.init(); Radio.init(); Fulbito.init(); Noticias.init(); Velez.init(); Calendario.init(); Motor.init(); Musica.init(); Prode.init(); Momentos.init(); Stats.init(); Rap.init(); T420.init(); Likes.init(); Boxeo.init(); Series.init(); Peliculas.init(); Juegos.init(); Ver.init(); Diario.init(); Resumenes.init(); Clasicos.init(); Actualidad.init();
 $('btnLikeSetup').onclick = () => { $('dlgSet').close(); Likes.openSetup(); };
 $('btnTg').onclick = () => { $('dlgSet').close(); Telegram.open(); };
 $('btnDnd').onclick = () => DND.toggle(); DND.paint();
