@@ -6,8 +6,15 @@ jobs:
     steps:
       - run: |
           UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130 Safari/537.36"
-          for S in laguiadelstreaming.com hagovusqueda.com; do
-            echo "=== $S robots"; curl -s -L -A "$UA" https://$S/robots.txt | head -40
-            curl -s -L -A "$UA" https://$S/ -o /tmp/h.html; echo "=== $S home $(wc -c < /tmp/h.html) bytes"
-            grep -o -i '<title>[^<]*\|__NEXT_DATA__\|/api/[a-zA-Z0-9_/?=&.-]\{0,60\}\|supabase[^"]\{0,60\}\|firebase[^"]\{0,40\}\|\.json[^"]\{0,30\}\|action="[^"]*"\|name="q"\|[?&]q=[^"&]\{0,20\}\|search[?/][^"]\{0,40\}' /tmp/h.html | sort | uniq -c | sort -rn | head -20
-          done
+          curl -s -L -A "$UA" https://hagovusqueda.com/ -o /tmp/h.html; echo "=== hv target"; grep -o '"target"[^}]\{0,160\}' /tmp/h.html | head -3
+          curl -s -L -A "$UA" https://laguiadelstreaming.com/ -o /tmp/g.html
+          echo "=== terms links"; grep -o 'href="/[a-z-]*"' /tmp/g.html | sort -u | head -30
+          echo "=== next data?"; grep -c '__next_f\|__NEXT_DATA__' /tmp/g.html
+          echo "=== horarios cerca de Vorterix"; python3 - <<'PY'
+          import re
+          s=open('/tmp/g.html',encoding='utf8',errors='ignore').read()
+          s2=s.replace('\\"','"')
+          for m in list(re.finditer(r'"start_time"|"startTime"|"start"\s*:', s2))[:3]: print('KEY', s2[m.start()-300:m.start()+400].replace('\n',' ')[:700]); print('-----')
+          i=s2.find('Vorterix'); print('VORT', s2[i-500:i+800].replace('\n',' ')[:1300])
+          print('times:', len(re.findall(r'\b[0-2]\d:[0-5]\d\b', s2)))
+          PY
