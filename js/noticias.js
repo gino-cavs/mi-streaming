@@ -3,7 +3,7 @@
    Acá elegís temas y fuentes.
    ========================================================= */
 const Noticias = (() => {
-  let data = null, loading = null, filter = 'all', limit = 60, editing = false, srcQ = '';
+  let data = null, loading = null, filter = S.get('newsFilter', 'actualidad'), limit = 60, editing = false, srcQ = '';
 
   async function load(force) {
     if (data && !force && Date.now() - data._at < 10 * 60e3) return data;
@@ -33,19 +33,23 @@ const Noticias = (() => {
     const topics = data.topics.filter(t => db.news.topics.includes(t.id));
     const srcOk = i => !db.news.sources.length || db.news.sources.includes(i.s);
     let items = data.items.filter(i => srcOk(i) && i.tp.some(t => db.news.topics.includes(t)));
-    if (filter !== 'all') items = items.filter(i => i.tp.includes(filter));
+    filter = S.get('newsFilter', filter);
+    if (filter !== 'all' && filter !== 'actualidad') items = items.filter(i => i.tp.includes(filter));
     v.innerHTML = `
       <div class="subbar">
         <div class="tabs" id="nTabs">
+          <button data-f="actualidad" class="${filter === 'actualidad' ? 'on' : ''}">🔥 Actualidad</button>
           <button data-f="all" class="${filter === 'all' ? 'on' : ''}">Todo</button>
           ${topics.map(t => `<button data-f="${t.id}" class="${filter === t.id ? 'on' : ''}">${esc(t.label)}</button>`).join('')}
         </div>
         <button id="nEdit">Temas y fuentes</button>
       </div>
       <p class="mut" style="font-size:12px;margin:-4px 2px 10px">${db.news.sources.length ? db.news.sources.length + ' fuentes elegidas' : 'Todas las fuentes'} · actualizado ${ago(data.updated)}</p>
-      ${list(items, limit)}
-      ${items.length > limit ? '<div class="btns"><button id="nMore">Ver más</button></div>' : ''}`;
-    $('nTabs').onclick = e => { const b = e.target.closest('[data-f]'); if (b) { filter = b.dataset.f; limit = 60; render(); } };
+      ${filter === 'actualidad' ? '<div id="nAct"></div>' : list(items, limit)}
+      ${filter !== 'actualidad' && items.length > limit ? '<div class="btns"><button id="nMore">Ver más</button></div>' : ''}`;
+    $('nTabs').onclick = e => { const b = e.target.closest('[data-f]'); if (b) { filter = b.dataset.f; S.set('newsFilter', filter); limit = 60; render(); } };
+    HScroll.attach($('nTabs'));
+    if (filter === 'actualidad') Actualidad.render($('nAct'));
     $('nEdit').onclick = () => { editing = true; render(); };
     if ($('nMore')) $('nMore').onclick = () => { limit += 60; render(); };
   }

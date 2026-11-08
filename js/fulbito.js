@@ -13,6 +13,12 @@ const Fulbito = (() => {
     ['bra.1', 'Brasileirão'], ['uru.1', 'Liga Uruguaya'], ['mex.1', 'Liga MX'], ['usa.1', 'MLS'], ['ksa.1', 'Liga Saudí']
   ];
   const ligaName = id => (LIGAS.find(l => l[0] === id) || [id, id])[1];
+  // importancia de cada liga (para ordenar): de lo que más te importa a lo que menos
+  const IMP = ['arg.1', 'conmebol.libertadores', 'fifa.world', 'fifa.worldq.conmebol', 'conmebol.america', 'uefa.champions', 'arg.copa', 'conmebol.sudamericana', 'fifa.cwc',
+    'eng.1', 'esp.1', 'ita.1', 'ger.1', 'fra.1', 'bra.1', 'uru.1', 'por.1', 'uefa.europa', 'mex.1', 'usa.1', 'ksa.1', 'arg.2', 'fifa.friendly'];
+  const imp = l => { const i = IMP.indexOf(l); return i < 0 ? 99 : i; };
+  const ORDS = [['imp', '🏆 Importancia de la liga'], ['az', '🔤 Liga A-Z'], ['hora', '🕒 Horario (lo más próximo arriba)'], ['dia', '📅 Por día (próximos días)']];
+  let multi = null, multiLoading = false;   // partidos de varios días para "Por día"
   const local = S.get('futlocal', { sound:false, notif:false });   // sonido y notificaciones: por dispositivo
   const saveLocalPrefs = () => S.set('futlocal', local);
 
@@ -109,17 +115,24 @@ const Fulbito = (() => {
   }
 
   /* ---------- Pantalla ---------- */
-  function matchRow(m) {
+  // escudo de cualquier equipo: el de ESPN; si no viene, el del CDN de ESPN por id; si tampoco, uno armado con sus colores e iniciales
+  function crest(t) {
+    const ini = (t.abbreviation || (t.shortDisplayName || t.displayName || '?').split(/\s+/).map(w => w[0]).join('')).slice(0, 3).toUpperCase();
+    const col = t.color && t.color !== '000000' ? '#' + t.color : `hsl(${[...(t.displayName || '')].reduce((a, c) => a + c.charCodeAt(0), 0) % 360} 45% 38%)`;
+    const src = t.logo || (t.logos && t.logos[0]?.href) || (t.id ? `https://a.espncdn.com/i/teamlogos/soccer/500/${t.id}.png` : '');
+    return `<span class="crest" style="--cc:${esc(col)}"><b>${esc(ini)}</b>${src ? `<img src="${esc(src)}" alt="" loading="lazy" onerror="this.remove()">` : ''}</span>`;
+  }
+  function matchRow(m, opt = {}) {
     const tm = (c, cls) => `<div class="tm ${cls} ${isFav(c.team) ? 'fav' : ''}">
-        ${cls === 'h' ? `<button class="star ${isFav(c.team) ? 'on' : ''}" data-fav="${esc(c.team.displayName)}" title="Equipo favorito">${isFav(c.team) ? '★' : '☆'}</button><span>${esc(c.team.shortDisplayName || c.team.displayName)}</span>${c.team.logo ? `<img src="${esc(c.team.logo)}" alt="">` : ''}`
-                      : `${c.team.logo ? `<img src="${esc(c.team.logo)}" alt="">` : ''}<span>${esc(c.team.shortDisplayName || c.team.displayName)}</span><button class="star ${isFav(c.team) ? 'on' : ''}" data-fav="${esc(c.team.displayName)}" title="Equipo favorito">${isFav(c.team) ? '★' : '☆'}</button>`}</div>`;
+        ${cls === 'h' ? `<button class="star ${isFav(c.team) ? 'on' : ''}" data-fav="${esc(c.team.displayName)}" title="Equipo favorito">${isFav(c.team) ? '★' : '☆'}</button><span>${esc(c.team.shortDisplayName || c.team.displayName)}</span>${crest(c.team)}`
+                      : `${crest(c.team)}<span>${esc(c.team.shortDisplayName || c.team.displayName)}</span><button class="star ${isFav(c.team) ? 'on' : ''}" data-fav="${esc(c.team.displayName)}" title="Equipo favorito">${isFav(c.team) ? '★' : '☆'}</button>`}</div>`;
     const sc = m.state === 'pre' ? 'vs' : `${m.hs} - ${m.as}`;
     const gl = m.goals.length && m.state !== 'pre'
       ? `<div class="goals">⚽ ${m.goals.map(g => `${esc(g.who)} ${esc(g.min)}${g.pen ? ' (p)' : ''}${g.og ? ' (ec)' : ''}`).join(' · ')}</div>` : '';
     const ch = m.state !== 'post' ? channelsFor(m) : [];
     const nm = t => t.team.shortDisplayName || t.team.displayName;
     const tv = m.state !== 'post' ? Ver.chips(ch, `${nm(m.h)} vs ${nm(m.a)}`) : '';
-    return `<div class="match ${m.state === 'in' ? 'live' : m.state}"><div class="st">${m.state === 'in' ? '● ' : ''}${esc(m.st)}</div>${tm(m.h, 'h')}<div class="sc">${sc}</div>${tm(m.a, 'a')}${gl}${tv}</div>`;
+    return `<div class="match ${m.state === 'in' ? 'live' : m.state}">${opt.lg ? `<div class="lgtag">${opt.lgLogo ? `<img src="${esc(opt.lgLogo)}" alt="">` : '🏆'}${esc(opt.lg)}</div>` : ''}<div class="st">${m.state === 'in' ? '● ' : ''}${esc(m.st)}</div>${tm(m.h, 'h')}<div class="sc">${sc}</div>${tm(m.a, 'a')}${gl}${tv}</div>`;
   }
   function sortM(arr) { const r = m => ({ in:0, pre:1, post:2 }[m.state] ?? 3); return arr.slice().sort((a, b) => r(a) - r(b) || Date.parse(a.date) - Date.parse(b.date)); }
 
@@ -145,12 +158,37 @@ const Fulbito = (() => {
     const L = $('fList');
     if (!db.futbol.leagues.length) { L.innerHTML = '<div class="empty">Elegí al menos una liga en "Elegir ligas y avisos".</div>'; return; }
     if (viewLoading) { L.innerHTML = '<div class="empty">Cargando partidos…</div>'; return; }
+    const ord = S.get('fSort', 'imp');
+    $('fSort').value = ord; $('fDays').style.display = ord === 'dia' ? 'none' : '';
+    const flat = V => db.futbol.leagues.flatMap(l => (V[l]?.events || []).map(m => [m, l, V[l]]));
+    const row = ([m, l, Lg]) => matchRow(m, { lg:ligaName(l), lgLogo:Lg.logo });
+    if (ord === 'dia') {     // varios días seguidos, cada día en línea de tiempo
+      if (!multi) { if (!multiLoading) loadMulti(); L.innerHTML = '<div class="empty">Cargando los próximos días…</div>'; return; }
+      const all = flat(multi).sort((a, b) => Date.parse(a[0].date) - Date.parse(b[0].date)), byDay = {};
+      all.forEach(x => { const k = new Date(x[0].date).toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' }); (byDay[k] = byDay[k] || []).push(x); });
+      L.innerHTML = Object.entries(byDay).map(([k, xs]) => `<div class="league"><h3>📅 ${esc(k[0].toUpperCase() + k.slice(1))}</h3>${xs.map(row).join('')}</div>`).join('') || '<div class="empty">No hay partidos de tus ligas en los próximos días.</div>';
+      return;
+    }
     const ligas = db.futbol.leagues.filter(l => view[l] && view[l].events.length);
-    // primero las ligas donde juega un favorito
-    ligas.sort((a, b) => (view[b].events.some(m => isFav(m.h.team) || isFav(m.a.team)) - view[a].events.some(m => isFav(m.h.team) || isFav(m.a.team)))
-                         || LIGAS.findIndex(x => x[0] === a) - LIGAS.findIndex(x => x[0] === b));
-    L.innerHTML = ligas.length ? ligas.map(l => `<div class="league"><h3>${view[l].logo ? `<img src="${esc(view[l].logo)}" alt="">` : '🏆'}${esc(ligaName(l))}</h3>${sortM(view[l].events).map(matchRow).join('')}</div>`).join('')
-      : `<div class="empty">No hay partidos de tus ligas ${day === 0 ? 'hoy' : day === -1 ? 'ayer' : day === 1 ? 'mañana' : 'ese día'}.${Object.keys(view).length ? '' : '<br>Si esto sigue así, puede que la fuente de resultados no esté respondiendo.'}</div>`;
+    const favIn = l => view[l].events.some(m => isFav(m.h.team) || isFav(m.a.team));
+    if (ord === 'hora') {    // todo junto, lo más próximo arriba
+      const all = flat(view), r = m => ({ in:0, pre:1, post:2 }[m.state] ?? 3);
+      all.sort((a, b) => r(a[0]) - r(b[0]) || (a[0].state === 'post' ? Date.parse(b[0].date) - Date.parse(a[0].date) : Date.parse(a[0].date) - Date.parse(b[0].date)));
+      L.innerHTML = all.length ? `<div class="league">${all.map(row).join('')}</div>` : emptyMsg();
+      return;
+    }
+    if (ord === 'az') ligas.sort((a, b) => ligaName(a).localeCompare(ligaName(b), 'es'));
+    else ligas.sort((a, b) => (favIn(b) - favIn(a)) || imp(a) - imp(b));     // primero donde juega un favorito
+    L.innerHTML = ligas.length ? ligas.map(l => `<div class="league"><h3>${view[l].logo ? `<img src="${esc(view[l].logo)}" alt="">` : '🏆'}${esc(ligaName(l))}</h3>${sortM(view[l].events).map(m => matchRow(m)).join('')}</div>`).join('') : emptyMsg();
+  }
+  const emptyMsg = () => `<div class="empty">No hay partidos de tus ligas ${day === 0 ? 'hoy' : day === -1 ? 'ayer' : day === 1 ? 'mañana' : 'ese día'}.${Object.keys(view).length ? '' : '<br>Si esto sigue así, puede que la fuente de resultados no esté respondiendo.'}</div>`;
+  async function loadMulti() {
+    multiLoading = true; const m = {};
+    const days = [0, 1, 2, 3, 4, 5, 6];
+    const res = await Promise.all(db.futbol.leagues.flatMap(l => days.map(d => (d === 0 && today[l] ? Promise.resolve(null) : board(l, d)).then(j => [l, d, j]).catch(() => [l, d, null]))));
+    res.forEach(([l, d, j]) => { const evsL = d === 0 && today[l] ? today[l].events : j ? evs(j) : []; if (!m[l]) m[l] = { logo:today[l]?.logo || j?.leagues?.[0]?.logos?.[0]?.href, events:[] }; m[l].events.push(...evsL.filter(x => x.state !== 'post' || d === 0)); });
+    multi = m; multiLoading = false; setTimeout(() => { multi = null; }, 10 * 60e3);
+    if (Nav.current === 'fulbito') render();
   }
   function build(v) {
     v.innerHTML = `${modeBar()}
@@ -159,12 +197,14 @@ const Fulbito = (() => {
         <div class="chips" id="fDays" style="margin:0">
           <button data-d="-1">Ayer</button><button data-d="0">Hoy</button><button data-d="1">Mañana</button><button data-d="2">Pasado</button>
         </div>
+        <select id="fSort" title="Ordenar partidos" style="width:auto">${ORDS.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select>
         <span class="sp" style="flex:1"></span><span class="upd" id="fUpd"></span><button id="fRef">⟳</button>
       </div>
       <details class="cfg" id="fCfg" ${db.futbol.leagues.length ? '' : 'open'}>
         <summary>⚙ Elegir ligas y avisos de gol</summary>
         <div class="box">
           <h2 class="sec">Ligas que querés ver</h2><div class="chips" id="fLigas"></div>
+          <h2 class="sec">📺 Tus servicios para ver los partidos</h2><div id="fServ"></div>
           <h2 class="sec">Equipos favoritos</h2><div class="chips" id="fTeams"></div>
           <form id="fTeamForm" class="rsearch" style="margin-bottom:6px"><input id="fTeamIn" placeholder="Agregar equipo (ej: Argentina, Barcelona)"><button>Agregar</button></form>
           <h2 class="sec">Avisos de gol</h2>
@@ -188,7 +228,9 @@ const Fulbito = (() => {
       view = {}; res.forEach(([l, j]) => { if (j) view[l] = { name:j.leagues?.[0]?.name, logo:j.leagues?.[0]?.logos?.[0]?.href, events:evs(j) }; });
       viewLoading = false; render();
     };
-    $('fRef').onclick = () => { if (day === 0) poll(); else $('fDays').querySelector(`[data-d="${day}"]`).click(); };
+    Ver.servPicker($('fServ'));
+    $('fSort').onchange = e => { S.set('fSort', e.target.value); render(); };
+    $('fRef').onclick = () => { multi = null; if (day === 0) poll(); else $('fDays').querySelector(`[data-d="${day}"]`).click(); };
     $('fLigas').onclick = e => {
       const b = e.target.closest('[data-liga]'); if (!b) return;
       const l = b.dataset.liga, L = db.futbol.leagues;

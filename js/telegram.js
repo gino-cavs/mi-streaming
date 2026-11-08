@@ -7,9 +7,9 @@ const Telegram = (() => {
   const OPTS = [
     ['goles', '⚽ Goles de tus equipos'], ['partido', '🟢 Arranque y final de sus partidos'], ['clasicos', '⚔️ Clásicos del mundo (los de hoy a la mañana + 15 min antes)'],
     ['canales', '🔴 Canales elegidos que salen en vivo'], ['motor', '🏁 Sesiones de automovilismo (15 min antes)'],
-    ['resumenes', '🎬 Resúmenes nuevos'], ['repro', '📄 Vencimiento del REPROCANN'], ['t420', '🍃 4:20 y 16:20']
+    ['actualidad', '🔥 Temas grandes de actualidad'], ['resumenes', '🎬 Resúmenes nuevos'], ['repro', '📄 Vencimiento del REPROCANN'], ['t420', '🍃 4:20 y 16:20']
   ];
-  const T = () => { db.tg = db.tg || {}; const t = db.tg; t.on = t.on || { goles:true, partido:true, clasicos:true, canales:true, motor:true, resumenes:true, repro:true, t420:false }; if (t.on.clasicos === undefined) t.on.clasicos = true; t.chans = t.chans || []; t.quiet = t.quiet || { on:false, from:'00:00', to:'08:00' }; return t; };
+  const T = () => { db.tg = db.tg || {}; const t = db.tg; t.on = t.on || { goles:true, partido:true, clasicos:true, canales:true, motor:true, resumenes:true, repro:true, t420:false }; if (t.on.clasicos === undefined) t.on.clasicos = true; if (t.on.actualidad === undefined) t.on.actualidad = true; t.chans = t.chans || []; t.quiet = t.quiet || { on:false, from:'00:00', to:'08:00' }; return t; };
   const api = async (m, p = {}) => {
     const r = await fetch(`https://api.telegram.org/bot${T().token}/${m}`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(p) });
     const j = await r.json(); if (!j.ok) throw new Error(j.description || 'error'); return j.result;

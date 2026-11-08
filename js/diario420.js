@@ -5,13 +5,13 @@
 const Diario = (() => {
   const FORMAS = ['🚬 Porro', '💨 Vapo', '🪈 Pipa', '🫧 Bong', '🍪 Comestible', '💧 Aceite', '✨ Otro'];
   const TIPOS = ['Índica', 'Sativa', 'Híbrida', 'CBD'];
-  const D = () => { db.diario = db.diario || {}; const d = db.diario; d.log = d.log || {}; d.gens = d.gens || []; d.repro = d.repro || {}; return d; };
+  const D = () => { db.diario = db.diario || {}; const d = db.diario; d.log = d.log || {}; d.gens = d.gens || []; d.repro = d.repro || {}; d.notas = d.notas || {}; return d; };
   const ymd = (dt = new Date()) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
   const parse = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
   const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return ymd(d); };
   const dayDiff = (a, b) => Math.round((parse(b) - parse(a)) / 864e5);
   const fdate = s => parse(s).toLocaleDateString('es-AR', { day:'numeric', month:'short', year:'numeric' });
-  let month = null, sel = null, editGen = null;
+  let month = null, editGen = null;
 
   /* ---------- números ---------- */
   function stats() {
@@ -34,75 +34,92 @@ const Diario = (() => {
     return { n, cls:n < 0 ? 'bad' : n <= 30 ? 'warn' : 'ok', txt:n < 0 ? `Venció hace ${-n} día${n === -1 ? '' : 's'}` : n === 0 ? 'Vence HOY' : `Vence en ${n} día${n === 1 ? '' : 's'}` };
   }
 
-  /* ---------- pantalla ---------- */
+  /* ---------- pantalla: todo por mes ---------- */
+  const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const mLabel = m => MESES[+m.slice(5) - 1] + ' ' + m.slice(0, 4);
+  const addMonth = (m, n) => { const d = parse(m + '-01'); d.setMonth(d.getMonth() + n); return ymd(d).slice(0, 7); };
+  function monthStats(m) {
+    const L = D().log, days = Object.keys(L).filter(k => k.startsWith(m) && L[k].length).sort(), ents = days.flatMap(k => L[k].map(e => ({ ...e, day:k })));
+    let best = 0, run = 0, prev = null; for (const k of days) { run = prev && dayDiff(prev, k) === 1 ? run + 1 : 1; best = Math.max(best, run); prev = k; }
+    const g = {}; ents.forEach(e => { const k = e.g || 'Sin genética'; const x = g[k] = g[k] || { n:k, veces:0, rs:[], formas:{} }; x.veces++; if (e.r) x.rs.push(e.r); if (e.f) x.formas[e.f] = (x.formas[e.f] || 0) + 1; });
+    const rank = Object.values(g).map(x => ({ ...x, avg:x.rs.length ? x.rs.reduce((a, b) => a + b, 0) / x.rs.length : 0, forma:Object.entries(x.formas).sort((a, b) => b[1] - a[1])[0]?.[0] }))
+      .sort((a, b) => b.avg - a.avg || b.veces - a.veces);
+    const total = new Date(+m.slice(0, 4), +m.slice(5), 0).getDate();
+    return { days, ents, best, rank, total };
+  }
   function render(el) {
     const s = stats(), r = repro(), d = D();
-    month = month || s.today.slice(0, 7); sel = sel || s.today;
-    const gensSorted = d.gens.slice().sort((a, b) => (s.count[norm(b.n)] || 0) - (s.count[norm(a.n)] || 0) || a.n.localeCompare(b.n));
-    const avg = g => { const rs = Object.values(d.log).flat().filter(e => norm(e.g || '') === norm(g.n) && e.r).map(e => e.r); return rs.length ? (rs.reduce((a, b) => a + b, 0) / rs.length).toFixed(1) : null; };
+    month = month || s.today.slice(0, 7);
+    const ms = monthStats(month), prevMs = monthStats(addMonth(month, -1)), year = month.slice(0, 4);
+    const isNow = month === s.today.slice(0, 7), diasTot = isNow ? s.diasMes : ms.total;
+    const delta = ms.days.length - prevMs.days.length;
+    const yearMonths = Array.from({ length:12 }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`);
+    const maxY = Math.max(1, ...yearMonths.map(m => monthStats(m).days.length));
+    d.notas = d.notas || {};
     el.innerHTML = `
+      <div class="dmonth"><button class="sm" id="dPrev">‹</button><h2>${mLabel(month)}</h2><button class="sm" id="dNext" ${isNow ? 'disabled' : ''}>›</button>${isNow ? '' : '<button class="sm" id="dHoy">Este mes</button>'}</div>
       <div class="dtiles">
-        <div class="dtile"><b>${s.cur}</b><span>🔥 Racha actual</span><small>días seguidos</small></div>
-        <div class="dtile"><b>${s.best}</b><span>🏆 Mejor racha</span></div>
-        <div class="dtile"><b>${s.sin}</b><span>🌱 Días sin</span><small>${s.maxSin ? 'récord: ' + s.maxSin : s.last ? 'último: ' + fdate(s.last) : 'todavía sin registros'}</small></div>
-        <div class="dtile"><b>${s.enMes}<em>/${s.diasMes}</em></b><span>📅 Este mes</span></div>
-        <div class="dtile"><b>${s.enAnio}<em>/${s.diaAnio}</em></b><span>🗓️ Este año</span><small>${s.total} en total</small></div>
+        <div class="dtile"><b>${ms.days.length}<em>/${diasTot}</em></b><span>📅 Días del mes</span><small>${prevMs.days.length || delta ? (delta > 0 ? '▲ ' + delta : delta < 0 ? '▼ ' + -delta : '=') + ' vs ' + MESES[+addMonth(month, -1).slice(5) - 1].toLowerCase() : ''}</small></div>
+        <div class="dtile"><b>${ms.ents.length}</b><span>🍃 Registros</span></div>
+        <div class="dtile"><b>${ms.best}</b><span>🔥 Racha del mes</span><small>${isNow ? 'actual: ' + s.cur + ' · récord: ' + s.best : 'récord general: ' + s.best}</small></div>
+        <div class="dtile gen"><b>${ms.rank[0] ? esc(ms.rank[0].n) : '—'}</b><span>👑 Genética del mes</span><small>${ms.rank[0] ? (ms.rank[0].avg ? '⭐ ' + ms.rank[0].avg.toFixed(1) + ' · ' : '') + ms.rank[0].veces + (ms.rank[0].veces === 1 ? ' vez' : ' veces') : ''}</small></div>
         <div class="dtile repro ${r ? r.cls : ''}" id="dRepro"><b>${r ? (r.n < 0 ? '⚠️' : r.n) : '—'}</b><span>📄 REPROCANN</span><small>${r ? esc(r.txt) + ' · ' + fdate(d.repro.vence) : 'Tocá para cargar el vencimiento'}</small></div>
       </div>
 
       <div class="vcols" style="margin-top:14px">
         <div>
-          <div class="dcalh"><button class="sm" id="dPrev">‹</button><b>${(m => m[0].toUpperCase() + m.slice(1))(parse(month + '-01').toLocaleDateString('es-AR', { month:'long', year:'numeric' }))}</b><button class="sm" id="dNext">›</button></div>
-          <div class="dcal">${['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(x => `<span class="dh">${x}</span>`).join('')}${calCells(s.today)}</div>
-          <div class="mut" style="font-size:12px;margin-top:6px">Tocá un día para ver o cargar. 🟩 = registrado</div>
+          <h2 class="sec">🏆 Ranking de ${MESES[+month.slice(5) - 1].toLowerCase()}</h2>
+          ${ms.rank.length ? `<ol class="drank">${ms.rank.map((g, i) => `<li><span class="dpos">${i + 1}</span><b>${esc(g.n)}</b><span>${g.avg ? '⭐ ' + g.avg.toFixed(1) : '<span class="mut">sin puntaje</span>'}</span><small>${g.veces} ${g.veces === 1 ? 'vez' : 'veces'}${g.forma ? ' · ' + esc(g.forma) : ''}</small></li>`).join('')}</ol>`
+            : '<p class="mut" style="font-size:13px">Todavía nada este mes.</p>'}
+          <h2 class="sec" style="margin-top:12px">📝 Nota del mes</h2>
+          <textarea id="dNotaMes" rows="3" placeholder="Cómo fue el mes, qué probaste, qué querés repetir…">${esc(d.notas[month] || '')}</textarea>
         </div>
         <div>
-          <h2 class="sec">${sel === s.today ? '✍️ Hoy' : '✍️ ' + esc(fdate(sel))}</h2>
-          ${(d.log[sel] || []).map((e, i) => `<div class="dentry"><span>${esc(e.f || '')}</span><b>${esc(e.g || 'Sin genética')}</b>${e.r ? `<span>${'⭐'.repeat(e.r)}</span>` : ''}${e.t ? `<small>${esc(e.t)}</small>` : ''}${e.n ? `<small>“${esc(e.n)}”</small>` : ''}<button class="sm" data-del="${i}" title="Borrar">✕</button></div>`).join('') || '<p class="mut" style="font-size:13px">Nada registrado este día.</p>'}
+          <h2 class="sec">✍️ Registrar</h2>
           <form id="dForm" class="dform">
+            <input type="date" id="dDate" value="${isNow ? s.today : month + '-01'}" max="${s.today}">
             <input id="dGen" list="dGens" placeholder="Genética (opcional)" autocomplete="off">
             <datalist id="dGens">${d.gens.map(g => `<option value="${esc(g.n)}">`).join('')}</datalist>
             <div class="chips" id="dFormas">${FORMAS.map((f, i) => `<button type="button" data-f="${esc(f)}" class="${i === (S.get('dForma', 0)) ? 'on' : ''}">${esc(f)}</button>`).join('')}</div>
             <div class="chips" id="dStars">${[1, 2, 3, 4, 5].map(n => `<button type="button" data-r="${n}">${'⭐'.repeat(n)}</button>`).join('')}</div>
-            <input id="dNota" placeholder="Nota (opcional): cómo pegó, con quién, etc.">
+            <input id="dNota" placeholder="Nota (opcional)">
             <button class="pri">＋ Registrar</button>
           </form>
+          <details style="margin-top:10px"><summary style="cursor:pointer;font-size:14px">📓 Registros de ${MESES[+month.slice(5) - 1].toLowerCase()} (${ms.ents.length})</summary>
+            ${ms.days.slice().reverse().map(k => d.log[k].map((e, i) => `<div class="dentry"><small>${parse(k).toLocaleDateString('es-AR', { weekday:'short', day:'numeric' })}</small><span>${esc(e.f || '')}</span><b>${esc(e.g || 'Sin genética')}</b>${e.r ? `<span>${'⭐'.repeat(e.r)}</span>` : ''}${e.n ? `<small>“${esc(e.n)}”</small>` : ''}<button class="sm" data-del="${k}|${i}" title="Borrar">✕</button></div>`).join('')).join('') || '<p class="mut" style="font-size:13px">Sin registros.</p>'}
+          </details>
         </div>
       </div>
 
+      <h2 class="sec" style="margin-top:16px">🗓️ Tu ${year}</h2>
+      <div class="dyear">${yearMonths.map(m => { const n = monthStats(m).days.length, fut = m > s.today.slice(0, 7);
+        return `<button class="${m === month ? 'on' : ''}" ${fut ? 'disabled' : `data-m="${m}"`}><span class="dbar"><i style="height:${Math.round(n / maxY * 100)}%"></i></span><b>${n || ''}</b><small>${MESES[+m.slice(5) - 1].slice(0, 3)}</small></button>`; }).join('')}</div>
+
       <h2 class="sec" style="margin-top:16px">🌿 Genéticas</h2>
-      <div class="dgens">${gensSorted.map(g => `<div class="dgen" data-g="${esc(g.n)}"><b>${esc(g.n)}</b><span>${esc([g.tipo, g.thc && 'THC ' + g.thc + '%', g.cbd && 'CBD ' + g.cbd + '%', g.banco].filter(Boolean).join(' · '))}</span>
-          <small>${(c => c === 1 ? "1 vez" : c + " veces")(s.count[norm(g.n)] || 0)}${avg(g) ? ' · ⭐ ' + avg(g) : ''}</small>${g.nota ? `<small>“${esc(g.nota)}”</small>` : ''}</div>`).join('') || '<p class="mut" style="font-size:13px">Todavía no cargaste genéticas. Las que escribís al registrar se agregan solas.</p>'}
+      <div class="dgens">${d.gens.slice().sort((a, b) => (s.count[norm(b.n)] || 0) - (s.count[norm(a.n)] || 0) || a.n.localeCompare(b.n)).map(g => `<div class="dgen" data-g="${esc(g.n)}"><b>${esc(g.n)}</b><span>${esc([g.tipo, g.thc && 'THC ' + g.thc + '%', g.cbd && 'CBD ' + g.cbd + '%', g.banco].filter(Boolean).join(' · '))}</span>
+          <small>${(c => c === 1 ? '1 vez' : c + ' veces')(s.count[norm(g.n)] || 0)} en total</small>${g.nota ? `<small>“${esc(g.nota)}”</small>` : ''}</div>`).join('') || '<p class="mut" style="font-size:13px">Las genéticas que escribís al registrar se agregan solas.</p>'}
         <button class="dgen add" id="dGenAdd">＋ Genética</button></div>`;
 
-    $('dPrev').onclick = () => { month = addDays(month + '-01', -1).slice(0, 7); render(el); };
-    $('dNext').onclick = () => { const n = addDays(month + '-28', 5).slice(0, 7); if (n <= s.today.slice(0, 7)) { month = n; render(el); } };
-    el.querySelectorAll('[data-day]').forEach(b => b.onclick = () => { sel = b.dataset.day; render(el); });
-    el.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { d.log[sel].splice(+b.dataset.del, 1); if (!d.log[sel].length) delete d.log[sel]; save(); render(el); });
+    $('dPrev').onclick = () => { month = addMonth(month, -1); render(el); };
+    $('dNext').onclick = () => { if (!isNow) { month = addMonth(month, 1); render(el); } };
+    if ($('dHoy')) $('dHoy').onclick = () => { month = s.today.slice(0, 7); render(el); };
+    el.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { month = b.dataset.m; render(el); });
+    el.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { const [k, i] = b.dataset.del.split('|'); d.log[k].splice(+i, 1); if (!d.log[k].length) delete d.log[k]; save(); render(el); });
+    $('dNotaMes').onchange = e => { const t = e.target.value.trim(); if (t) d.notas[month] = t; else delete d.notas[month]; save(); };
     let forma = FORMAS[S.get('dForma', 0)] || FORMAS[0], stars = 0;
     $('dFormas').onclick = e => { const b = e.target.closest('[data-f]'); if (!b) return; forma = b.dataset.f; S.set('dForma', FORMAS.indexOf(forma)); $('dFormas').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
     $('dStars').onclick = e => { const b = e.target.closest('[data-r]'); if (!b) return; stars = stars === +b.dataset.r ? 0 : +b.dataset.r; $('dStars').querySelectorAll('button').forEach(x => x.classList.toggle('on', +x.dataset.r === stars)); };
     $('dForm').onsubmit = e => {
       e.preventDefault();
-      const g = $('dGen').value.trim(), known = d.gens.find(x => norm(x.n) === norm(g));
+      const day = $('dDate').value || s.today, g = $('dGen').value.trim(), known = d.gens.find(x => norm(x.n) === norm(g));
       if (g && !known) d.gens.push({ n:g });
-      const t = sel === s.today ? new Date().toTimeString().slice(0, 5) : '';
-      (d.log[sel] = d.log[sel] || []).push({ g:known ? known.n : g, f:forma, r:stars || undefined, n:$('dNota').value.trim() || undefined, t:t || undefined });
-      save(); render(el);
-      if (sel === s.today) { const ns = stats(); if (ns.cur > 1 && ns.cur === ns.best) toast(`<span class="g">🔥 Racha récord</span>${ns.cur} días seguidos`, { cls:'t420', ms:6000 }); }
+      (d.log[day] = d.log[day] || []).push({ g:known ? known.n : g, f:forma, r:stars || undefined, n:$('dNota').value.trim() || undefined, t:day === s.today ? new Date().toTimeString().slice(0, 5) : undefined });
+      month = day.slice(0, 7); save(); render(el);
+      toast(`<span class="g">🍃 Registrado</span>${esc(g || forma)} · ${esc(fdate(day))}`, { cls:'t420', ms:3500 });
     };
     $('dRepro').onclick = () => openRepro(el);
     el.querySelectorAll('[data-g]').forEach(b => b.onclick = () => openGen(el, d.gens.find(g => g.n === b.dataset.g)));
     $('dGenAdd').onclick = () => openGen(el, null);
-  }
-  function calCells(today) {
-    const L = D().log, first = parse(month + '-01'), pad = (first.getDay() + 6) % 7, n = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
-    let h = '<span></span>'.repeat(pad);
-    for (let i = 1; i <= n; i++) {
-      const k = month + '-' + String(i).padStart(2, '0'), c = (L[k] || []).length, fut = k > today;
-      h += `<button class="dday ${c ? 'on' : ''} ${k === today ? 'today' : ''} ${k === sel ? 'sel' : ''}" ${fut ? 'disabled' : `data-day="${k}"`} title="${c ? c + ' registro(s)' : ''}">${i}${c > 1 ? `<i>${c}</i>` : ''}</button>`;
-    }
-    return h;
   }
 
   /* ---------- diálogos ---------- */

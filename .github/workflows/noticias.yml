@@ -28,6 +28,10 @@ jobs:
         run: node scripts/fetch-news.mjs /tmp/datos/news.json
         env:
           GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
+      - name: Actualidad (los temas que cubren todos los medios)
+        continue-on-error: true
+        timeout-minutes: 3
+        run: node scripts/fetch-actualidad.mjs /tmp/datos "$GITHUB_REPOSITORY"
       - name: Guía de TV (canales de cada partido, futbolenvivoargentina.com)
         continue-on-error: true
         run: node scripts/fetch-tv.mjs /tmp/datos

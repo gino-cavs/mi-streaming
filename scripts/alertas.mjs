@@ -148,6 +148,14 @@ async function clasicos() {
   }
 }
 
+/* ---------- 🔥 actualidad: temas grandes ---------- */
+async function actualidad() {
+  if (on.actualidad === false) return;
+  const a = await getJ(raw('actualidad.json')); if (!a?.topics) return;
+  for (const t of a.topics.filter(t => (a.ahora || []).includes(t.id) && t.big && Date.now() - Date.parse(t.first) < 12 * 3600e3))
+    await send('act:' + t.id, `${t.ic} <b>Tema del momento</b>\n${esc(t.t)}\n📣 Lo cubren ${t.n} medios\n${t.l}`);
+}
+
 /* ---------- 📄 REPROCANN y 🍃 4:20 ---------- */
 async function diario() {
   const n = ar();
@@ -163,7 +171,7 @@ async function diario() {
 /* ---------- vuelta principal ---------- */
 const until = Date.now() + 9 * 60e3;
 let hot = await futbol();
-await canales(); await motor(); await clasicos(); await resumenes(); await diario();
+await canales(); await motor(); await clasicos(); await actualidad(); await resumenes(); await diario();
 while (hot && !process.env.NO_LOOP && Date.now() + 45e3 < until) { await writeFile(stFile, JSON.stringify(st)); await sleep(45e3); hot = await futbol(); }
 await writeFile(stFile, JSON.stringify(st));
 console.log(`Telegram: ${sentCount} aviso(s) enviado(s)${first ? ' (primera corrida: aprendí el estado)' : ''}`);

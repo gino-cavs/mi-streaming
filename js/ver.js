@@ -23,13 +23,29 @@ const Ver = (() => {
     [/youtube/i, 'YouTube', null]
   ];
   const platOf = ch => { const p = PLAT.find(([re]) => re.test(ch)); return p ? { n:p[1], u:p[2] } : null; };
+  // tus servicios: qué canales trae cada uno (en el orden en que se prefieren)
+  const SERV = [
+    ['dgo', 'DGO', 'https://www.directvgo.com/', /espn|tnt|d\s*sports|directv|dgo|fox|tyc|telefe|tv p[uú]blica|el trece|canal 13|america tv|hbo|\bmax\b|deportv|tn\b/i, 'ESPN 1-4, ESPN Premium y TNT Sports (pack fútbol), DSports 1, 2 y +, TyC, Fox, aire'],
+    ['disney', 'Disney+', 'https://www.disneyplus.com/', /espn|disney|star\s*\+/i, 'ESPN (con Disney+ Premium)'],
+    ['prime', 'Prime Video', 'https://www.primevideo.com/', /prime|amazon/i, 'lo que pase Prime Video'],
+    ['hbo', 'HBO Max', 'https://play.hbomax.com/', /tnt|hbo|\bmax\b/i, 'TNT Sports'],
+    ['flow', 'Flow', 'https://web.flow.com.ar/', /espn|tnt|tyc|fox|telefe|tv p[uú]blica|el trece|deportv|tn\b|dsports/i, 'canales del cable'],
+    ['tycplay', 'TyC Sports Play', 'https://www.tycsportsplay.com/', /tyc/i, 'TyC Sports'],
+    ['paramount', 'Paramount+', 'https://www.paramountplus.com/', /paramount/i, 'Paramount+'],
+    ['fanatiz', 'Fanatiz', 'https://www.fanatiz.com/', /fanatiz/i, 'Fanatiz']
+  ];
+  const mine = () => db.servicios || ['dgo', 'disney', 'prime'];
+  const servOf = ch => mine().map(k => SERV.find(s => s[0] === k)).find(s => s && s[3].test(ch));
   const gUrl = q => 'https://www.google.com/search?q=' + encodeURIComponent(q + ' en vivo dónde ver');
   const ytUrl = q => 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q) + '&sp=EgJAAQ%253D%253D';   // filtro "En vivo"
 
   // HTML de los botones: canales (con link a su plataforma) + buscar en vivo
   function chips(channels, query, opts = {}) {
-    const ch = (channels || []).map(c => { const p = platOf(c);
-      return p && p.u ? `<a class="vch" href="${esc(p.u)}" target="_blank" rel="noopener" title="Ver en ${esc(p.n)}">📺 ${esc(c)} ↗</a>` : `<span class="vch">📺 ${esc(c)}</span>`; }).join('');
+    const ch = (channels || []).map(c => {
+      const s = servOf(c);
+      if (s) return `<a class="vch own" href="${esc(s[2])}" target="_blank" rel="noopener" title="Lo tenés en ${esc(s[1])}">📺 ${esc(c)} · <b>${esc(s[1])} ✓</b></a>`;
+      const p = platOf(c);
+      return p && p.u ? `<a class="vch" href="${esc(p.u)}" target="_blank" rel="noopener" title="No lo tenés en tus servicios · oficial: ${esc(p.n)}">📺 ${esc(c)} ↗</a>` : `<span class="vch">📺 ${esc(c)}</span>`; }).join('');
     return `<div class="tvch ver">${ch}${query ? `<button class="vbus" data-buscar="${esc(query)}" title="Buscar transmisiones en vivo">🔎 ${esc(opts.label || 'Buscar en vivo')}</button>` : ''}</div>`;
   }
 
@@ -67,5 +83,11 @@ const Ver = (() => {
   }
   function open(q) { const d = dlg(); if (!d.open) d.showModal(); run(q); }
   function init() { document.addEventListener('click', e => { const b = e.target.closest('[data-buscar]'); if (b) { e.preventDefault(); e.stopPropagation(); open(b.dataset.buscar); } }, true); }
-  return { init, chips, open, platOf };
+  // elegir tus servicios (se guarda y se sincroniza)
+  function servPicker(el) {
+    el.innerHTML = `<div class="chips">${SERV.map(s => `<button data-sv="${s[0]}" class="${mine().includes(s[0]) ? 'on' : ''}" title="${esc(s[4])}">${mine().includes(s[0]) ? '✓ ' : ''}${esc(s[1])}</button>`).join('')}</div>
+      <p class="mut" style="font-size:12px">Con lo que marques, cada canal de la guía te lleva a donde lo podés ver vos y se marca con ✓.</p>`;
+    el.querySelector('.chips').onclick = e => { const b = e.target.closest('[data-sv]'); if (!b) return; const k = b.dataset.sv, m = mine(); db.servicios = m.includes(k) ? m.filter(x => x !== k) : [...m, k]; save(); servPicker(el); };
+  }
+  return { init, chips, open, platOf, servPicker, SERV };
 })();

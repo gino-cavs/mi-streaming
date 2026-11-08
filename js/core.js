@@ -30,7 +30,7 @@ const REPO = (() => {
 
 /* ---------- Datos ---------- */
 const DEVICE = S.get('deviceId', null) || (() => { const d = 'd' + Math.random().toString(36).slice(2, 8); S.set('deviceId', d); return d; })();
-const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music', 'prode', 'moments', 'stats', 'rap', 'oauth', 'boxeo', 'series', 'juegos', 'diario', 'tg'];
+const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music', 'prode', 'moments', 'stats', 'rap', 'oauth', 'boxeo', 'series', 'juegos', 'diario', 'tg', 'servicios', 'nav'];
 const DEFAULTS = () => ({
   cats:['Fútbol', 'Streamers'], chans:[], key:'', refresh:5,
   radios:[],
@@ -49,7 +49,8 @@ const DEFAULTS = () => ({
   boxeo:{ fav:[] },
   series:{ title:'Series', icon:'📼', groups:['Series'], chans:[] },
   juegos:{ rec:{}, wiki:{} },
-  diario:{ log:{}, gens:[], repro:{} }
+  diario:{ log:{}, gens:[], repro:{} },
+  servicios:['dgo', 'disney', 'prime']
 });
 let db = S.get('hub2', null);
 if (!db) {
@@ -184,6 +185,28 @@ function showSync() {
 }
 
 /* ---------- No molestar (por dispositivo) ---------- */
+/* ---------- Barras horizontales: flechas ◀ ▶ y rueda del mouse sin Shift ---------- */
+const HScroll = (() => {
+  function update(el) {
+    const w = el && el.parentElement; if (!w || !w.classList.contains('hsw')) return;
+    w.classList.toggle('canL', el.scrollLeft > 4);
+    w.classList.toggle('canR', el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }
+  function attach(el) {
+    if (!el || el.parentElement.classList.contains('hsw')) return;
+    const w = document.createElement('div'); w.className = 'hsw'; el.parentElement.insertBefore(w, el); w.appendChild(el);
+    const mk = (cls, dir, t) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'hsa ' + cls; b.textContent = t; b.title = dir < 0 ? 'Ver anteriores' : 'Ver más';
+      b.onclick = () => el.scrollBy({ left:dir * Math.max(160, el.clientWidth * .7), behavior:'smooth' }); w.appendChild(b); };
+    mk('l', -1, '‹'); mk('r', 1, '›');
+    el.addEventListener('wheel', e => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && el.scrollWidth > el.clientWidth) { e.preventDefault(); el.scrollBy({ left:e.deltaY, behavior:'instant' }); } }, { passive:false });
+    el.addEventListener('scroll', () => update(el), { passive:true });
+    new ResizeObserver(() => update(el)).observe(el);
+    new MutationObserver(() => update(el)).observe(el, { childList:true });
+    setTimeout(() => update(el), 50);
+  }
+  return { attach, update };
+})();
+
 const DND = (() => {
   let st = S.get('dnd', { on:false, sched:false, from:'00:00', to:'08:00' }), missed = [];
   const mins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
