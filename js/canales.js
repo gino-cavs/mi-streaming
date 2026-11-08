@@ -204,6 +204,14 @@ const Canales = (() => {
     $('tabs').innerHTML = tabs.map(t =>
       `<button class="${t.id === tab ? 'on' : ''} ${t.id === 'live' ? 'livetab' : ''}" data-t="${esc(t.id)}">${esc(t.label)}<span class="cnt">${t.n}</span></button>`).join('');
     const m = $('chanGrid');
+    const gv = S.get('canView', 'cards') === 'guia';
+    if ($('btnGuia')) $('btnGuia').textContent = gv ? '▦ Tarjetas' : '📺 Guía';
+    if (gv && db.chans.length) {
+      const list = tab === 'live' ? db.chans.filter(c => ['live', 'soon'].includes(status[c.uid]?.st)) : tab === 'all' ? db.chans : tab === 'c:' ? db.chans.filter(c => !db.cats.includes(c.cat)) : db.chans.filter(c => c.cat === tab.slice(2));
+      Guia.render(m, byNum(list));
+      $('upd').textContent = lastUpd ? 'Actualizado ' + fmtH(lastUpd) : '';
+      return;
+    }
     if (!db.chans.length) {
       m.innerHTML = `<div class="empty">Todavía no agregaste canales.<br>Tocá <b>＋ Canal</b> y pegá el link, por ejemplo <b>youtube.com/@NombreDelCanal</b>.<br>Para ver si están en vivo o programados, cargá la clave de YouTube en ⚙.</div>`;
     } else if (tab === 'live') {

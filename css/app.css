@@ -957,3 +957,31 @@ label.chk input[type=time] { width:auto; padding:4px 6px; }
 .rtimg i { position:absolute; right:5px; bottom:5px; background:#000c; color:#fff; font-style:normal; font-size:11px; padding:1px 6px; border-radius:4px; }
 .rtcard b { font-size:13px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; } .rtcard small { color:var(--mut); font-size:11px; }
 .rtdel { position:absolute; top:10px; right:10px; width:30px; height:30px; padding:0; border-radius:50%; background:#e3342f; color:#fff; font-weight:700; }
+
+/* ===== Guía estilo DirecTV ===== */
+.epg { --epw:220px; background:var(--panel); border-radius:12px; overflow-x:auto; position:relative; }
+.ephead, .eprow { display:grid; grid-template-columns:var(--epw) 1fr; min-width:900px; }
+.ephead { position:sticky; top:0; z-index:3; background:#10131c; border-bottom:1px solid var(--line); font-size:12px; color:var(--mut); }
+.ephead .epch { padding:8px 12px; font-weight:600; text-transform:capitalize; }
+.ephead .eptrack { position:relative; height:32px; } .ephead .eptrack span { position:absolute; top:9px; transform:translateX(4px); border-left:1px solid var(--line); padding-left:4px; }
+.epbody { position:relative; min-width:900px; }
+.eprow { border-bottom:1px solid #ffffff0d; min-height:58px; }
+.eprow.islive .epch { background:linear-gradient(90deg, #ff3b3b22, transparent); }
+.epch { display:flex; align-items:center; gap:8px; padding:6px 10px; cursor:pointer; position:sticky; left:0; background:var(--panel); z-index:2; border-right:1px solid var(--line); }
+.epnum { font-family:Oswald, sans-serif; font-size:16px; color:var(--acc); width:26px; text-align:right; }
+.eplogo { width:36px; height:36px; border-radius:50%; background:#222 center/cover; display:grid; place-items:center; font-weight:700; flex:none; }
+.epname { font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.eptrack { position:relative; }
+.epb { position:absolute; top:5px; bottom:5px; border-radius:7px; padding:5px 8px; overflow:hidden; cursor:pointer; background:var(--panel2); border:1px solid var(--line); display:flex; flex-direction:column; justify-content:center; min-width:0; }
+.epb b { font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .epb small { font-size:11px; color:var(--mut); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.epb:hover { border-color:var(--acc); z-index:1; }
+.epb.live { background:#3a1416; border-color:var(--live); } .epb.live b { color:#fff; }
+.epb.prem { background:#2a1f3a; border-color:#a970ff; }
+.epb.soon { border-style:dashed; border-color:var(--soon); }
+.epb.onair { border-color:#ffffff55; }
+.epb.open { border-right-style:dashed; -webkit-mask-image:linear-gradient(90deg, #000 85%, transparent); mask-image:linear-gradient(90deg, #000 85%, transparent); }
+.ephv { position:absolute; right:4px; top:4px; font-size:11px; text-decoration:none; opacity:0; } .epb:hover .ephv { opacity:1; }
+.epempty { position:absolute; inset:0; display:flex; align-items:center; padding-left:12px; color:var(--mut); font-size:12px; }
+.epnow { position:absolute; top:0; bottom:0; width:2px; background:var(--live); z-index:2; pointer-events:none; }
+.epadd { margin-top:10px; } .epadd summary { cursor:pointer; font-size:14px; } .epadd .chips { margin-top:8px; } .epadd img { width:18px; height:18px; border-radius:50%; margin-right:5px; vertical-align:middle; object-fit:cover; }
+@media (max-width:600px) { .epg { --epw:150px; } .eplogo { width:28px; height:28px; } .epname { font-size:12px; } }
