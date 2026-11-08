@@ -1011,3 +1011,9 @@ label.chk input[type=time] { width:auto; padding:4px 6px; }
 .rcnum { display:flex; gap:4px; } .rcnum input { width:70px; height:40px; text-align:center; font-family:'VT323', monospace; font-size:22px; padding:0 6px; }
 #player.tvmode .remote { display:none; }
 @media (max-width:600px) { .remote .rcnow { order:-1; flex-basis:100%; } .remote button { flex:1; min-width:0; } .rcnum { flex:1.4; } .rcnum input { flex:1; width:auto; } }
+
+/* ===== App / control remoto (Fire Stick) ===== */
+.dpad :focus { outline:3px solid #ffd400 !important; outline-offset:2px; box-shadow:0 0 0 6px #ffd40033; border-radius:8px; }
+.dpad :focus:not(:focus-visible) { outline:3px solid #ffd400 !important; }
+.tvapp body { font-size:17px; }
+.tvapp ::-webkit-scrollbar { width:0; height:0; }

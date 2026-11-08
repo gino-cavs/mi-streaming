@@ -1,0 +1,118 @@
+package io.github.klasito7.funvs;
+
+import android.app.Activity;
+import android.app.UiModeManager;
+import android.content.Context;
+import android.content.Intent;
+import android.content.res.Configuration;
+import android.graphics.Color;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.view.KeyEvent;
+import android.view.View;
+import android.view.WindowManager;
+import android.webkit.CookieManager;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
+import android.widget.Toast;
+
+/** FUNVS: abre la página de siempre (klasito7.github.io/mi-streaming) a pantalla completa.
+ *  Todo lo demás vive en la web, así que la app casi nunca necesita actualizarse. */
+public class MainActivity extends Activity {
+  static final String HOME = "https://klasito7.github.io/mi-streaming/";
+  static final String HOST = "klasito7.github.io";
+  WebView web; FrameLayout root; View custom; WebChromeClient.CustomViewCallback customCb;
+  boolean tv;
+
+  @Override protected void onCreate(Bundle b) {
+    super.onCreate(b);
+    UiModeManager um = (UiModeManager) getSystemService(Context.UI_MODE_SERVICE);
+    tv = um != null && um.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION
+        || getPackageManager().hasSystemFeature("amazon.hardware.fire_tv");
+    getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    root = new FrameLayout(this); root.setBackgroundColor(Color.rgb(23, 25, 32));
+    web = new WebView(this); root.addView(web); setContentView(root);
+    WebSettings s = web.getSettings();
+    s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true); s.setDatabaseEnabled(true);
+    s.setMediaPlaybackRequiresUserGesture(false);       // que el canal arranque solo
+    s.setLoadWithOverviewMode(true); s.setUseWideViewPort(true);
+    s.setSupportMultipleWindows(false); s.setJavaScriptCanOpenWindowsAutomatically(true);
+    if (Build.VERSION.SDK_INT >= 21) s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+    s.setUserAgentString(s.getUserAgentString() + " FUNVSApp/1" + (tv ? " FUNVSTV" : ""));
+    CookieManager.getInstance().setAcceptCookie(true);
+    if (Build.VERSION.SDK_INT >= 21) CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);   // Twitch / YouTube
+    web.setBackgroundColor(Color.rgb(23, 25, 32));
+    web.setWebViewClient(new WebViewClient() {
+      @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
+        if (Build.VERSION.SDK_INT >= 21 && !r.isForMainFrame()) return false;
+        return outside(r.getUrl());
+      }
+      @SuppressWarnings("deprecation") @Override public boolean shouldOverrideUrlLoading(WebView v, String url) { return outside(Uri.parse(url)); }
+    });
+    web.setWebChromeClient(new WebChromeClient() {
+      @Override public void onShowCustomView(View v, CustomViewCallback cb) {   // pantalla completa de los videos
+        if (custom != null) { cb.onCustomViewHidden(); return; }
+        custom = v; customCb = cb; root.addView(v, new FrameLayout.LayoutParams(-1, -1)); web.setVisibility(View.GONE); immersive();
+      }
+      @Override public void onHideCustomView() { leaveCustom(); }
+    });
+    web.setFocusable(true); web.setFocusableInTouchMode(true); web.requestFocus();
+    if (b != null) web.restoreState(b); else web.loadUrl(HOME);
+    immersive();
+  }
+
+  /** Los links a otros sitios (DGO, Disney+, noticias…) se abren afuera, no reemplazan a FUNVS. */
+  boolean outside(Uri u) {
+    if (u == null) return false;
+    String sch = u.getScheme() == null ? "" : u.getScheme();
+    if ((sch.equals("http") || sch.equals("https")) && HOST.equalsIgnoreCase(u.getHost())) return false;
+    try { startActivity(new Intent(Intent.ACTION_VIEW, u)); }
+    catch (Exception e) { Toast.makeText(this, tv ? "No hay app para abrir este link en la tele" : "No se pudo abrir el link", Toast.LENGTH_SHORT).show(); }
+    return true;
+  }
+
+  void leaveCustom() {
+    if (custom == null) return;
+    root.removeView(custom); custom = null; web.setVisibility(View.VISIBLE);
+    if (customCb != null) customCb.onCustomViewHidden(); customCb = null; web.requestFocus(); immersive();
+  }
+
+  void immersive() {
+    if (Build.VERSION.SDK_INT >= 19) getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+        | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+  }
+  @Override public void onWindowFocusChanged(boolean f) { super.onWindowFocusChanged(f); if (f) immersive(); }
+
+  /** Atrás: primero le pregunta a FUNVS (cerrar ventana, salir de TV, cerrar el reproductor); si no hay nada, sale. */
+  @Override public void onBackPressed() {
+    if (custom != null) { leaveCustom(); return; }
+    if (Build.VERSION.SDK_INT < 19) { super.onBackPressed(); return; }
+    web.evaluateJavascript("(window.FUNVSApp&&FUNVSApp.back)?FUNVSApp.back():false", new ValueCallback<String>() {
+      @Override public void onReceiveValue(String r) {
+        if ("true".equals(r)) return;
+        if (web.canGoBack()) web.goBack(); else MainActivity.super.onBackPressed();
+      }
+    });
+  }
+
+  /** Teclas del control que la web no recibe sola: menú → ajustes. Play/pausa y avance/retroceso llegan como teclas multimedia. */
+  @Override public boolean dispatchKeyEvent(KeyEvent e) {
+    if (e.getKeyCode() == KeyEvent.KEYCODE_MENU && Build.VERSION.SDK_INT >= 19) {
+      if (e.getAction() == KeyEvent.ACTION_UP) web.evaluateJavascript("window.FUNVSApp&&FUNVSApp.menu&&FUNVSApp.menu()", null);
+      return true;
+    }
+    return super.dispatchKeyEvent(e);
+  }
+
+  @Override protected void onSaveInstanceState(Bundle o) { super.onSaveInstanceState(o); web.saveState(o); }
+  @Override protected void onPause() { super.onPause(); web.onPause(); }
+  @Override protected void onResume() { super.onResume(); web.onResume(); immersive(); }
+  @Override protected void onDestroy() { web.destroy(); super.onDestroy(); }
+}

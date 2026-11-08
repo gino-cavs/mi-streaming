@@ -1,0 +1,16 @@
+plugins { id 'com.android.application' }
+android {
+  namespace 'io.github.klasito7.funvs'
+  compileSdk 34
+  defaultConfig {
+    applicationId 'io.github.klasito7.funvs'
+    minSdk 22          // Fire Stick viejos (Fire OS 5)
+    targetSdk 34
+    versionCode 1
+    versionName '1.0'
+  }
+  // Clave fija para que las actualizaciones se instalen encima sin desinstalar
+  signingConfigs { rel { storeFile file('../funvs.keystore'); storePassword 'funvs-app'; keyAlias 'funvs'; keyPassword 'funvs-app' } }
+  buildTypes { release { minifyEnabled false; signingConfig signingConfigs.rel } }
+  compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
+}
