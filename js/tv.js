@@ -55,7 +55,10 @@ const TV = (() => {
           <div class="hud-wx" id="tvWx"></div>
         </div>
         <div class="hud-ctl" id="tvCtl">
+          <button id="tvPrev" title="Canal anterior">⏮</button>
           <button id="tvPlay" title="Pausa / seguir">⏸</button>
+          <button id="tvNext" title="Canal siguiente">⏭</button>
+          <button id="tvList" title="Lista de canales">☰</button>
           <button id="tvMute" title="Silenciar">🔊</button>
           <input type="range" id="tvVol" min="0" max="1" step="0.05" title="Volumen">
           <button id="tvStar" title="Guardar este momento">⭐</button>
@@ -84,6 +87,8 @@ const TV = (() => {
       else { if (a === 'x') Player.closeAll(); else Zap.step(a === 'next' ? 1 : -1); }
       setTimeout(tick, 200); };
     ['prev', 'next', 'x'].forEach(a => $('fCtl').querySelector(`[data-c=${a}]`).onclick = () => act(a));
+    $('tvPrev').onclick = () => act('prev'); $('tvNext').onclick = () => act('next');
+    $('tvList').onclick = () => Zap.listOpen(!Zap.open);
     $('fCtl').querySelector('[data-c=tv]').onclick = () => open(false);
     $('fCtl').querySelector('[data-c=vid]').onclick = () => { const on = !document.body.classList.contains('muvidshow'); document.body.classList.toggle('muvidshow', on); S.set('musHideVid', !on); };
     document.body.classList.toggle('muvidshow', !S.get('musHideVid', false));
@@ -245,6 +250,7 @@ const TV = (() => {
     $('fCtl').querySelector('[data-c=vid]').style.display = id === 'music' ? '' : 'none';
     if (s) {
       $('tvPlay').style.display = s.toggle ? '' : 'none';
+      $('tvList').style.display = id === 'radio' || id === 'music' ? 'none' : '';
       $('tvPlay').textContent = s.paused && s.paused() ? '▶' : '❚❚';
       const m = s.muted ? s.muted() : false;
       $('tvMute').textContent = m ? '🔇' : '🔊';

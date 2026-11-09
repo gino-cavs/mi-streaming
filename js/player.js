@@ -37,6 +37,8 @@ const Player = (() => {
   const ANDROID = /Android/i.test(navigator.userAgent);
 
   // v = video, ch = chat embebido oscuro, out = chat en ventana aparte
+  // sin la barra ni el título de YouTube (se maneja todo con los botones de FUNVS). Se apaga en Ajustes.
+  const clean = () => S.get('ytClean', true) ? '&controls=0&rel=0&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0' : '&rel=0';
   function embedOf(c) {
     const s = Canales.status[c.uid] || {};
     if (c.platform === 'twitch') return { kind:'twitch', id:c.ref.name,
@@ -48,11 +50,11 @@ const Player = (() => {
     const isLive = s.st === 'live' || s.st === 'soon';
     const vid = isLive ? s.vid : (c.ref.video || s.vid);
     if (vid) return { kind:'youtube', id:vid,
-      v:`https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}${c.ref.more?.length && !isLive ? '&playlist=' + c.ref.more.join(',') : ''}`,
+      v:`https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1${clean()}&origin=${encodeURIComponent(location.origin)}${c.ref.more?.length && !isLive ? '&playlist=' + c.ref.more.join(',') : ''}`,
       ch: isLive || c.ref.video ? `https://www.youtube.com/live_chat?v=${vid}&embed_domain=${HOST}&dark_theme=1` : null,
       out:`https://www.youtube.com/live_chat?v=${vid}&dark_theme=1` };
     if (c.ref.channelId) return { kind:'youtube', id:null,
-      v:`https://www.youtube.com/embed/live_stream?channel=${c.ref.channelId}&autoplay=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`, ch:null };
+      v:`https://www.youtube.com/embed/live_stream?channel=${c.ref.channelId}&autoplay=1&playsinline=1&enablejsapi=1${clean()}&origin=${encodeURIComponent(location.origin)}`, ch:null };
     return { kind:'none', v:'about:blank', ch:null };
   }
 
@@ -67,6 +69,7 @@ const Player = (() => {
       d.onclick = e => {
         if (e.target.closest('.bar') || e.target.closest('.muted-ic')) return;
         if (sel !== i || focus !== i) { sel = i; focus = i; paintSel(); paintActs(); }
+        else if (e.target.closest('.vw.ytclean')) { const k = AudioMgr.sink('slot' + i); k?.toggle?.(); }   // sin la barra de YouTube: tocar el video pausa / sigue
       };
       d.querySelector('.muted-ic').onclick = ev => { ev.stopPropagation(); AudioMgr.focus('slot' + i); };
       st.appendChild(d); els.push(d);
@@ -130,7 +133,7 @@ const Player = (() => {
     } else if (s.e.kind === 'youtube') {
       const f = document.createElement('iframe');
       f.src = s.e.v; f.allow = 'autoplay; fullscreen; encrypted-media; picture-in-picture'; f.allowFullscreen = true;
-      vw.appendChild(f);
+      vw.appendChild(f); vw.classList.toggle('ytclean', S.get('ytClean', true));
       let last = null;
       YT_API().then(() => {
         if (s.seq !== my) return;
@@ -343,7 +346,7 @@ const Player = (() => {
           s.gone = true;
           toast(`📴 <b>${esc(s.c.name)}</b> terminó el vivo<small>Sigo atento: si vuelve, lo pongo solo.</small>`, { cls:'info', ms:5000 });
         } else if ((s.dead || stuck) && !db.key && s.c.ref.channelId) {   // sin clave de YouTube: el reproductor "vivo del canal" de YouTube
-          s.e = { ...s.e, id:null, v:`https://www.youtube.com/embed/live_stream?channel=${s.c.ref.channelId}&autoplay=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}` }; s.dead = false; mountVideo(i);
+          s.e = { ...s.e, id:null, v:`https://www.youtube.com/embed/live_stream?channel=${s.c.ref.channelId}&autoplay=1&playsinline=1&enablejsapi=1${clean()}&origin=${encodeURIComponent(location.origin)}` }; s.dead = false; mountVideo(i);
         }
       } catch {} finally { s.following = false; }
     }

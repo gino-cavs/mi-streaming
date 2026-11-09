@@ -117,7 +117,7 @@ const Musica = (() => {
     if (!okApi || cur !== it) { if (!okApi) { note('YouTube no respondió. Revisá la conexión o un bloqueador de anuncios.'); } return; }
     if (p) { try { p.destroy(); } catch {} p = null; }
     $('muVid').innerHTML = '<div id="muYT"></div>';
-    const vars = { autoplay:1, playsinline:1, rel:0, origin:location.origin };
+    const vars = { autoplay:1, playsinline:1, rel:0, origin:location.origin, ...(S.get('ytClean', true) ? { controls:0, iv_load_policy:3, disablekb:1, fs:0 } : {}) };
     // Las playlists por ID no le arrancan a YouTube desde afuera en algunos aparatos: si hay clave de YouTube,
     // leo los temas y las paso tema por tema (igual que el álbum del día, que sí anda).
     let ids = it.kind === 'list' ? it.ids : null;

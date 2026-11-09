@@ -90,6 +90,7 @@ function initSettings() {
   document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
   $('setHud').onchange = e => TV.setOn(e.target.checked);
   const zf = () => S.get('zapFx', { on:true, sound:false });
+  $('setYtClean').onchange = e => { S.set('ytClean', e.target.checked); toast('🧼 Se aplica al próximo video que pongas', { ms:2500 }); };
   $('setZfx').onchange = e => { S.set('zapFx', { ...zf(), on:e.target.checked }); if (e.target.checked && Player.slots[Player.sel]) Player.zapFx(Player.sel, Player.slots[Player.sel].c); };
   $('setZfxS').onchange = e => S.set('zapFx', { ...zf(), sound:e.target.checked });
   $('setDevice').innerHTML = Object.entries(Device.MODES).map(([k, v]) => `<option value="${k}" ${k === Device.mode ? 'selected' : ''}>${v}${!Device.chosen && k === Device.mode ? ' (detectado)' : ''}</option>`).join('');
@@ -98,7 +99,7 @@ function initSettings() {
     $('setEdge').oninput = e => { Device.setEdge(e.target.value); $('setEdgeV').textContent = e.target.value + 'px'; }; }
   $('setLite').onchange = e => { Lite.set(e.target.checked); toast(e.target.checked ? '⚡ Modo liviano prendido en este aparato' : 'Modo liviano apagado', { ms:2500 }); };
   $('btnSettings').onclick = () => {
-    $('setHud').checked = TV.on; $('setZfx').checked = S.get('zapFx', { on:true }).on; $('setLite').checked = Lite.on; $('setZfxS').checked = !!S.get('zapFx', {}).sound;
+    $('setHud').checked = TV.on; $('setZfx').checked = S.get('zapFx', { on:true }).on; $('setYtClean').checked = S.get('ytClean', true); $('setLite').checked = Lite.on; $('setZfxS').checked = !!S.get('zapFx', {}).sound;
     $('setKey').value = db.key;
     $('setRef').value = String(db.refresh);
     $('setTok').value = db.sync.token;

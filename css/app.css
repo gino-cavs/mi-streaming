@@ -1359,3 +1359,10 @@ html.dev-celu body.tvlock .hud-clock, html.dev-celu body.tvlock .hud-ticker { le
 html.dev-celu body.tvlock .hud-ctl { bottom:calc(56px + var(--edgeb, 10px)); }
 html.dev-celu body.tvlock .hud-np { left:calc(var(--edge, 18px) + 4px); }
 html.dev-celu body.tvlock .hud-logo { right:calc(var(--edge, 18px) + 4px); }
+
+/* ===== 🧼 YouTube sin su barra ni su título: el iframe se estira y se recorta arriba y abajo (el video 16:9 queda entero),
+   y una capa transparente evita que al pasar el mouse aparezcan sus carteles ===== */
+.slot .vw.ytclean { overflow:hidden; }
+.slot .vw.ytclean > iframe { position:absolute; left:0; top:-64px; height:calc(100% + 128px) !important; width:100%; }
+.slot .vw.ytclean::after { content:''; position:absolute; inset:0; z-index:1; }
+#muYT { overflow:hidden; position:relative; }
