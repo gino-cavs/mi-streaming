@@ -23,4 +23,9 @@ Ideas y cosas que quedaron para hacer más adelante.
 - **Previa de Vélez**: cuenta regresiva desde una hora antes + historial frente a frente y datos del partido.
 - **Efemérides fortineras**: "Un día como hoy…" de Vélez, una por día.
 - **Protector de pantalla para la tele**: ⚠️ antes de hacerlo, recordarle al usuario que quiere hacer él un diseño.
-- **Separadores**: a confirmar (le expliqué con ejemplos).
+- **Separadores** (aprobado si no pesa): 2-3 s con el logo de FUNVS y la perrita al prender la app en la tele, al entrar a la Pantalla TV y antes del partido de Vélez ("FUNVS presenta: Vélez vs …"). En modo liviano, versión simple.
+- **Grilla de TV de cable desde TeleRed** (en vez de mi.tv, que no deja leerla automáticamente). TeleRed no tiene robots.txt (sin restricciones).
+  - Buscador de programas de la semana: `layout/resultados-SearchTVspeed.php` (POST con el formulario `#searchtvform`: searched, desde=0, hasta=6, categorias, medio…).
+  - Grilla por horas: `layout/grillaTVupd.php?prti=&prtf=&wn=&pack=D` y por canal `layout/grillaTV.php?wn=&m=`.
+  - Desde GitHub respondieron vacío: probablemente piden la cookie de sesión de la página o algún campo más. Investigarlo en el paquete.
+  - Uso: avisos de TV buscando el programa por nombre (canal, día y hora automáticos) y "Ahora / A continuación" para canales de cable.
