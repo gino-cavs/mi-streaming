@@ -25,7 +25,7 @@ const Control = (() => {
       case 'music': { const m = db.music.items.find(x => x.id === o.id); if (m) Musica.play(m); else if (o.id === 'album') Musica.playAlbum(); break; }
       case 'toggle': sink()?.toggle?.(); break;
       case 'mute': { const id = AudioMgr.active, s = sink(); if (s) s.muted?.() ? AudioMgr.focus(id) : s.mute(); break; }
-      case 'vol': { const s = sink(); if (s?.setVol && s.getVol) s.setVol(Math.max(0, Math.min(1, s.getVol() + o.d))); break; }
+      case 'vol': { const s = sink(); if (s?.setVol && s.getVol) { const v = Math.max(0, Math.min(1, s.getVol() + o.d)); s.setVol(v); S.set('vol', v); } break; }
       case 'tv': $('player').classList.contains('tvmode') ? TV.close() : TV.open(); break;
       case 'search': Buscar.open(); setTimeout(() => { const i = $('bQ'); if (i) { i.value = o.q; i.dispatchEvent(new Event('input')); } }, 50); break;
       case 'go': Nav.go(o.s); break;

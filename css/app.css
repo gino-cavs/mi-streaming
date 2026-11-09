@@ -1380,3 +1380,8 @@ body.tvlock #player.tvmode.ui .pbar { transition:opacity .25s ease; }
 .tolive { font-size:12px !important; font-weight:700; color:#fff !important; background:#e11d48 !important; border-radius:6px !important; padding:3px 7px !important; letter-spacing:.5px; }
 .tolive.behind { background:#555 !important; }
 .tolive.behind:hover, .tolive.behind:focus-visible { background:#e11d48 !important; }
+/* compu: en Pantalla TV la lista de canales sale solo con el mouse en el borde izquierdo */
+html.dev-pc #player.tvmode.ui.zapon #zap { transform:translateX(-100%); }
+html.dev-pc #player.tvmode.zapon.zaphot #zap, html.dev-pc #player.tvmode.zapon.zappin #zap { transform:none; }
+html.dev-pc body.tvlock.tvui.hudon .hud-np { left:20px; }
+html.dev-pc body.tvlock.hudon #player.zaphot .hud-np { left:270px; }

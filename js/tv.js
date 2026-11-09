@@ -95,14 +95,14 @@ const TV = (() => {
     $('tvBack').onclick = () => seek(-10); $('tvFwd').onclick = () => seek(10); $('tvLive').onclick = live;
     $('fCtl').querySelector('[data-c=back]').onclick = () => seek(-10); $('fCtl').querySelector('[data-c=fwd]').onclick = () => seek(10); $('fCtl').querySelector('[data-c=live]').onclick = live;
     $('tvPrev').onclick = () => act('prev'); $('tvNext').onclick = () => act('next');
-    $('tvList').onclick = () => Zap.listOpen(!Zap.open);
+    $('tvList').onclick = () => { if (Device.mode === 'pc') { const on = $('player').classList.toggle('zappin'); if (on && !Zap.open) Zap.listOpen(true); } else Zap.listOpen(!Zap.open); };
     $('fCtl').querySelector('[data-c=tv]').onclick = () => open(false);
     $('fCtl').querySelector('[data-c=vid]').onclick = () => { const on = !document.body.classList.contains('muvidshow'); document.body.classList.toggle('muvidshow', on); S.set('musHideVid', !on); };
     document.body.classList.toggle('muvidshow', !S.get('musHideVid', false));
     $('fNow').onclick = e => { const o = e.target.closest('[data-other]'); if (o) { AudioMgr.focus(o.dataset.other); setTimeout(tick, 150); return; } const id = AudioMgr.active; if (!id) return;
       Nav.go(id === 'radio' ? 'radios' : id === 'music' ? 'musica' : 'canales'); };
     const fv = $('fCtl').querySelector('[data-c=vol]');
-    fv.oninput = e => { const s = AudioMgr.sink(AudioMgr.active); s && s.setVol && s.setVol(+e.target.value); };
+    fv.oninput = e => { const s = AudioMgr.sink(AudioMgr.active); s && s.setVol && s.setVol(+e.target.value); S.set('vol', +e.target.value); };
     fv.onpointerdown = () => dragging = true; fv.onpointerup = () => dragging = false;
     $('tvFull').onclick = () => {   // pantalla completa del reproductor: ahí el grafismo no aparece
       const p = $('player');
@@ -114,6 +114,10 @@ const TV = (() => {
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('player').classList.contains('tvmode') && !document.fullscreenElement) close(); });
     document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && $('player').dataset.fs) { delete $('player').dataset.fs; } });
     $('player').addEventListener('pointermove', showUi);
+    // compu: la lista de canales sale solo si llevás el mouse al borde izquierdo (y se queda mientras estés encima)
+    $('player').addEventListener('pointermove', e => { if (Device.mode !== 'pc' || e.pointerType === 'touch') return;
+      const p = $('player'), w = $('zap')?.offsetWidth || 260; p.classList.toggle('zaphot', e.clientX < (p.classList.contains('zaphot') ? w + 20 : 36)); });
+    $('player').addEventListener('pointerleave', () => $('player').classList.remove('zaphot'));
     $('player').addEventListener('touchstart', showUi, { passive:true });
     document.addEventListener('keydown', () => { if (document.body.classList.contains('tvlock')) showUi(); }, true);
     $('tvCtl').addEventListener('focusin', showUi);
@@ -125,7 +129,7 @@ const TV = (() => {
       tick();
     };
     $('tvStar').onclick = () => Momentos.capture(AudioMgr.active);
-    $('tvVol').oninput = e => { const s = AudioMgr.sink(AudioMgr.active); s && s.setVol && s.setVol(+e.target.value); };
+    $('tvVol').oninput = e => { const s = AudioMgr.sink(AudioMgr.active); s && s.setVol && s.setVol(+e.target.value); S.set('vol', +e.target.value); };
     $('tvVol').onpointerdown = () => dragging = true;
     $('tvVol').onpointerup = () => dragging = false;
     $('tvArtC').onclick = e => {

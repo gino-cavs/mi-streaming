@@ -123,7 +123,7 @@ const Player = (() => {
         if (s.seq !== my) return;
         const p = new Twitch.Player(div.id, { channel:s.e.id, parent:[HOST], width:'100%', height:'100%', autoplay:true, muted:false });
         s.api = { destroy() { div.innerHTML = ''; } , p };
-        p.addEventListener(Twitch.Player.READY, () => { if (s.audio) setAudioQuality(s, true); else Calidad.applyTwitch(p); });
+        p.addEventListener(Twitch.Player.READY, () => { try { p.setVolume(S.get('vol', 1)); } catch {} if (s.audio) setAudioQuality(s, true); else Calidad.applyTwitch(p); });
         p.addEventListener(Twitch.Player.PLAY, () => { if (!s.mutedByApp) AudioMgr.focus(sid); });
         AudioMgr.register(sid, { mute() { p.setMuted(true); setMutedUI(true); }, unmute() { p.setMuted(false); setMutedUI(false); },
           label:() => s.c.name, live:() => { const x = Canales.status[s.c.uid] || {}; return x.st === 'live' && !x.prem; }, prem:() => !!(Canales.status[s.c.uid] || {}).prem && (Canales.status[s.c.uid] || {}).st === 'live',
@@ -140,7 +140,7 @@ const Player = (() => {
         const p = new YT.Player(f, { events:{ onStateChange:e => {
           // solo cuenta como "empezó a sonar" si veníamos de pausa/inicio (no al terminar de cargar)
           if (e.data === 3) return;
-          if (e.data === 1 && last === null) Calidad.applyYouTube(p);
+          if (e.data === 1 && last === null) { Calidad.applyYouTube(p); try { p.setVolume(Math.round(S.get('vol', 1) * 100)); } catch {} }   // YouTube recuerda el último volumen (ej. el del despertador): siempre arranca con el tuyo
           if (e.data === 0 && s.c.t247) {          // canal 24/7: termina un video y sigue la grilla
             const n = T247any.nextFor(s.c.t247);
             if (n) { s.e.id = n.v; try { p.loadVideoById({ videoId:n.v, startSeconds:n.off }); } catch {} paintActs(); }
