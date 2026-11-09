@@ -73,8 +73,10 @@ const Canales = (() => {
       try {
         if (c.ref.video) { want[c.uid] = [c.ref.video]; continue; }
         await resolveYT(c);
-        const j = await yt('playlistItems', { part:'contentDetails', playlistId:c.ref.uploads, maxResults:15 });
-        want[c.uid] = j.items.map(i => i.contentDetails.videoId);
+        const j = await yt('playlistItems', { part:'contentDetails', playlistId:c.ref.uploads, maxResults:50 });
+        // canales que suben muchos clips (A24, C5N…): el vivo puede quedar más atrás de los últimos 15 → miro hasta 50
+        const its = j.items || [], heavy = its.length > 15 && Date.now() - Date.parse(its[14].contentDetails.videoPublishedAt || 0) < 2 * 864e5;
+        want[c.uid] = its.slice(0, heavy ? 50 : 15).map(i => i.contentDetails.videoId);
       } catch (e) {
         status[c.uid] = { st:'?', err:e.message };
         warn(e instanceof TypeError ? NET_MSG : 'YouTube: ' + e.message);
@@ -118,8 +120,9 @@ const Canales = (() => {
   async function checkOne(c) {
     if (!db.key || c.platform !== 'youtube' || c.ref.video) return status[c.uid] || {};
     await resolveYT(c);
-    const j = await yt('playlistItems', { part:'contentDetails', playlistId:c.ref.uploads, maxResults:6 });
-    const ids = (j.items || []).map(i => i.contentDetails.videoId); if (!ids.length) return status[c.uid] || {};
+    const j = await yt('playlistItems', { part:'contentDetails', playlistId:c.ref.uploads, maxResults:50 });
+    const its = j.items || [], heavy = its.length > 6 && Date.now() - Date.parse(its[5].contentDetails.videoPublishedAt || 0) < 864e5;
+    const ids = its.slice(0, heavy ? 50 : 6).map(i => i.contentDetails.videoId); if (!ids.length) return status[c.uid] || {};
     const v = await yt('videos', { part:'snippet,liveStreamingDetails', id:ids.join(',') });
     const live = (v.items || []).find(x => x.snippet.liveBroadcastContent === 'live');
     if (live) status[c.uid] = { ...(status[c.uid] || {}), st:'live', vid:live.id, title:live.snippet.title, when:live.liveStreamingDetails?.actualStartTime };

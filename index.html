@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=VT323&display=swap">
-<link rel="stylesheet" href="css/app.css?v=86">
+<link rel="stylesheet" href="css/app.css?v=87">
 </head>
 <body>
 <header>
@@ -133,6 +133,8 @@
     <option value="10">10 minutos</option><option value="15">15 minutos</option>
   </select>
   <label style="display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="setHud" style="width:auto"> Mostrar el grafismo FUNVS en las esquinas de la página</label>
+  <label>🗓 Grilla desde tu calendario <small class="mut">(link iCal secreto · eventos "Canal | Programa")</small></label>
+  <div style="display:flex;gap:8px"><input id="setIcal" type="password" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" style="flex:1" autocomplete="off"><button id="setIcalHelp" type="button">¿Cómo?</button></div>
   <label>📟 Este aparato es (queda guardado solo acá)</label>
   <div style="display:flex;gap:8px;flex-wrap:wrap"><select id="setDevice" style="flex:1"></select></div>
   <div id="setEdgeRow" style="display:none;align-items:center;gap:8px;color:var(--txt)">Margen por los bordes redondos <input type="range" id="setEdge" min="0" max="48" step="2" style="flex:1"> <b id="setEdgeV"></b></div>
@@ -170,51 +172,51 @@
   <div class="btns"><span class="sp"></span><button data-close>Cancelar</button><button class="pri" id="setSave">Guardar</button></div>
 </dialog>
 
-<script src="js/lite.js?v=86"></script>
-<script src="js/core.js?v=86"></script>
-<script src="js/player.js?v=86"></script>
-<script src="js/guia.js?v=86"></script>
-<script src="js/canales.js?v=86"></script>
-<script src="js/radiogrilla.js?v=86"></script>
-<script src="js/radio.js?v=86"></script>
-<script src="js/mapa.js?v=86"></script>
-<script src="js/clasicos.js?v=86"></script>
-<script src="js/retro.js?v=86"></script>
-<script src="js/fulbito.js?v=86"></script>
-<script src="js/actualidad.js?v=86"></script>
-<script src="js/noticias.js?v=86"></script>
-<script src="js/velez.js?v=86"></script>
-<script src="js/calendario.js?v=86"></script>
-<script src="js/motor.js?v=86"></script>
-<script src="js/musica.js?v=86"></script>
-<script src="js/prode.js?v=86"></script>
-<script src="js/momentos.js?v=86"></script>
-<script src="js/stats.js?v=86"></script>
-<script src="js/tv.js?v=86"></script>
-<script src="js/zapping.js?v=86"></script>
-<script src="js/calidad.js?v=86"></script>
-<script src="js/rap.js?v=86"></script>
-<script src="js/diario420.js?v=86"></script>
-<script src="js/time420.js?v=86"></script>
-<script src="js/likes.js?v=86"></script>
-<script src="js/boxeo.js?v=86"></script>
-<script src="js/series.js?v=86"></script>
-<script src="js/f1live.js?v=86"></script>
-<script src="js/resumenes.js?v=86"></script>
-<script src="js/telegram.js?v=86"></script>
-<script src="js/ver.js?v=86"></script>
-<script src="js/juegos.js?v=86"></script>
-<script src="js/inicio.js?v=86"></script>
-<script src="js/reloj.js?v=86"></script>
-<script src="js/buscar.js?v=86"></script>
-<script src="js/avisos.js?v=86"></script>
-<script src="js/partido.js?v=86"></script>
-<script src="js/infobar.js?v=86"></script>
-<script src="js/grafismo.js?v=86"></script>
-<script src="js/control.js?v=86"></script>
-<script src="js/tanda.js?v=86"></script>
-<script src="js/flash420.js?v=86"></script>
-<script src="js/main.js?v=86"></script>
-<script src="js/app.js?v=86"></script>
+<script src="js/lite.js?v=87"></script>
+<script src="js/core.js?v=87"></script>
+<script src="js/player.js?v=87"></script>
+<script src="js/guia.js?v=87"></script>
+<script src="js/canales.js?v=87"></script>
+<script src="js/radiogrilla.js?v=87"></script>
+<script src="js/radio.js?v=87"></script>
+<script src="js/mapa.js?v=87"></script>
+<script src="js/clasicos.js?v=87"></script>
+<script src="js/retro.js?v=87"></script>
+<script src="js/fulbito.js?v=87"></script>
+<script src="js/actualidad.js?v=87"></script>
+<script src="js/noticias.js?v=87"></script>
+<script src="js/velez.js?v=87"></script>
+<script src="js/calendario.js?v=87"></script>
+<script src="js/motor.js?v=87"></script>
+<script src="js/musica.js?v=87"></script>
+<script src="js/prode.js?v=87"></script>
+<script src="js/momentos.js?v=87"></script>
+<script src="js/stats.js?v=87"></script>
+<script src="js/tv.js?v=87"></script>
+<script src="js/zapping.js?v=87"></script>
+<script src="js/calidad.js?v=87"></script>
+<script src="js/rap.js?v=87"></script>
+<script src="js/diario420.js?v=87"></script>
+<script src="js/time420.js?v=87"></script>
+<script src="js/likes.js?v=87"></script>
+<script src="js/boxeo.js?v=87"></script>
+<script src="js/series.js?v=87"></script>
+<script src="js/f1live.js?v=87"></script>
+<script src="js/resumenes.js?v=87"></script>
+<script src="js/telegram.js?v=87"></script>
+<script src="js/ver.js?v=87"></script>
+<script src="js/juegos.js?v=87"></script>
+<script src="js/inicio.js?v=87"></script>
+<script src="js/reloj.js?v=87"></script>
+<script src="js/buscar.js?v=87"></script>
+<script src="js/avisos.js?v=87"></script>
+<script src="js/partido.js?v=87"></script>
+<script src="js/infobar.js?v=87"></script>
+<script src="js/grafismo.js?v=87"></script>
+<script src="js/control.js?v=87"></script>
+<script src="js/tanda.js?v=87"></script>
+<script src="js/flash420.js?v=87"></script>
+<script src="js/main.js?v=87"></script>
+<script src="js/app.js?v=87"></script>
 </body>
 </html>

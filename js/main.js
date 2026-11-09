@@ -93,6 +93,10 @@ function initSettings() {
   $('setYtClean').onchange = e => { S.set('ytClean', e.target.checked); toast('🧼 Se aplica al próximo video que pongas', { ms:2500 }); };
   $('setZfx').onchange = e => { S.set('zapFx', { ...zf(), on:e.target.checked }); if (e.target.checked && Player.slots[Player.sel]) Player.zapFx(Player.sel, Player.slots[Player.sel].c); };
   $('setZfxS').onchange = e => S.set('zapFx', { ...zf(), sound:e.target.checked });
+  $('setIcal').value = db.grillaIcal || '';
+  $('setIcal').onchange = e => { const v = e.target.value.trim(); if (v && !/^(https|webcal):\/\/.+/.test(v)) return toast('<b>Eso no parece un link de calendario</b>', { cls:'info' });
+    db.grillaIcal = v; save(); toast(v ? '<b>🗓 Calendario guardado</b><small>En menos de media hora tus programas aparecen en la Guía.</small>' : '🗓 Calendario quitado', { ms:4000 }); };
+  $('setIcalHelp').onclick = () => toast(`<b>🗓 Tu grilla desde Google Calendar</b><small>1. Creá un calendario nuevo (ej. "FUNVS grilla").<br>2. Cargá cada programa como evento: <b>A24 | Basta Baby</b>, con hora de inicio y fin, y "Se repite cada semana" los días que va.<br>3. Si querés, en la descripción poné <i>Conducen: Nombre, Nombre</i>.<br>4. Configuración del calendario → <b>Dirección secreta en formato iCal</b> → copiala y pegala acá.<br>Lo que cargues le gana a la grilla automática de ese canal. Se sincroniza cada media hora.</small>`, { ms:30000, cls:'info' });
   $('setDevice').innerHTML = Object.entries(Device.MODES).map(([k, v]) => `<option value="${k}" ${k === Device.mode ? 'selected' : ''}>${v}${!Device.chosen && k === Device.mode ? ' (detectado)' : ''}</option>`).join('');
   $('setDevice').onchange = e => Device.set(e.target.value);
   if (Device.mode === 'celu') { $('setEdgeRow').style.display = 'flex'; $('setEdge').value = Device.edge; $('setEdgeV').textContent = Device.edge + 'px';

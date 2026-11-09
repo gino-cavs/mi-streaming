@@ -12,11 +12,12 @@ const Guia = (() => {
   async function load() {
     if (data && Date.now() - at < 30 * 60e3) return data;
     const t = Math.floor(Date.now() / 1800e3);
-    const [j, tv0, fijo] = await Promise.all([fetch(REPO.data + 'guia.json?t=' + t).then(r => r.json()).catch(() => null), fetch(REPO.data + 'tvcanales.json?t=' + t).then(r => r.json()).catch(() => null),
+    const [cal, j, tv0, fijo] = await Promise.all([fetch(REPO.data + 'grillacal.json?t=' + t).then(r => r.json()).catch(() => null), fetch(REPO.data + 'guia.json?t=' + t).then(r => r.json()).catch(() => null), fetch(REPO.data + 'tvcanales.json?t=' + t).then(r => r.json()).catch(() => null),
       fetch('data/tvfijo.json?v=1').then(r => r.json()).catch(() => null)]);   // C5N, LN+, A24, Canal 26, Crónica: grilla fija (cargada una vez, no se actualiza sola)
-    const tv = (tv0 || fijo) ? { canales:[...(tv0?.canales || []), ...(fijo?.canales || [])] } : null;
+    // 🗓 lo que cargaste en tu calendario va PRIMERO: le gana a cualquier otra grilla del mismo canal
+    const tv = (tv0 || fijo || cal) ? { canales:[...(cal?.canales || []), ...(tv0?.canales || []), ...(fijo?.canales || [])] } : null;
     // la TV de aire (El Trece, TV Pública: desde la web de cada canal) se suma a la guía de streaming
-    if (j?.canales || tv?.canales) { data = { ...(j || data || {}), canales:[...(j?.canales || data?.canales?.filter(c => !String(c.id).startsWith('tv-')) || []), ...(tv?.canales || [])] }; at = Date.now(); try { S.set('guiaData', data); } catch {} }
+    if (j?.canales || tv?.canales) { data = { ...(j || data || {}), canales:[...(cal?.canales || []), ...(j?.canales || data?.canales?.filter(c => !/^(tv|cal)-/.test(String(c.id))) || []), ...(tv?.canales || []).filter(c => !c.cal)] }; at = Date.now(); try { S.set('guiaData', data); } catch {} }
     return data;
   }
   // tu canal ↔ canal de la guía (por usuario de YouTube o por nombre)
@@ -30,8 +31,9 @@ const Guia = (() => {
     const out = [];
     for (let d = -1; d <= 1; d++) {
       const day = new Date(from); day.setDate(day.getDate() + d); day.setHours(0, 0, 0, 0);
-      for (const [dw, st, en, name, pan] of g.sch) {
-        if (DOW[day.getDay()] !== dw) continue;
+      const ymd = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+      for (const [dw, st, en, name, pan, only] of g.sch) {
+        if (DOW[day.getDay()] !== dw || (only && only !== ymd)) continue;   // only = evento suelto del calendario (solo ese día)
         const [sh, sm] = st.split(':').map(Number), [eh, em] = (en || st).split(':').map(Number);
         const s = new Date(day); s.setHours(sh, sm);
         let e = new Date(day); e.setHours(eh, em); if (!en || en === st) e = new Date(+s + 120 * 60e3); else if (e <= s) e.setDate(e.getDate() + 1);
