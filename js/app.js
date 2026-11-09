@@ -34,6 +34,25 @@ const FUNVSApp = (() => {
     return true;
   }
 
+  /* ▶ ⏸ de auriculares Bluetooth (Galaxy Buds), del control y de la pantalla bloqueada.
+     Antes "Play" también pausaba: algunos auriculares mandan "Play" al conectarse o al ponértelos, y eso cortaba lo que sonaba. */
+  const cur = () => { const id = AudioMgr.active; return id ? AudioMgr.sink(id) : null; };
+  function media(a) {
+    const s = cur(); if (!s?.toggle) return;
+    const paused = s.paused ? s.paused() : false;
+    if (a === 'play' && !paused) return; if (a === 'pause' && paused) return;
+    s.toggle(); setTimeout(() => { try { TV.refresh(); } catch {} }, 200);
+  }
+  const step = d => { const id = AudioMgr.active; if (id === 'radio') Radio.skip(d); else if (id === 'music') Musica.skip(d); else if (id) Zap.step(d); };
+  if ('mediaSession' in navigator) {
+    const ms = navigator.mediaSession, H = { play:() => media('play'), pause:() => media('pause'), stop:() => media('pause'), nexttrack:() => step(1), previoustrack:() => step(-1) };
+    for (const [a, f] of Object.entries(H)) try { ms.setActionHandler(a, f); } catch {}
+    let last = '';
+    setInterval(() => { const s = cur(); const t = s?.label?.() || '';
+      if (t !== last) { last = t; try { ms.metadata = t ? new MediaMetadata({ title:t, artist:'FUNVS', artwork:[{ src:'img/vaca.jpg', sizes:'512x512' }] }) : null; } catch {} }
+      try { ms.playbackState = !s ? 'none' : s.paused?.() ? 'paused' : 'playing'; } catch {} }, 2000);
+  }
+
   const DIRS = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right' };
   // OK del control sobre la grilla (bloques que no son botones): ponerlo
   document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('.epb,.epch')) { e.preventDefault(); e.target.click(); } });
@@ -41,7 +60,7 @@ const FUNVSApp = (() => {
     if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
     const k = e.key, sink = () => AudioMgr.sink('slot' + (Player.slots[Player.sel] ? Player.sel : Player.slots.findIndex(Boolean)));
     const playing = $('player')?.classList.contains('show') && Player.slots.some(Boolean);
-    if (k === 'MediaPlayPause' || k === 'MediaPlay' || k === 'MediaPause') { const s = playing && sink(); if (s?.toggle) { e.preventDefault(); s.toggle(); } return; }
+    if (k === 'MediaPlayPause' || k === 'MediaPlay' || k === 'MediaPause') { e.preventDefault(); media(k === 'MediaPlay' ? 'play' : k === 'MediaPause' ? 'pause' : 'toggle'); return; }
     if (playing && (k === 'MediaFastForward' || k === 'MediaTrackNext' || k === 'ChannelUp')) { e.preventDefault(); Zap.step(1); return; }
     if (playing && (k === 'MediaRewind' || k === 'MediaTrackPrevious' || k === 'ChannelDown')) { e.preventDefault(); Zap.step(-1); return; }
     const dir = DIRS[k]; if (!dir) return;

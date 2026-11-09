@@ -1385,3 +1385,5 @@ html.dev-pc #player.tvmode.ui.zapon #zap { transform:translateX(-100%); }
 html.dev-pc #player.tvmode.zapon.zaphot #zap, html.dev-pc #player.tvmode.zapon.zappin #zap { transform:none; }
 html.dev-pc body.tvlock.tvui.hudon .hud-np { left:20px; }
 html.dev-pc body.tvlock.hudon #player.zaphot .hud-np { left:270px; }
+/* en celu y tele no hay mouse: sin capa, así tocar el video le llega a YouTube (por si el navegador no lo deja arrancar solo) */
+html:not(.dev-pc) .slot .vw.ytclean::after { display:none; }
