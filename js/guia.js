@@ -12,7 +12,9 @@ const Guia = (() => {
   async function load() {
     if (data && Date.now() - at < 30 * 60e3) return data;
     const t = Math.floor(Date.now() / 1800e3);
-    const [j, tv] = await Promise.all([fetch(REPO.data + 'guia.json?t=' + t).then(r => r.json()).catch(() => null), fetch(REPO.data + 'tvcanales.json?t=' + t).then(r => r.json()).catch(() => null)]);
+    const [j, tv0, fijo] = await Promise.all([fetch(REPO.data + 'guia.json?t=' + t).then(r => r.json()).catch(() => null), fetch(REPO.data + 'tvcanales.json?t=' + t).then(r => r.json()).catch(() => null),
+      fetch('data/tvfijo.json?v=1').then(r => r.json()).catch(() => null)]);   // C5N, LN+, A24, Canal 26, Crónica: grilla fija (cargada una vez, no se actualiza sola)
+    const tv = (tv0 || fijo) ? { canales:[...(tv0?.canales || []), ...(fijo?.canales || [])] } : null;
     // la TV de aire (El Trece, TV Pública: desde la web de cada canal) se suma a la guía de streaming
     if (j?.canales || tv?.canales) { data = { ...(j || data || {}), canales:[...(j?.canales || data?.canales?.filter(c => !String(c.id).startsWith('tv-')) || []), ...(tv?.canales || [])] }; at = Date.now(); try { S.set('guiaData', data); } catch {} }
     return data;

@@ -309,7 +309,24 @@ const Canales = (() => {
     toast('<b>✅ Cambios guardados</b><small>El orden y los nombres se sincronizan con tus otros dispositivos.</small>', { cls:'info', ms:3500 });
   }
 
+  /* 📺 Canales de noticias con grilla fija (C5N, A24, LN+, Crónica, Canal 26): se suman una sola vez si no los tenías */
+  async function seedNoticias() {
+    db.series = db.series || {}; if (db.series.newsSeeded) return; db.series.newsSeeded = true;
+    const L = [['C5N', 'c5n', 'UCFgk2Q2mVO1BklRQhSv6p0w'], ['A24', 'A24com', 'UCR9120YBAqMfntqgRTKmkjQ'], ['LN+', 'lanacion', 'UCba3hpU7EFBSk817y9qZkiA'], ['Crónica TV', 'cronicatv', 'UCT7KFGv6s2a-rh2Jq8ZdM1g'], ['Canal 26', 'canal26', '']];
+    const has = (n, h, id) => db.chans.some(c => c.ref?.channelId === id && id || norm(c.ref?.handle || '').replace(/^@/, '') === norm(h) || norm(c.name) === norm(n));
+    const cat = 'TV noticias'; let added = 0;
+    for (const [n, h, id] of L) {
+      if (has(n, h, id)) continue;
+      const c = { uid:uid(), platform:'youtube', ref:{ handle:h, ...(id ? { channelId:id } : {}) }, name:n, cat };
+      if (db.key) try { await resolveYT(c); c.name = n; } catch {}
+      if (!c.ref.channelId) continue;
+      c.num = Math.max(0, ...db.chans.map(x => +x.num || 0)) + 1; db.chans.push(c); added++;
+    }
+    if (added) { if (!db.cats.includes(cat)) db.cats.push(cat); save(); render(); refresh(); toast(`<b>📺 Sumé ${added} canal${added > 1 ? 'es' : ''} de noticias</b><small>Con su grilla en la Guía (categoría "${cat}")</small>`, { ms:5000 }); }
+    else save();
+  }
   function init() {
+    setTimeout(() => seedNoticias().catch(() => {}), 4000);
     if (ensureNums()) saveLocal();
     document.body.insertAdjacentHTML('beforeend', `<dialog id="dlgOrder" style="width:min(760px,96vw)"><h3>🔢 Ordenar y editar canales</h3>
       <p>Arrastrá con ☰, usá ↑ ↓ o escribí el número de canal. También podés cambiar el nombre y la categoría. Nada se guarda hasta que toques <b>Guardar cambios</b>.</p>
