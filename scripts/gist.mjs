@@ -11,9 +11,9 @@ export async function readDb() {
     const gs = await (await fetch('https://api.github.com/gists?per_page=100', { headers:{ ...h, Authorization:'Bearer ' + id } })).json();
     const g = Array.isArray(gs) && gs.find(x => x.files?.['mi-streaming.json']);
     if (!g) { console.log('El secreto GIST_ID no es un código de Gist válido (ni un token que lo encuentre)'); return null; }
-    id = g.id;
+    id = g.id; h.Authorization = 'Bearer ' + (process.env.GIST_ID || '').trim();   // con tu token: sin el límite de pedidos anónimos
   } catch { return null; }
-  if (process.env.GH_TOKEN) h.Authorization = 'Bearer ' + process.env.GH_TOKEN;
+  if (process.env.GH_TOKEN && !h.Authorization) h.Authorization = 'Bearer ' + process.env.GH_TOKEN;
   try {
     let g = await (await fetch('https://api.github.com/gists/' + id, { headers:h })).json();
     if (!g.files && h.Authorization) { delete h.Authorization; g = await (await fetch('https://api.github.com/gists/' + id, { headers:h })).json(); }

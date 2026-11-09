@@ -76,21 +76,24 @@ const Musica = (() => {
   const st = () => { try { return p.getPlayerState(); } catch { return -1; } };
   function toggle() { if (!p) return; st() === 1 ? p.pauseVideo() : p.playVideo(); }
   async function play(it) {
-    cur = it; track = null;
+    cur = it; track = null; lastErr = null; note('');
     document.body.classList.add('hasmusic');
     bar();
     try { await loadScript('https://www.youtube.com/iframe_api'); }
     catch { toast('<b>No se pudo cargar el reproductor de YouTube</b><small>Revisá la conexión o el bloqueador de anuncios.</small>', { cls:'info' }); return; }
-    await new Promise(r => { if (window.YT && YT.Player) return r(); const prev = window.onYouTubeIframeAPIReady; window.onYouTubeIframeAPIReady = () => { prev && prev(); r(); }; });
+    // espero a que YouTube esté listo (con tope: si no llega, aviso en vez de quedarme mudo)
+    const okApi = await Promise.race([new Promise(r => { if (window.YT && YT.Player) return r(true); const prev = window.onYouTubeIframeAPIReady; window.onYouTubeIframeAPIReady = () => { prev && prev(); r(true); }; const t = setInterval(() => { if (window.YT && YT.Player) { clearInterval(t); r(true); } }, 300); }), new Promise(r => setTimeout(() => r(false), 12000))]);
+    if (!okApi || cur !== it) { if (!okApi) { note('YouTube no respondió. Revisá la conexión o un bloqueador de anuncios.'); } return; }
     if (p) { try { p.destroy(); } catch {} p = null; }
     $('muVid').innerHTML = '<div id="muYT"></div>';
     const vars = { autoplay:1, playsinline:1, rel:0, origin:location.origin };
     if (it.kind === 'playlist') { vars.listType = 'playlist'; vars.list = it.ref; }
     p = new YT.Player('muYT', { width:'100%', height:'100%', videoId:it.kind === 'video' ? it.ref : (it.first || undefined), playerVars:vars,
       events:{
-        onReady:() => { ready = true; errs = 0; p.playVideo(); if (shuffle && it.kind === 'playlist') applyShuffle(true); },
-        onStateChange:e => { if (e.data === 1) { AudioMgr.focus('music'); errs = 0; } upd(); },
+        onReady:() => { ready = true; errs = 0; p.playVideo(); if (shuffle && it.kind === 'playlist') applyShuffle(true); kick(it); },
+        onStateChange:e => { if (e.data === 1) { AudioMgr.focus('music'); errs = 0; note(''); } upd(); },
         onError:e => {
+          lastErr = e.data; note(ERR[e.data] || 'YouTube dio el error ' + e.data);
           if (e.data === 101 || e.data === 150 || e.data === 100 || e.data === 153) {
             errs++;
             if (errs >= 3 || it.kind !== 'playlist') {
@@ -102,6 +105,23 @@ const Musica = (() => {
         } } });
     clearInterval(poll); poll = setInterval(upd, 2000);
     if (Nav.current === 'musica') render();
+  }
+  /* Si a los pocos segundos no suena: el navegador frenó el arranque automático. Pruebo arrancar en silencio
+     (eso siempre se permite) y subir el volumen; si tampoco, te pido que toques ▶ y te digo qué pasa. */
+  let lastErr = null;
+  const ERR = { 2:'El link de la lista no es válido.', 5:'El reproductor de YouTube falló en este aparato.', 100:'Ese tema o lista ya no existe (o es privado).',
+    101:'El sello no deja escuchar este tema fuera de YouTube.', 150:'El sello no deja escuchar este tema fuera de YouTube.', 153:'YouTube no reconoció desde dónde se pide (falta el origen).' };
+  function note(t) { const n = $('muNote'); if (n) { n.textContent = t; n.hidden = !t; } }
+  function kick(it) {
+    setTimeout(() => {
+      if (cur !== it || !p || st() === 1 || st() === 3) return;
+      try { p.mute(); p.playVideo(); } catch {}
+      setTimeout(() => {
+        if (cur !== it || !p) return;
+        if (st() === 1) { try { p.unMute(); } catch {} AudioMgr.focus('music'); return; }
+        note(lastErr ? ERR[lastErr] || 'YouTube dio el error ' + lastErr : 'No arrancó solo: tocá ▶ para que suene.');
+      }, 1800);
+    }, 3500);
   }
   // el aleatorio necesita que YouTube ya haya cargado la lista: espero a que esté y arranco en un tema al azar
   function applyShuffle(start) {
@@ -130,7 +150,7 @@ const Musica = (() => {
     if (!b.dataset.built) {
       b.dataset.built = 1;
       b.innerHTML = `<div class="muvid" id="muVid"></div>
-        <div class="tx" id="muT"></div>
+        <div class="tx" id="muT"></div><span class="munote" id="muNote" hidden></span>
         <button id="muPrev" title="Anterior">⏮</button><button id="muPlay">▶</button><button id="muNext" title="Siguiente">⏭</button>
         <button id="muShuf" title="Aleatorio">🔀</button><button id="muSnd" title="Escuchar esto">🔊</button>
         <input type="range" id="muVol" min="0" max="100" step="5" value="100">
