@@ -37,13 +37,14 @@ const toks = s => nrm(s).split(/\s+/).filter(w => w && !STOP.has(w));
 const pool = {};
 async function clubsOf(cc) {
   if (pool[cc]) return pool[cc];
-  const q = `SELECT ?club ?l ?v ?vl ?c ?sl WHERE { VALUES ?k { wd:Q476028 wd:Q847017 wd:Q2367225 } ?club wdt:P31/wdt:P279? ?k; wdt:P17 wd:${cc}; wikibase:sitelinks ?sl; p:P115 ?st. FILTER(?sl >= 3)
+  const body = sel => `SELECT ?club ?l ?v ?vl ?c ?sl WHERE { ${sel} ?club wdt:P17 wd:${cc}; wikibase:sitelinks ?sl; p:P115 ?st. FILTER(?sl >= 3)
     ?st ps:P115 ?v. FILTER NOT EXISTS { ?st pq:P582 [] } ?v wdt:P625 ?c.
     { ?club rdfs:label ?l } UNION { ?club skos:altLabel ?l } FILTER(LANG(?l) IN ("es","en","pt"))
     OPTIONAL { ?v rdfs:label ?vl FILTER(LANG(?vl) = "es") } }`;
-  const j = await getJ('https://query.wikidata.org/sparql?query=' + encodeURIComponent(q), { Accept:'application/sparql-results+json' });
+  const ask = async q => { for (let i = 0; i < 3; i++) { const j = await getJ('https://query.wikidata.org/sparql?query=' + encodeURIComponent(q), { Accept:'application/sparql-results+json' }); if (j?.results) return j.results.bindings; await sleep(8000); } return []; };
+  const rows = [...await ask(body('?club wdt:P31/wdt:P279* wd:Q476028.')), ...await ask(body('VALUES ?k { wd:Q847017 wd:Q2367225 } ?club wdt:P31 ?k.'))];
   const m = new Map();
-  for (const x of j?.results?.bindings || []) {
+  for (const x of rows) {
     const id = x.club.value; const o = m.get(id) || { names:new Set(), sl:+x.sl.value, v:x.vl?.value || '', c:x.c.value };
     o.names.add(x.l.value); m.set(id, o);
   }

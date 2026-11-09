@@ -6,3 +6,4 @@ try { execSync('node scripts/fetch-estadios.mjs out klasito7/mi-streaming arg.1,
 // v3
 // v4
 // v5
+// v6
