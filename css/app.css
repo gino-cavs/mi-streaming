@@ -1066,3 +1066,27 @@ html.lite .zfx { background:#000; }
 .albcov .muplay { opacity:1; }
 html.lite .tk-run { animation:tk 60s linear infinite !important; }   /* el ticker sí se mueve (es liviano) */
 html.tvapp #player.tvmode .zi:focus { outline:3px solid #ffd400 !important; background:#ffffff1a; }
+
+/* ===== Pantalla TV: barra de abajo = hora · día · clima; FUNVS AL MINUTO entra cada media hora (y 00 / y 30, 10 min) ===== */
+body.tvlock .hud-clock { left:0; right:0; bottom:0; height:46px; display:flex; align-items:stretch; grid-template-columns:none; grid-template-rows:none;
+  background:linear-gradient(90deg, #0b1438f5, #0b0f1ef2 55%); border-top:3px solid #2f6bff; box-shadow:0 -6px 20px #0006; transition:transform .5s ease; }
+body.tvlock .hud-time { grid-row:auto; font-size:30px; padding:0 18px; letter-spacing:1px; background:linear-gradient(135deg, #2f6bff, #1238b5); }
+body.tvlock .hud-date { display:flex; align-items:center; font-size:16px; padding:0 16px; clip-path:polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); padding-right:28px; }
+body.tvlock .hud-wx { background:none; align-items:center; gap:0; font-size:16px; padding:0 8px; }
+body.tvlock .hud-wx span { display:flex; align-items:center; gap:6px; padding:0 14px; border-left:1px solid #ffffff22; }
+body.tvlock .hud-wx span:first-child { border-left:0; }
+body.tvlock .hud-wx i { font-style:normal; font-size:20px; }
+body.tvlock .hud-wx b { font-size:19px; color:#9fc0ff; }
+body.tvlock .hud-ticker { height:46px; transform:translateY(110%); transition:transform .5s ease; }
+body.tvlock.tknews .hud-ticker { transform:none; }
+body.tvlock.tknews .hud-clock { transform:translateY(110%); }
+.tk-lbl, .tk-lbl b { color:#1238b5; }
+.tk-lbl { background:#fff; font-size:18px; padding:0 18px; }
+.tk-time { display:flex; align-items:center; padding:0 14px; background:linear-gradient(135deg, #2f6bff, #1238b5); font-size:20px; letter-spacing:1px; z-index:1; }
+@media (max-width:600px) {
+  body.tvlock .hud-clock, body.tvlock .hud-ticker { height:34px; bottom:0; }
+  body.tvlock .hud-time { font-size:18px; padding:0 8px; } body.tvlock .hud-date { font-size:10px; padding:0 18px 0 8px; }
+  body.tvlock .hud-wx { font-size:11px; } body.tvlock .hud-wx span { padding:0 6px; gap:3px; } body.tvlock .hud-wx i { font-size:13px; } body.tvlock .hud-wx b { font-size:12px; }
+  .tk-lbl { font-size:12px; padding:0 8px; } .tk-time { font-size:13px; padding:0 8px; }
+}
+body.tvlock .hud-wx span { white-space:nowrap; }

@@ -33,7 +33,7 @@ const TV = (() => {
   }
   function paintWeather() {
     const el = $('tvWx'); if (!el) return;
-    el.innerHTML = weather ? weather.list.map(w => `<span>${w.ic} ${esc(w.name)} <b>${w.t}°</b></span>`).join('') : '';
+    el.innerHTML = weather ? weather.list.map(w => `<span><i>${w.ic}</i>${esc(w.name)} <b>${w.t}°</b></span>`).join('') : '';
     if ($('fWx')) $('fWx').innerHTML = el.innerHTML;
   }
 
@@ -60,7 +60,7 @@ const TV = (() => {
           <input type="range" id="tvVol" min="0" max="1" step="0.05" title="Volumen">
           <button id="tvStar" title="Guardar este momento">⭐</button>
         </div>
-        <div class="hud-ticker" id="tvTicker"><span class="tk-lbl">FUNVS <b>AL MINUTO</b></span><div class="tk-wrap"><div class="tk-run" id="tvRun"></div></div></div>
+        <div class="hud-ticker" id="tvTicker"><span class="tk-lbl">FUNVS <b>AL MINUTO</b></span><div class="tk-wrap"><div class="tk-run" id="tvRun"></div></div><b class="tk-time" id="tvTime2"></b></div>
         <button class="hud-exit" id="tvExit">✕ Salir de pantalla TV</button>
       </div>`);
     // en la página: arriba, dentro del encabezado; abajo, una franja propia (como un canal de TV)
@@ -204,7 +204,10 @@ const TV = (() => {
     const d = new Date();
     $('tvTime').textContent = d.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
     $('tvDate').textContent = `${DIAS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}`;
-    $('fTime').textContent = $('tvTime').textContent; $('fDate').textContent = $('tvDate').textContent;
+    $('fTime').textContent = $('tvTime2').textContent = $('tvTime').textContent; $('fDate').textContent = $('tvDate').textContent;
+    // FUNVS AL MINUTO: entra a las y 00 y a las y 30, se queda 10 minutos; el resto del tiempo, hora, día y clima
+    const news = d.getMinutes() % 30 < 10;
+    if (news !== document.body.classList.contains('tknews')) { document.body.classList.toggle('tknews', news); if (news) updateTicker(); }
     const id = AudioMgr.active, s = id && AudioMgr.sink(id);
     const name = s && s.label ? s.label() : '';
     const tag = !s ? '' : s.radio ? 'RADIO' : s.music ? 'MÚSICA' : s.prem && s.prem() ? 'ESTRENO' : s.live && s.live() ? 'EN VIVO' : 'AHORA';
