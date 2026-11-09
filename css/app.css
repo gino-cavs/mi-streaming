@@ -1349,3 +1349,13 @@ html.lite .mapmk .mkdial.on { animation:none; }
 @media (max-width:700px) { .mapbody { flex-direction:column-reverse; } .mapside { width:auto; height:34%; } }
 .mapmk.fav img { border-color:#facc15; }
 .mapmk.hoy { z-index:2; }
+
+/* ===== 📱 Modo celu: margen para las esquinas redondas de la pantalla (regulable en Ajustes) ===== */
+html.dev-celu #bottom { padding:0 var(--edge, 18px) var(--edgeb, 10px); background:#0b0f1e; }
+html.dev-celu #toasts { right:calc(var(--edge, 18px) + 6px); }
+html.dev-celu .hud-clock { left:calc(var(--edge, 18px) + 4px); }
+html.dev-celu .hud-ctl { right:calc(var(--edge, 18px) + 4px); }
+html.dev-celu body.tvlock .hud-clock, html.dev-celu body.tvlock .hud-ticker { left:0; right:0; padding:0 var(--edge, 18px) var(--edgeb, 10px); height:calc(46px + var(--edgeb, 10px)); box-sizing:border-box; }
+html.dev-celu body.tvlock .hud-ctl { bottom:calc(56px + var(--edgeb, 10px)); }
+html.dev-celu body.tvlock .hud-np { left:calc(var(--edge, 18px) + 4px); }
+html.dev-celu body.tvlock .hud-logo { right:calc(var(--edge, 18px) + 4px); }

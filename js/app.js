@@ -2,9 +2,9 @@
    y moverse con las flechas del control (navegación espacial). En la compu no molesta:
    solo se activa al usar las flechas fuera de un campo de texto. */
 const FUNVSApp = (() => {
-  const UA = navigator.userAgent, inApp = /FUNVSApp/.test(UA), tv = /FUNVSTV|AFT[A-Z]|Silk.*TV/.test(UA);
+  const UA = navigator.userAgent, inApp = /FUNVSApp/.test(UA), tv = Device.mode === 'tv';
   if (inApp) document.documentElement.classList.add('inapp');
-  if (tv) document.documentElement.classList.add('tvapp', 'dpad');
+  // (las clases tvapp/dpad las pone Device según el modo elegido)
 
   const SEL = 'a[href], button:not([disabled]), input:not([disabled]):not([type=hidden]), select, textarea, summary, [tabindex]:not([tabindex="-1"])';
   const vis = el => { const r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return false;

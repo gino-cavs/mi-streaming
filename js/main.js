@@ -92,6 +92,10 @@ function initSettings() {
   const zf = () => S.get('zapFx', { on:true, sound:false });
   $('setZfx').onchange = e => { S.set('zapFx', { ...zf(), on:e.target.checked }); if (e.target.checked && Player.slots[Player.sel]) Player.zapFx(Player.sel, Player.slots[Player.sel].c); };
   $('setZfxS').onchange = e => S.set('zapFx', { ...zf(), sound:e.target.checked });
+  $('setDevice').innerHTML = Object.entries(Device.MODES).map(([k, v]) => `<option value="${k}" ${k === Device.mode ? 'selected' : ''}>${v}${!Device.chosen && k === Device.mode ? ' (detectado)' : ''}</option>`).join('');
+  $('setDevice').onchange = e => Device.set(e.target.value);
+  if (Device.mode === 'celu') { $('setEdgeRow').style.display = 'flex'; $('setEdge').value = Device.edge; $('setEdgeV').textContent = Device.edge + 'px';
+    $('setEdge').oninput = e => { Device.setEdge(e.target.value); $('setEdgeV').textContent = e.target.value + 'px'; }; }
   $('setLite').onchange = e => { Lite.set(e.target.checked); toast(e.target.checked ? '⚡ Modo liviano prendido en este aparato' : 'Modo liviano apagado', { ms:2500 }); };
   $('btnSettings').onclick = () => {
     $('setHud').checked = TV.on; $('setZfx').checked = S.get('zapFx', { on:true }).on; $('setLite').checked = Lite.on; $('setZfxS').checked = !!S.get('zapFx', {}).sound;
