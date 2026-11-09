@@ -6,7 +6,7 @@ const Actualidad = (() => {
   let data = null, at = 0;
   async function load() {
     if (data && Date.now() - at < 10 * 60e3) return data;
-    try { const j = await (await fetch(REPO.data + 'actualidad.json?t=' + Math.floor(Date.now() / 600e3))).json(); if (j && j.topics) { data = j; at = Date.now(); data.by = Object.fromEntries(j.topics.map(t => [t.id, t])); } } catch {}
+    try { const j = await (await fetch(REPO.data + 'actualidad.json?t=' + Math.floor(Date.now() / 600e3))).json(); if (j && j.topics) { j.topics = j.topics.filter(t => !muted(t.t)); j.ahora = (j.ahora || []).filter(id => j.topics.some(t => t.id === id)); data = j; at = Date.now(); data.by = Object.fromEntries(j.topics.map(t => [t.id, t])); } } catch {}
     return data;
   }
   const desde = t => { const h = (Date.now() - Date.parse(t.first)) / 3600e3; return h < 1 ? 'hace menos de 1 hora' : h < 24 ? `hace ${Math.round(h)} h` : `hace ${Math.round(h / 24)} día${Math.round(h / 24) === 1 ? '' : 's'}`; };

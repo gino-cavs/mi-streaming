@@ -9,7 +9,7 @@ const Noticias = (() => {
     if (data && !force && Date.now() - data._at < 10 * 60e3) return data;
     if (!loading) loading = fetch(REPO.data + 'news.json?t=' + Math.floor(Date.now() / 300e3))
       .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(j => { j._at = Date.now(); data = j; return j; })
+      .then(j => { j._at = Date.now(); j.items = (j.items || []).filter(i => !muted(i.t)); data = j; return j; })
       .finally(() => { loading = null; });
     return loading;
   }

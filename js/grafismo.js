@@ -9,7 +9,7 @@ const Grafismo = (() => {
   let shownB = new Set(S.get('breakShown', [])), bTimer = null;
   async function checkBreaking() {
     let a = null; try { a = await (await fetch(REPO.data + 'actualidad.json?t=' + Math.floor(Date.now() / 600e3))).json(); } catch {}
-    const t = (a?.topics || []).find(t => (a.ahora || []).includes(t.id) && t.big && Date.now() - Date.parse(t.first) < 6 * 3600e3 && !shownB.has(t.id));
+    const t = (a?.topics || []).find(t => !muted(t.t) && (a.ahora || []).includes(t.id) && t.big && Date.now() - Date.parse(t.first) < 6 * 3600e3 && !shownB.has(t.id));
     if (t) breaking(t.t, t.id);
   }
   function breaking(text, id) {

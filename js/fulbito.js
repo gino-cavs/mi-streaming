@@ -276,7 +276,7 @@ const Fulbito = (() => {
 
   // renglones para la barra que corre abajo en la Pantalla TV
   const ticker = () => Object.values(today).flatMap(L => L.events)
-    .filter(m => m.state === 'in' || isFav(m.h.team) || isFav(m.a.team))
+    .filter(m => isFav(m.h.team) || isFav(m.a.team) || (m.state === 'in' && !muted(m.h.team.displayName) && !muted(m.a.team.displayName)))
     .map(m => { const n = t => t.team.shortDisplayName || t.team.displayName;
       const ch = m.state !== 'post' ? channelsFor(m) : [];
       return `⚽ ${n(m.h)} ${m.state === 'pre' ? 'vs' : m.hs + '-' + m.as} ${n(m.a)} ${m.state === 'in' ? '(' + m.st + ')' : m.state === 'pre' ? '· ' + m.st : '(final)'}${ch.length ? ' · 📺 ' + ch[0] : ''}`; });

@@ -238,6 +238,13 @@ setInterval(() => DND.paint(), 60e3);
 
 /* ---------- Avisos ---------- */
 function warn(t) { $('warns').innerHTML = `<div class="warn">${esc(t)}<button onclick="this.parentNode.remove()">OK</button></div>`; }
+/* 🙈 Temas silenciados en las noticias (FUNVS al minuto, Noticias, Último momento, Actualidad). Se editan en ⚙ Ajustes. */
+const MUTE_DEF = ['boca', 'river', 'xeneize', 'millonario', 'millonarios', 'riquelme', 'bombonera'];
+function muted(text) {
+  const L = db.news?.mute ?? MUTE_DEF; if (!L.length || !text) return false;
+  const t = ' ' + norm(text).replace(/[^a-z0-9ñ]+/g, ' ') + ' ';
+  return L.some(w => { const k = norm(w).replace(/[^a-z0-9ñ ]+/g, ' ').trim(); return k && t.includes(' ' + k + ' '); });
+}
 function toast(html, { cls = '', ms = 9000, onclick, force } = {}) {
   if (!force && /goal|race/.test(cls) && DND.active()) { DND.add(html); return; }   // No molestar: se guarda para después
   // en la Pantalla TV los avisos salen en la barra de abajo (no tapan el video); el cartelito del zapping sigue igual

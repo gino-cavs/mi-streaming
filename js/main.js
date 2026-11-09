@@ -93,6 +93,8 @@ function initSettings() {
   $('setYtClean').onchange = e => { S.set('ytClean', e.target.checked); toast('🧼 Se aplica al próximo video que pongas', { ms:2500 }); };
   $('setZfx').onchange = e => { S.set('zapFx', { ...zf(), on:e.target.checked }); if (e.target.checked && Player.slots[Player.sel]) Player.zapFx(Player.sel, Player.slots[Player.sel].c); };
   $('setZfxS').onchange = e => S.set('zapFx', { ...zf(), sound:e.target.checked });
+  $('setMute').value = (db.news?.mute ?? MUTE_DEF).join(', ');
+  $('setMute').onchange = e => { db.news.mute = e.target.value.split(',').map(x => x.trim()).filter(Boolean); save(); toast('🙈 Listo: lo nuevo ya sale filtrado', { ms:2500 }); Noticias.load(true).then(() => Nav.current === 'noticias' && Noticias.render()).catch(() => {}); };
   $('setIcal').value = db.grillaIcal || '';
   $('setIcal').onchange = e => { const v = e.target.value.trim(); if (v && !/^(https|webcal):\/\/.+/.test(v)) return toast('<b>Eso no parece un link de calendario</b>', { cls:'info' });
     db.grillaIcal = v; save(); toast(v ? '<b>🗓 Calendario guardado</b><small>En menos de media hora tus programas aparecen en la Guía.</small>' : '🗓 Calendario quitado', { ms:4000 }); };
