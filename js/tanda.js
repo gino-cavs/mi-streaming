@@ -20,11 +20,14 @@ const Tanda = (() => {
   /** Tanda corta y vuelta a lo que había */
   async function play(n = 3 + Math.floor(Math.random() * 2), auto = false) {
     const l = await load(); if (!l.length) return toast('<b>Para la tanda retro necesito tu clave de YouTube</b><small>Cargala en ⚙ Ajustes.</small>', { cls:'info' });
-    const prev = Player.slots[Player.sel]?.c && Player.slots[Player.sel].c.uid !== 'tanda' ? Player.slots[Player.sel].c : null, pick = shuffle(l).slice(0, n);
+    const s = Player.slots[Player.sel], pick = shuffle(l).slice(0, n);
+    let prev = s?.c && s.c.uid !== 'tanda' ? s.c : null, at = null;
+    // lo que estabas mirando queda en pausa: al volver sigue desde el mismo segundo (en los 24/7, el mismo capítulo)
+    if (prev && s.e?.kind === 'youtube' && s.api?.p) { try { at = Math.max(0, Math.floor(s.api.p.getCurrentTime()) - 2); } catch {} if (prev.t247 && s.e.id) prev = { ...prev, ref:{ ...prev.ref, video:s.e.id } }; }
     if (auto) try { Grafismo.separator('Tanda retro · ya volvemos'); } catch {}
-    Player.play({ uid:'tanda', platform:'youtube', ref:{ video:pick[0], more:pick.slice(1) }, name:'📼 Tanda retro', noResume:true, onEnd:() => { if (prev) Player.play(prev); } });
+    Player.play({ uid:'tanda', platform:'youtube', ref:{ video:pick[0], more:pick.slice(1) }, name:'📼 Tanda retro', noResume:true, onEnd:() => { if (prev) Player.play(prev, at != null && (prev.t247 || prev.ref?.video) ? { start:at } : {}); } });
   }
-  // en los 24/7: cada ~30 minutos de mirar, una tanda de 2-3 publicidades (el canal sigue su grilla: al volver, va por donde corresponde, como en la tele)
+  // en los 24/7 (nunca en los vivos): cada ~30 minutos de mirar, una tanda de 2-3 publicidades; lo que mirabas queda en pausa y sigue al volver
   setInterval(() => {
     if (!S.get('tandaAuto', true)) return;
     const c = Player.slots[Player.sel]?.c, playing = c?.t247 && !document.hidden && AudioMgr.sink('slot' + Player.sel)?.paused?.() === false;

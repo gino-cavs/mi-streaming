@@ -1,6 +1,6 @@
 // 📺 Programación de canales de TV de aire, desde la web de cada canal (sus robots.txt lo permiten).
 // Sale en el mismo formato que la guía de streaming: [día, inicio, fin, programa, conductores], para que la guía,
-// la barra Ahora / A continuación, los avisos y el buscador la usen igual. Se lee cada 6 horas como mucho.
+// la barra Ahora / A continuación, los avisos y el buscador la usen igual. Se lee una vez por día (para cuidar los límites).
 // ESPN, TNT Sports y DSports bloquean la lectura automática; Telefe, América y El Nueve no publican grilla: no están.
 // Uso: node scripts/fetch-tvcanales.mjs carpeta_salida [usuario/repo]
 import { writeFile, mkdir } from 'node:fs/promises';
@@ -15,7 +15,7 @@ const ent = s => String(s || '').replace(/&amp;/g, '&').replace(/&#0?39;|&#8217;
 
 let prev = null;
 try { const r = await fetch(`https://raw.githubusercontent.com/${repo}/datos/tvcanales.json?t=${Date.now()}`); if (r.ok) prev = await r.json(); } catch {}
-if (prev?.canales?.length && Date.now() - Date.parse(prev.updated) < 6 * 3600e3 && !process.env.FORCE) { await writeFile(dir + '/tvcanales.json', JSON.stringify(prev)); console.log('TV de aire: reuso la de', prev.updated); process.exit(0); }
+if (prev?.canales?.length && Date.now() - Date.parse(prev.updated) < 24 * 3600e3 && !process.env.FORCE) { await writeFile(dir + '/tvcanales.json', JSON.stringify(prev)); console.log('TV de aire: reuso la de', prev.updated); process.exit(0); }
 
 /* El Trece: datos estructurados (schema.org BroadcastEvent) de la grilla de hoy */
 async function eltrece() {

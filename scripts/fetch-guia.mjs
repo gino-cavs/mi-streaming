@@ -1,13 +1,13 @@
 // 📺 Grilla de los canales de streaming (laguiadelstreaming.com): canal, logo, usuario de YouTube y la
 // programación semanal (día, hora de inicio y de fin, programa y panelistas). Su robots.txt permite leer
-// la página (no usamos /api/). Se lee cada 6 horas como mucho.
+// la página (no usamos /api/). Se lee una vez por día (para cuidar los límites).
 // Uso: node scripts/fetch-guia.mjs carpeta_salida [usuario/repo]
 import { writeFile, mkdir } from 'node:fs/promises';
 const dir = process.argv[2] || '.', repo = process.argv[3] || 'klasito7/mi-streaming';
 await mkdir(dir, { recursive:true });
 let prev = null;
 try { const r = await fetch(`https://raw.githubusercontent.com/${repo}/datos/guia.json?t=${Date.now()}`); if (r.ok) prev = await r.json(); } catch {}
-if (prev?.canales?.length && Date.now() - Date.parse(prev.updated) < 6 * 3600e3) { await writeFile(dir + '/guia.json', JSON.stringify(prev)); console.log('Guía: reuso la de', prev.updated); process.exit(0); }
+if (prev?.canales?.length && Date.now() - Date.parse(prev.updated) < 24 * 3600e3) { await writeFile(dir + '/guia.json', JSON.stringify(prev)); console.log('Guía: reuso la de', prev.updated); process.exit(0); }
 let html = '';
 try { const r = await fetch('https://laguiadelstreaming.com/', { headers:{ 'User-Agent':'Mozilla/5.0 (compatible; FUNVS-guia/1.0; uso personal)' } }); if (r.ok) html = await r.text(); } catch {}
 // los datos vienen dentro de la página, en los bloques self.__next_f.push([1,"…"])
