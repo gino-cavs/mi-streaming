@@ -2,7 +2,10 @@
 import { readDb } from './gist.mjs';
 import { writeFile, mkdir } from 'node:fs/promises';
 const db = await readDb(); const key = db?.key; await mkdir('out', { recursive:true });
-if (!key) { await writeFile('out/r.txt', 'sin clave (gist ' + (db ? 'ok' : 'no leído') + ')'); process.exit(0); }
+if (!key) {
+  const id = (process.env.GIST_ID || '').trim(); let d = `GIST_ID: ${id ? 'presente, ' + id.length + ' caracteres, ' + (/^[0-9a-f]{20,40}$/.test(id) ? 'formato OK' : 'formato RARO (¿pegaste el link entero o con espacios?)') : 'VACÍO'}\n`;
+  if (id) { const m = id.match(/[0-9a-f]{20,40}/); for (const x of [id, m?.[0]].filter((v, i, a) => v && a.indexOf(v) === i)) { const r = await fetch('https://api.github.com/gists/' + encodeURIComponent(x), { headers:{ 'User-Agent':'x' } }); const j = await r.json().catch(() => ({})); d += `probe ${x === id ? 'tal cual' : 'solo el código'}: HTTP ${r.status}, archivos: ${Object.keys(j.files || {}).join(', ') || '-'}\n`; } }
+  await writeFile('out/r.txt', 'sin clave\n' + d); process.exit(0); }
 const G = ['dutch techno', 'salsa', 'progressive rock', 'Galante el Emperador', 'dubstep', 'bossa nova', 'cumbia villera', 'afrobeat', 'tango', 'hardstyle', 'jazz fusion', 'k-pop'];
 let out = '';
 for (const g of G) for (const q of [g + ' album', g]) {
