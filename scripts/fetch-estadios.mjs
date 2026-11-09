@@ -79,8 +79,9 @@ const out = [];
 for (const t of teams.values()) {
   const o = old.get(t.id);
   if (o?.lat != null) { out.push({ ...o, ...t, lat:o.lat, lng:o.lng, est:o.est, city:o.city }); continue; }
-  const e = await viaEspn(t);
-  let c = await viaWikidata(t, e.city);
+  const local = t.ligas.some(l => PAIS[l.split('.')[0]]);
+  let e = local ? {} : await viaEspn(t), c = await viaWikidata(t, e.city);
+  if (!c && local) e = await viaEspn(t);
   if (!c && e.est) c = await osm([e.est, e.city].filter(Boolean).join(', '));
   if (!c && e.city) { const x = await osm(e.city); if (x) c = { ...x, aprox:true }; }
   if (!c) sin++; else nuevos++;

@@ -101,3 +101,40 @@ const RadioMapa = (() => {
   }
   return { open };
 })();
+
+/* =========================================================
+   ⚽ Fulbito en el globo: cada equipo de tus ligas en su estadio. Los que juegan hoy, resaltados con el partido.
+   ========================================================= */
+const FulbitoMapa = (() => {
+  let data = null;
+  async function open() {
+    if (!data) try { data = await (await fetch(REPO.data + 'estadios.json?t=' + Math.floor(Date.now() / 36e5))).json(); } catch { data = null; }
+    if (!data?.equipos?.length) return toast('<b>Todavía no están los estadios</b><small>Se arman solos en GitHub; probá en un rato.</small>', { cls:'info' });
+    const L = db.futbol.leagues.length ? db.futbol.leagues : null;
+    const games = {}; Object.values(Fulbito.today() || {}).forEach(x => (x.events || []).forEach(m => { games[m.h.team.id] = m; games[m.a.team.id] = m; }));
+    const fav = t => db.futbol.teams.some(f => { const a = norm(f), b = norm(t.n), c = norm(t.c); return b.includes(a) || a.includes(b) || (c && a === c); });
+    const fix = db.estGeo || {};
+    const eq = data.equipos.map(t => fix[t.id] ? { ...t, ...fix[t.id], aprox:false } : t).filter(t => !L || t.ligas.some(l => L.includes(l)) || games[t.id] || fav(t));
+    const rank = t => games[t.id] ? 0 : fav(t) ? 1 : 2;
+    eq.sort((a, b) => rank(a) - rank(b) || a.c.localeCompare(b.c));
+    const pts = eq.map(t => {
+      const m = games[t.id], vs = m && `${m.h.team.shortDisplayName} ${m.state === 'pre' ? 'vs' : m.hs + '-' + m.as} ${m.a.team.shortDisplayName}`;
+      const local = m && m.h.team.id === t.id;
+      return { id:t.id, lat:t.lat, lng:t.lng, label:t.c, cls:(m ? 'hoy' : '') + (fav(t) ? ' fav' : ''),
+        sub:m ? `⚽ ${vs} · ${m.st}` : [t.est, t.city].filter(Boolean).join(' · ') + (t.aprox ? ' (aprox.)' : ''),
+        icon:`<img src="${esc(t.logo)}" alt="" style="width:26px;height:26px;object-fit:contain" loading="lazy">`,
+        html:`<img src="${esc(t.logo)}" alt="" loading="lazy">${m || fav(t) ? `<span class="mkname">${esc(t.c)}</span>` : ''}`,
+        pop:`<p>🏟️ ${esc(t.est || 'Estadio sin dato')}${t.city ? `<br><small>${esc(t.city)}</small>` : ''}</p>${m ? `<p><b>Hoy ${local ? 'juega acá' : 'juega de visitante'}:</b> ${esc(vs)} · ${esc(m.st)}</p>` : ''}<div class="btns"><button data-mact="fav">${fav(t) ? '★ Favorito' : '☆ Favorito'}</button><button data-mact="move" title="Si está mal ubicado">📍 Corregir</button></div>`,
+        act:async a => {
+          if (a === 'fav' && !fav(t)) { db.futbol.teams.push(t.c); save(); toast(`★ ${esc(t.c)} agregado a favoritos`); }
+          if (a === 'move') { const q = prompt(`¿Dónde juega ${t.c}? Escribí el estadio o la dirección (con la ciudad)`, t.est ? `${t.est}, ${t.city || ''}` : ''); if (!q) return;
+            const c = await Mapa.geocode(q); if (!c) return toast('<b>No encontré ese lugar</b>', { cls:'info' });
+            db.estGeo = { ...(db.estGeo || {}), [t.id]:{ ...c, est:q.split(',')[0] } }; save(); open(); }
+        } };
+    });
+    const hoy = new Set(eq.filter(t => games[t.id]).map(t => games[t.id].id)).size;
+    Mapa.open({ title:`⚽ Estadios de tus ligas${hoy ? ` · ${hoy} partido${hoy > 1 ? 's' : ''} hoy` : ''}`, pts, fit:false, center:[-58.5, -34.6], zoom:2.2,
+      side:'<p class="mut mapnote">En verde: los que juegan hoy. Ubicación de estadios: Wikidata y OpenStreetMap. Escudos: ESPN.</p>' });
+  }
+  return { open };
+})();

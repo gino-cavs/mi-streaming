@@ -1347,3 +1347,5 @@ dialog.mapdlg::backdrop { background:rgba(0,0,0,.7); }
 .mappop button.pri { background:#1d4ed8; color:#fff; }
 html.lite .mapmk .mkdial.on { animation:none; }
 @media (max-width:700px) { .mapbody { flex-direction:column-reverse; } .mapside { width:auto; height:34%; } }
+.mapmk.fav img { border-color:#facc15; }
+.mapmk.hoy { z-index:2; }

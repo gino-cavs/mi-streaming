@@ -202,7 +202,7 @@ const Fulbito = (() => {
           <button data-d="-1">Ayer</button><button data-d="0">Hoy</button><button data-d="1">Mañana</button><button data-d="2">Pasado</button>
         </div>
         <select id="fSort" title="Ordenar partidos" style="width:auto">${ORDS.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select>
-        <span class="sp" style="flex:1"></span><span class="upd" id="fUpd"></span><button id="fRef">⟳</button>
+        <span class="sp" style="flex:1"></span><span class="upd" id="fUpd"></span><button id="fMap" title="Los estadios de tus ligas en un globo">🌍 Estadios</button><button id="fRef">⟳</button>
       </div>
       <details class="cfg" id="fCfg" ${db.futbol.leagues.length ? '' : 'open'}>
         <summary>⚙ Elegir ligas y avisos de gol</summary>
@@ -223,6 +223,7 @@ const Fulbito = (() => {
       </details>
       <div id="fList"></div>
       <p class="mut" style="font-size:12px;margin-top:10px">Resultados: datos públicos de ESPN · Canales de TV: futbolenvivoargentina.com</p>`;
+    $('fMap').onclick = () => FulbitoMapa.open();
     $('fDays').onclick = async e => {
       const b = e.target.closest('[data-d]'); if (!b) return;
       day = +b.dataset.d;

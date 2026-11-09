@@ -32,6 +32,10 @@ jobs:
         continue-on-error: true
         timeout-minutes: 3
         run: node scripts/fetch-efemerides.mjs /tmp/datos "$GITHUB_REPOSITORY"
+      - name: Estadios de Fulbito (ESPN + Wikidata, una vez por mes)
+        continue-on-error: true
+        timeout-minutes: 15
+        run: node scripts/fetch-estadios.mjs /tmp/datos "$GITHUB_REPOSITORY"
       - name: Álbum del día (Wikidata + YouTube, una vez por día)
         continue-on-error: true
         timeout-minutes: 3
