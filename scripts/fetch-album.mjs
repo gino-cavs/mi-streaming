@@ -1,4 +1,5 @@
 // 💿 Álbum del día: un género al azar (bien ecléctico) y un álbum de ese género, elegidos por la fecha
+// (usa el secreto YT_KEY si existe: clave aparte para GitHub, sin restricción de sitio)
 // (el mismo en la compu, el celu y la tele). El álbum sale de Wikidata; los temas, del canal oficial "- Topic"
 // del artista en YouTube (con tu clave de YouTube del Gist). Corre en cada pasada pero solo trabaja una vez por día.
 // Uso: node scripts/fetch-album.mjs carpeta_salida [usuario/repo]     (TEST=1: prueba todos los géneros)
