@@ -118,11 +118,19 @@ const Musica = (() => {
     if (p) { try { p.destroy(); } catch {} p = null; }
     $('muVid').innerHTML = '<div id="muYT"></div>';
     const vars = { autoplay:1, playsinline:1, rel:0, origin:location.origin };
-    if (it.kind === 'playlist') { vars.listType = 'playlist'; vars.list = it.ref; }
-    if (it.kind === 'list') vars.playlist = it.ids.slice(1).join(',');   // álbum armado tema por tema
-    p = new YT.Player('muYT', { width:'100%', height:'100%', videoId:it.kind === 'video' ? it.ref : it.kind === 'list' ? it.ids[0] : (it.first || undefined), playerVars:vars,
+    // Las playlists por ID no le arrancan a YouTube desde afuera en algunos aparatos: si hay clave de YouTube,
+    // leo los temas y las paso tema por tema (igual que el álbum del día, que sí anda).
+    let ids = it.kind === 'list' ? it.ids : null;
+    if (it.kind === 'playlist' && db.key) {
+      ids = await playlistIds(it);
+      if (cur !== it) return;
+      if (ids && shuffle) ids = ids.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+    }
+    if (ids?.length) vars.playlist = ids.slice(1, 150).join(',');   // armada tema por tema
+    else if (it.kind === 'playlist') { vars.listType = 'playlist'; vars.list = it.ref; }
+    p = new YT.Player('muYT', { width:'100%', height:'100%', videoId:it.kind === 'video' ? it.ref : ids?.length ? ids[0] : (it.first || undefined), playerVars:vars,
       events:{
-        onReady:() => { ready = true; errs = 0; p.playVideo(); if (shuffle && it.kind === 'playlist') applyShuffle(true); kick(it); },
+        onReady:() => { ready = true; errs = 0; p.playVideo(); if (shuffle && it.kind === 'playlist' && !ids?.length) applyShuffle(true); kick(it); },
         onStateChange:e => { if (e.data === 1) { AudioMgr.focus('music'); errs = 0; note(''); } upd(); },
         onError:e => {
           lastErr = e.data; note(ERR[e.data] || 'YouTube dio el error ' + e.data);
@@ -137,6 +145,24 @@ const Musica = (() => {
         } } });
     clearInterval(poll); poll = setInterval(upd, 2000);
     if (Nav.current === 'musica') render();
+  }
+  /* Temas de una playlist (con tu clave de YouTube; 1 unidad cada 50 temas). Guardados un rato para no gastar. */
+  const plCache = {};
+  async function playlistIds(it) {
+    const c = plCache[it.ref]; if (c && Date.now() - c.at < 30 * 60e3) return c.ids;
+    const ids = []; let page = '';
+    try {
+      do {
+        const j = await Canales.yt('playlistItems', { part:'contentDetails,status', playlistId:it.ref, maxResults:50, ...(page ? { pageToken:page } : {}) });
+        (j.items || []).forEach(x => { if (x.status?.privacyStatus !== 'private' && x.contentDetails?.videoId) ids.push(x.contentDetails.videoId); });
+        page = j.nextPageToken || '';
+      } while (page && ids.length < 200);
+    } catch (e) {
+      note(/cannot be found|not.?found|404|private|forbidden/i.test(e.message || '') ? 'Esa playlist es privada: en YouTube Music ponela como "No listada" y va a sonar.' : e.message);
+      return null;
+    }
+    if (it.kind === 'playlist' && ids.length && it.count !== ids.length) { it.count = ids.length; save(); }
+    plCache[it.ref] = { ids, at:Date.now() }; return ids;
   }
   /* Si a los pocos segundos no suena: el navegador frenó el arranque automático. Pruebo arrancar en silencio
      (eso siempre se permite) y subir el volumen; si tampoco, te pido que toques ▶ y te digo qué pasa. */
