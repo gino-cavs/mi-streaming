@@ -30,10 +30,10 @@ const REPO = (() => {
 
 /* ---------- Datos ---------- */
 const DEVICE = S.get('deviceId', null) || (() => { const d = 'd' + Math.random().toString(36).slice(2, 8); S.set('deviceId', d); return d; })();
-const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music', 'prode', 'moments', 'stats', 'rap', 'oauth', 'boxeo', 'series', 'juegos', 'diario', 'tg', 'servicios', 'nav', 'peliculas', 'retro'];
+const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music', 'prode', 'moments', 'stats', 'rap', 'oauth', 'boxeo', 'series', 'juegos', 'diario', 'tg', 'servicios', 'nav', 'peliculas', 'retro', 'radEdit', 'radPedido'];
 const DEFAULTS = () => ({
   cats:['Fútbol', 'Streamers'], chans:[], key:'', refresh:5,
-  radios:[],
+  radios:[], radEdit:{}, radPedido:0,
   futbol:{ leagues:['arg.1', 'arg.copa', 'conmebol.libertadores', 'conmebol.sudamericana'],
            teams:['Vélez Sarsfield'], scope:'teams', sound:false, notif:false },
   news:{ topics:[], sources:[], setup:false },

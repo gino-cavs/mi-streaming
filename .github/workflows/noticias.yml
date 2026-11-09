@@ -32,6 +32,9 @@ jobs:
         continue-on-error: true
         timeout-minutes: 3
         run: node scripts/fetch-radios.mjs /tmp/datos "$GITHUB_REPOSITORY"
+        env:
+          GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Grilla de canales de streaming (laguiadelstreaming.com, cada 6 horas)
         continue-on-error: true
         timeout-minutes: 2

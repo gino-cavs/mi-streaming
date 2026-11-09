@@ -143,9 +143,10 @@ const Player = (() => {
             if (n) { s.e.id = n.v; try { p.loadVideoById({ videoId:n.v, startSeconds:n.off }); } catch {} paintActs(); }
           }
           if (e.data === 1 && last !== 1) AudioMgr.focus(sid);
-          last = e.data;
+          last = e.data; s.yst = e.data; s.ystAt = Date.now();
+          if (e.data === 0 && !s.c.t247) s.dead = true; if (e.data === 1) s.dead = false;
           d.classList.toggle('paused', e.data === 2);
-        } } });
+        }, onError:() => { s.dead = true; s.ystAt = Date.now(); } } });
         s.api = { p, destroy() {} };
         AudioMgr.register(sid, { mute() { try { p.mute(); } catch {} setMutedUI(true); }, unmute() { try { p.unMute(); } catch {} setMutedUI(false); },
           label:() => s.c.name, live:() => { const x = Canales.status[s.c.uid] || {}; return x.st === 'live' && !x.prem; }, prem:() => !!(Canales.status[s.c.uid] || {}).prem && (Canales.status[s.c.uid] || {}).st === 'live',
@@ -320,13 +321,41 @@ const Player = (() => {
     osd.innerHTML = `${num ? `<b>${esc(num)}</b>` : ''}<span>${esc((c?.name || '').toUpperCase())}</span>`;
     d.appendChild(osd); setTimeout(() => osd.classList.add('out'), 2600); setTimeout(() => osd.remove(), 3200);
   }
+  /* ---------- 📡 Seguir el vivo ----------
+     A veces YouTube corta el vivo y el canal arranca otro con un video nuevo: el reproductor se quedaba en el viejo.
+     Si el video termina, da error o se tranca, (y cada 4 minutos por las dudas) busco el vivo actual del canal y me paso solo. */
+  async function follow() {
+    for (let i = 0; i < 4; i++) {
+      const s = slots[i]; if (!s || s.e.kind !== 'youtube' || s.c.platform !== 'youtube' || s.c.ref.video || s.c.t247 || s.following) continue;
+      const now = Date.now(), stuck = (s.yst === 3 || s.yst === -1) && now - (s.ystAt || now) > 30e3;
+      const due = s.dead || stuck ? now - (s.chkAt || 0) > (s.gone ? 60e3 : 15e3) : now - (s.chkAt || s.t0 || now) > 4 * 60e3;
+      if (!due) continue;
+      s.following = true; s.chkAt = now;
+      try {
+        const st = await Canales.checkOne(s.c);
+        if (slots[i] !== s) continue;
+        if (st.st === 'live' && st.vid && st.vid !== s.e.id) {
+          const chat = s.chat; s.e = embedOf(s.c); s.dead = s.gone = false; s.yst = null; s.t0 = Date.now();
+          mountVideo(i); if (chat) { setChat(i, false); setChat(i, true); } paintBar(i);
+          toast(`📡 <b>${esc(s.c.name)}</b>: el vivo se reinició, ya te pasé al nuevo`, { cls:'info', ms:4000 });
+        } else if (s.dead && st.st !== 'live' && !s.gone) {
+          s.gone = true;
+          toast(`📴 <b>${esc(s.c.name)}</b> terminó el vivo<small>Sigo atento: si vuelve, lo pongo solo.</small>`, { cls:'info', ms:5000 });
+        } else if ((s.dead || stuck) && !db.key && s.c.ref.channelId) {   // sin clave de YouTube: el reproductor "vivo del canal" de YouTube
+          s.e = { ...s.e, id:null, v:`https://www.youtube.com/embed/live_stream?channel=${s.c.ref.channelId}&autoplay=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}` }; s.dead = false; mountVideo(i);
+        }
+      } catch {} finally { s.following = false; }
+    }
+  }
+  setInterval(() => { if (!document.hidden || slots.some(Boolean)) follow(); }, 10e3);
+
   function play(c, opts = {}) {
     const e = embedOf(c), st = Canales.status[c.uid] || {};
     const target = sel;
     if (opts.start && e.kind === 'youtube') e.v += '&start=' + Math.floor(opts.start);
     clear(sel);
     const liveish = st.st === 'live' || st.st === 'soon' || (c.platform !== 'youtube' && st.st !== 'off');
-    slots[sel] = { c, e, chat:false, audio:!!opts.audio }; focus = sel;
+    slots[sel] = { c, e, chat:false, audio:!!opts.audio, t0:Date.now() }; focus = sel;
     $('player').classList.add('show');
     mountVideo(sel); paintBar(sel);
     // con una sola pantalla, el chat se abre solo al lado si es un vivo

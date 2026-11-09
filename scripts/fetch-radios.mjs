@@ -3,6 +3,7 @@
 // Radios con la web bloqueada a programas (Rivadavia, Aspen, Futurock…) no se leen.
 // Uso: node scripts/fetch-radios.mjs carpeta_salida [usuario/repo]      (LOCAL=carpeta lee HTML guardados)
 import { writeFile, mkdir, readFile } from 'node:fs/promises';
+import { readDb } from './gist.mjs';
 const dir = process.argv[2] || '.', repo = process.argv[3] || 'klasito7/mi-streaming', LOCAL = process.env.LOCAL;
 await mkdir(dir, { recursive:true });
 
@@ -122,9 +123,12 @@ export const RADIOS = [
 let prev = null;
 if (!LOCAL) try { const r = await fetch(`https://raw.githubusercontent.com/${repo}/datos/radios.json?t=${Date.now()}`); if (r.ok) prev = await r.json(); } catch {}
 const MES = 30 * 86400e3, now = Date.now(), radios = [];
+// ¿Pediste "Actualizar desde las webs" en FUNVS después de la última lectura? Entonces leo todo ya.
+const pedido = LOCAL ? 0 : +((await readDb())?.radPedido || 0), force = pedido > Date.parse(prev?.updated || 0);
+if (force) console.log('Radios: actualización pedida desde FUNVS');
 for (const R of RADIOS) {
   const old = prev?.radios?.find(x => x.id === R.id);
-  if (!LOCAL && old?.sch?.length && now - Date.parse(old.at) < MES) { radios.push(old); continue; }   // todavía vale: no gasto nada
+  if (!LOCAL && !force && old?.sch?.length && now - Date.parse(old.at) < MES) { radios.push(old); continue; }   // todavía vale: no gasto nada
   let sch = [];
   try {
     const h = LOCAL ? await readFile(`${LOCAL}/${R.id}.html`, 'utf8') : await (await fetch(R.url, { headers:UA, signal:AbortSignal.timeout(25000) })).text();

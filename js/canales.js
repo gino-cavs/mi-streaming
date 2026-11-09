@@ -114,6 +114,18 @@ const Canales = (() => {
       }
     }
   }
+  /** Un solo canal, barato (2 unidades de la cuota): ¿qué vivo tiene AHORA? Lo usa el reproductor para seguir el vivo. */
+  async function checkOne(c) {
+    if (!db.key || c.platform !== 'youtube' || c.ref.video) return status[c.uid] || {};
+    await resolveYT(c);
+    const j = await yt('playlistItems', { part:'contentDetails', playlistId:c.ref.uploads, maxResults:6 });
+    const ids = (j.items || []).map(i => i.contentDetails.videoId); if (!ids.length) return status[c.uid] || {};
+    const v = await yt('videos', { part:'snippet,liveStreamingDetails', id:ids.join(',') });
+    const live = (v.items || []).find(x => x.snippet.liveBroadcastContent === 'live');
+    if (live) status[c.uid] = { ...(status[c.uid] || {}), st:'live', vid:live.id, title:live.snippet.title, when:live.liveStreamingDetails?.actualStartTime };
+    else if (status[c.uid]?.st === 'live') status[c.uid] = { ...status[c.uid], st:'off' };
+    return status[c.uid] || {};
+  }
   async function refreshOthers() {
     await Promise.all(db.chans.filter(c => c.platform !== 'youtube').map(async c => {
       try {
@@ -345,5 +357,5 @@ const Canales = (() => {
     $('newCat').onkeydown = e => { if (e.key === 'Enter') $('addCat').click(); };
     onChange(render);
   }
-  return { byNum, numTxt, ensureNums, isLive, init, render, refresh, card, bindGrid, sortChans, status, liveCount, yt, get lastUpd() { return lastUpd; } };
+  return { checkOne, byNum, numTxt, ensureNums, isLive, init, render, refresh, card, bindGrid, sortChans, status, liveCount, yt, get lastUpd() { return lastUpd; } };
 })();
