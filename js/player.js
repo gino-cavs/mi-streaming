@@ -48,7 +48,7 @@ const Player = (() => {
     const isLive = s.st === 'live' || s.st === 'soon';
     const vid = isLive ? s.vid : (c.ref.video || s.vid);
     if (vid) return { kind:'youtube', id:vid,
-      v:`https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`,
+      v:`https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}${c.ref.more?.length && !isLive ? '&playlist=' + c.ref.more.join(',') : ''}`,
       ch: isLive || c.ref.video ? `https://www.youtube.com/live_chat?v=${vid}&embed_domain=${HOST}&dark_theme=1` : null,
       out:`https://www.youtube.com/live_chat?v=${vid}&dark_theme=1` };
     if (c.ref.channelId) return { kind:'youtube', id:null,
@@ -354,7 +354,7 @@ const Player = (() => {
   function remember() {
     let changed = false; db.resume = db.resume || {};
     for (const s of slots) {
-      if (!s || s.e.kind !== 'youtube' || !s.c.ref.video || s.c.t247 || !s.api?.p) continue;
+      if (!s || s.e.kind !== 'youtube' || !s.c.ref.video || s.c.t247 || s.c.noResume || !s.api?.p) continue;
       let t = 0, d = 0, title = ''; try { t = s.api.p.getCurrentTime(); d = s.api.p.getDuration(); title = s.api.p.getVideoData?.().title || ''; } catch {}
       const v = s.c.ref.video;
       if (!(d > 300) || t < 60) continue;                       // solo videos largos y ya empezados
@@ -368,7 +368,7 @@ const Player = (() => {
   setInterval(remember, 15e3);
 
   function play(c, opts = {}) {
-    const r = c.ref?.video && !c.t247 && opts.start == null && db.resume?.[c.ref.video];
+    const r = c.ref?.video && !c.t247 && !c.noResume && opts.start == null && db.resume?.[c.ref.video];
     if (r && r.t > 30) { opts = { ...opts, start:Math.max(0, r.t - 5) }; toast(`⏯ Seguís desde ${Math.floor(r.t / 60)}:${String(r.t % 60).padStart(2, '0')}`, { ms:2500 }); }
     const e = embedOf(c), st = Canales.status[c.uid] || {};
     const target = sel;

@@ -100,6 +100,7 @@ const Fulbito = (() => {
   }
   function goalAlert(m, side) {
     const team = side === 'h' ? m.h.team : m.a.team;
+    { const g0 = [...(m.goals || [])].reverse().find(x => x.team === team.id); try { if (m.id !== 'test') Partido.onGoal(m, team, g0 ? `${g0.who} ${g0.min}` : ''); } catch {} }
     if (db.futbol.scope === 'none') return;
     if (db.futbol.scope !== 'all' && !isFav(m.h.team) && !isFav(m.a.team)) return;
     const g = [...m.goals].reverse().find(x => x.team === team.id);
@@ -276,5 +277,5 @@ const Fulbito = (() => {
       const ch = m.state !== 'post' ? channelsFor(m) : [];
       return `⚽ ${n(m.h)} ${m.state === 'pre' ? 'vs' : m.hs + '-' + m.as} ${n(m.a)} ${m.state === 'in' ? '(' + m.st + ')' : m.state === 'pre' ? '· ' + m.st : '(final)'}${ch.length ? ' · 📺 ' + ch[0] : ''}`; });
   function init() { onChange(() => { if ($('v-fulbito').dataset.built) render(); }); poll().catch(() => {}); loadGuide(); setInterval(loadGuide, 20 * 60e3); }
-  return { soundOn:() => local.sound, init, render, poll, matchRow, todayFor, liveCount, board, simplify, evs, ticker };
+  return { channelsFor, soundOn:() => local.sound, init, render, poll, matchRow, todayFor, liveCount, board, simplify, evs, ticker };
 })();

@@ -89,7 +89,7 @@ const Noticias = (() => {
   function headlines(n) {
     if (!data) return [];
     const T = db.news.topics.length ? db.news.topics : ['portada'];
-    return data.items.filter(i => (!db.news.sources.length || db.news.sources.includes(i.s)) && i.tp.some(t => T.includes(t) || t === 'velez'))
+    return (data.items || []).filter(i => (i.tp || []).length && (!db.news.sources.length || db.news.sources.includes(i.s)) && (i.tp || []).some(t => T.includes(t) || t === 'velez'))
       .slice(0, n).map(i => i.t + (i.s ? ' (' + i.s + ')' : ''));
   }
   function init() { onChange(() => { if (Nav.current === 'noticias') render(); }); }

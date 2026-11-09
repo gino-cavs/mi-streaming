@@ -1183,3 +1183,28 @@ body.playing, body.hudon { padding-bottom:calc(var(--hudb, 0px) + 72px); }
 .recrow { display:flex; gap:4px; } .recrow > button:first-child { flex:1; text-align:left; display:flex; flex-direction:column; padding:10px 12px; border-radius:10px; background:var(--panel); }
 .recrow span { color:var(--mut); font-size:13px; } .recx { padding:0 10px; }
 .vmitv { margin-left:-4px; margin-right:6px; text-decoration:none; font-size:13px; opacity:.7; } .vmitv:hover { opacity:1; }
+
+/* ===== 💙 Modo partido de Vélez ===== */
+.pvelez { background:linear-gradient(135deg, #0b2a7a, #1238b5 55%, #0b1f5c); border-radius:16px; padding:14px 16px; color:#fff; box-shadow:0 8px 28px #0006; margin-bottom:6px; position:relative; overflow:hidden; }
+.pvelez::after { content:'V'; position:absolute; right:-10px; top:-40px; font:900 220px/1 Oswald, system-ui, sans-serif; color:#ffffff10; pointer-events:none; }
+.pvtag { font:700 13px Oswald, system-ui, sans-serif; letter-spacing:.12em; color:#cfe0ff; }
+.pvrow { display:flex; align-items:center; justify-content:center; gap:18px; margin:8px 0; }
+.pvt { display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; max-width:200px; text-align:center; font-weight:700; }
+.pvt img { width:56px; height:56px; object-fit:contain; }
+.pvmid { display:flex; flex-direction:column; align-items:center; } .pvs { font:700 36px Oswald, system-ui, sans-serif; } .pvmid small { color:#cfe0ff; }
+.pvelez.in .pvmid small { color:#ff8a8a; }
+.pvgoals { text-align:center; font-size:13px; color:#dbe6ff; margin-bottom:6px; }
+.pvelez .tvch { justify-content:center; } .pvelez .btns { justify-content:center; margin-top:8px; flex-wrap:wrap; position:relative; z-index:1; }
+.pvfort { display:flex; gap:10px; align-items:center; margin-bottom:10px; }
+.hud-score { left:20px; top:64px; display:flex; align-items:center; gap:8px; background:#0b1f5ce6; border:2px solid #fff; border-radius:8px; padding:4px 12px; font:700 20px Oswald, system-ui, sans-serif; text-shadow:none; }
+.hud-score img { width:24px; height:24px; object-fit:contain; } .hud-score .hs-n { background:#fff; color:#0b1f5c; padding:0 8px; border-radius:4px; } .hud-score i { font-style:normal; font-size:14px; color:#ff8a8a; }
+body:not(.tvlock) .hud-score { display:none; }
+.golazo { position:fixed; inset:0; z-index:200; display:flex; flex-direction:column; align-items:center; justify-content:center; background:radial-gradient(circle, #1238b5f2, #06123df5); color:#fff; text-align:center; cursor:pointer; animation:gzin .35s ease-out; transition:opacity .7s; }
+.golazo.out { opacity:0; }
+.gz-v { font:900 min(42vh, 300px)/0.9 Oswald, system-ui, sans-serif; color:#fff; text-shadow:0 0 40px #5b8cff; animation:gzv 1s ease-in-out infinite alternate; }
+.gz-t { font:900 min(10vw, 90px)/1 Oswald, system-ui, sans-serif; letter-spacing:.02em; margin-top:10px; }
+.gz-s { font:700 min(6vw, 44px) Oswald, system-ui, sans-serif; margin-top:14px; background:#fff; color:#0b1f5c; padding:2px 18px; border-radius:8px; }
+.gz-w { margin-top:10px; font-size:min(4vw, 24px); color:#cfe0ff; }
+@keyframes gzin { from { transform:scale(1.15); opacity:0; } }
+@keyframes gzv { to { transform:scale(1.08) rotate(-3deg); } }
+.fclock > div:nth-child(2) { display:flex; flex-direction:column; justify-content:center; padding:0 14px; }
