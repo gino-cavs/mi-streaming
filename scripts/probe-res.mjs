@@ -1,10 +1,11 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 await mkdir('out', { recursive:true });
 const UA = { 'User-Agent':'Mozilla/5.0 (FUNVS uso personal)' };
-const get = async u => { try { const r = await fetch(u, { headers:UA, signal:AbortSignal.timeout(20000) }); return `${r.status}\n` + (await r.text()).slice(0, 4000); } catch (e) { return 'ERR ' + e; } };
+const get = async (u, n = 3000) => { try { const r = await fetch(u, { headers:UA, signal:AbortSignal.timeout(20000) }); const t = await r.text(); return `${r.status} ${r.headers.get('content-type')}\n` + t.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, n); } catch (e) { return 'ERR ' + e; } };
 const out = {};
-for (const u of ['https://www.promiedos.com.ar/robots.txt','https://www.dataredonda.com/robots.txt','https://elnine.com.ar/robots.txt','https://www.promiedos.com.ar/league/reserva','https://www.dataredonda.com/']) out[u] = await get(u);
-const d = await (await fetch('https://site.api.espn.com/apis/site/v2/leagues/dropdown?sport=soccer&limit=1000', { headers:UA })).json().catch(() => null);
-out.espnArg = (d?.leagues || []).filter(l => /arg|reserv/i.test(l.slug + l.name)).map(l => l.slug + ' | ' + l.name);
-for (const s of ['arg.reserve', 'arg.res', 'arg.reserva', 'arg.r', 'arg.reserves']) out['sb ' + s] = (await get(`https://site.api.espn.com/apis/site/v2/sports/soccer/${s}/scoreboard`)).slice(0, 200);
+for (const u of ['https://www.promiedos.com.ar/legal','https://www.promiedos.com.ar/terminos','https://api.promiedos.com.ar/league/tables_and_fixtures/hhbc','https://www.promiedos.com.ar/league/liga-profesional-reserva/hhbc']) out[u] = await get(u);
+const h = await (await fetch('https://www.promiedos.com.ar/league/liga-profesional-reserva/hhbc', { headers:UA })).text();
+out.links = [...new Set(h.match(/href="\/[^"]{2,60}"/g) || [])].slice(0, 80).join(' ');
+out.next = (h.match(/__NEXT_DATA__[^>]*>([\s\S]{0,2500})/) || [])[1] || '';
+out.api = [...new Set(h.match(/https?:\/\/[a-z0-9.-]*promiedos[^"' ]*/g) || [])].join(' ');
 await writeFile('out/res.json', JSON.stringify(out, null, 1));
