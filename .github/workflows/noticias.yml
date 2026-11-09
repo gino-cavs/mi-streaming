@@ -28,6 +28,7 @@ jobs:
         run: node scripts/fetch-news.mjs /tmp/datos/news.json
         env:
           GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
+          YT_KEY: ${{ secrets.YT_KEY }}
       - name: Efemérides fortineras (Wikipedia + Wikidata, una vez por mes)
         continue-on-error: true
         timeout-minutes: 3
@@ -42,6 +43,7 @@ jobs:
         run: node scripts/fetch-album.mjs /tmp/datos "$GITHUB_REPOSITORY"
         env:
           GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
+          YT_KEY: ${{ secrets.YT_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Temas de 420 time (3 por día, eclécticos)
         continue-on-error: true
@@ -49,18 +51,21 @@ jobs:
         run: node scripts/fetch-temas420.mjs /tmp/datos "$GITHUB_REPOSITORY"
         env:
           GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
+          YT_KEY: ${{ secrets.YT_KEY }}
       - name: Grilla desde tu calendario (link iCal guardado en FUNVS)
         continue-on-error: true
         timeout-minutes: 2
         run: node scripts/fetch-grillacal.mjs /tmp/datos
         env:
           GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
+          YT_KEY: ${{ secrets.YT_KEY }}
       - name: Grilla de radios (webs de cada radio, una vez por mes)
         continue-on-error: true
         timeout-minutes: 3
         run: node scripts/fetch-radios.mjs /tmp/datos "$GITHUB_REPOSITORY"
         env:
           GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
+          YT_KEY: ${{ secrets.YT_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: TV de aire (El Trece y TV Pública, desde sus webs, una vez por día)
         continue-on-error: true
@@ -92,6 +97,7 @@ jobs:
         timeout-minutes: 4
         env:
           GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
+          YT_KEY: ${{ secrets.YT_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/fetch-resumenes.mjs /tmp/datos "$GITHUB_REPOSITORY"
       - name: Mundo Clásicos (Wikipedia, Wikidata y ESPN)
@@ -99,6 +105,7 @@ jobs:
         timeout-minutes: 15
         env:
           GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
+          YT_KEY: ${{ secrets.YT_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/fetch-clasicos.mjs /tmp/datos "$GITHUB_REPOSITORY"
       - name: Datos para "¿Jugó con?" (Wikidata, una vez por semana)

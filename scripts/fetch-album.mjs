@@ -36,7 +36,7 @@ let prev = null;
 try { const r = await fetch(`https://raw.githubusercontent.com/${repo}/datos/album.json?t=${Date.now()}`); if (r.ok) prev = await r.json(); } catch {}
 if (prev?.date === day && prev.ids?.length) { await writeFile(dir + '/album.json', JSON.stringify(prev)); console.log('Álbum del día: ya está el de hoy'); process.exit(0); }
 
-const key = (await readDb())?.key;
+const key = process.env.YT_KEY || (await readDb())?.key;   // YT_KEY: clave aparte para GitHub (sin restricción de sitio)
 if (!key) { console.log('Álbum del día: falta la clave de YouTube (Gist)'); if (prev) await writeFile(dir + '/album.json', JSON.stringify(prev)); process.exit(0); }
 const yt = async (path, p) => { const u = new URL('https://www.googleapis.com/youtube/v3/' + path); Object.entries({ ...p, key }).forEach(([k, v]) => u.searchParams.set(k, v)); return (await fetch(u)).json(); };
 const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();

@@ -13,6 +13,7 @@ const prev = (await getJ(raw('resumenes.json'))) || { items:[] };
 const items = new Map(prev.items.map(x => [x.k, x]));
 const done = () => writeFile(dir + '/resumenes.json', JSON.stringify({ updated:new Date().toISOString(), items:[...items.values()].sort((a, b) => Date.parse(b.date) - Date.parse(a.date)).slice(0, 40) }));
 const db = await readDb();
+if (db && process.env.YT_KEY) db.key = process.env.YT_KEY;   // clave aparte para GitHub (sin restricción de sitio)
 if (!db || !db.key) { console.log('Resúmenes: falta el secreto GIST_ID (o la clave de YouTube en FUNVS); dejo lo que había.'); await done(); process.exit(0); }
 
 let searches = 0;
