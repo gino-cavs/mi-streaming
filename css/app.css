@@ -1293,3 +1293,20 @@ body.tvlock.bkon .hud-ticker, body.tvlock.bkon .hud-clock { transform:translateY
 .rmt-list button { display:block; width:100%; text-align:left; padding:10px 12px; margin:4px 0; font-size:16px; } .rmt-list i { font-style:normal; color:#3dff7a; font-family:VT323, monospace; margin-right:6px; } .rmt-list .lv { color:var(--live); }
 .rctv { background:var(--panel2, #ffffff0a); border-radius:10px; padding:10px 12px; } .rctv .alrow { align-items:center; } .rctv select { flex:1; }
 .nickpluto { margin-top:12px; background:linear-gradient(120deg, #ff7a1a33, var(--panel) 60%); border:1px solid #ff7a1a66; border-radius:12px; padding:12px 14px; } .nickpluto .btns { margin:8px 0 4px; }
+
+/* ===== 🌀 Flash del día ===== */
+.flcard { background:radial-gradient(circle at 15% 0%, #4b2a8a66, transparent 60%), linear-gradient(160deg, #1a1430, var(--panel)); border:1px solid #7a5cff44; border-radius:16px; padding:18px 20px; max-width:760px; }
+.flic { font-size:54px; line-height:1; } .fltag { color:#c9b6ff; letter-spacing:.12em; font-size:12px; font-weight:700; }
+.flcard h3 { font-size:26px; margin:4px 0 10px; } .flcard p { line-height:1.55; margin:0 0 10px; color:#e3e0f2; }
+.flq { margin-top:12px; background:#ffffff0d; border-left:4px solid #b48cff; padding:10px 12px; border-radius:8px; }
+.flchips { margin-top:12px; flex-wrap:wrap; }
+.fldlg { width:100vw; height:100vh; max-width:none; max-height:none; margin:0; padding:0; border:0; border-radius:0; background:#05040e; overflow:hidden; }
+.fldlg::backdrop { background:#000; }
+.fldlg canvas { position:absolute; inset:0; width:100%; height:100%; }
+.flhud { position:absolute; left:0; right:0; top:8%; text-align:center; color:#fff; pointer-events:none; font-family:Oswald, system-ui, sans-serif; text-shadow:0 2px 16px #000; }
+.flbig { font-size:min(12vw, 84px); font-weight:700; letter-spacing:.02em; } .flsub { font-size:min(5vw, 26px); color:#d6ccff; } .flnow { margin-top:10px; font-size:min(4.6vw, 24px); font-family:system-ui, sans-serif; } .flnow b { color:#ffd27a; }
+.flmem { margin-top:14px; font:400 min(4vw, 19px)/1.6 system-ui, sans-serif; color:#cfc8e8; }
+.fltxt { position:absolute; left:50%; bottom:90px; transform:translateX(-50%); width:min(900px, 90vw); text-align:center; color:#fff; font:400 min(4.4vw, 24px)/1.5 system-ui, sans-serif; text-shadow:0 2px 14px #000; opacity:0; transition:opacity 1.2s; pointer-events:none; }
+.fltxt.in { opacity:1; } .fltxt small { display:block; color:#c9b6ff; font-size:13px; letter-spacing:.1em; margin-bottom:6px; }
+.flbar { position:absolute; left:50%; bottom:18px; transform:translateX(-50%); display:flex; gap:8px; background:#0008; padding:8px; border-radius:30px; }
+.flbar button { background:#ffffff14; border:1px solid #ffffff2a; color:#fff; border-radius:22px; padding:8px 14px; font-size:16px; }

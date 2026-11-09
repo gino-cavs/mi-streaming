@@ -119,10 +119,11 @@ const T420 = (() => {
   let tab = S.get('t4Tab', 'fun');
   function render() {
     const v = $('v-420');
-    const head = `<div class="t4hero"><div class="t4leaf">🍃</div><div><h2>420 time</h2><p>${tab === 'diario' ? 'Tu diario mes a mes: ranking de genéticas, días y REPROCANN.' : 'Cosas al azar para colgarse un rato.'}</p></div></div>
-      <div class="chips" id="t4Tabs" style="margin-bottom:12px"><button data-t4="fun" class="${tab === 'fun' ? 'on' : ''}">🎲 Para colgarse</button><button data-t4="diario" class="${tab === 'diario' ? 'on' : ''}">📓 Diario</button></div>`;
+    const head = `<div class="t4hero"><div class="t4leaf">🍃</div><div><h2>420 time</h2><p>${tab === 'diario' ? 'Tu diario mes a mes: ranking de genéticas, días y REPROCANN.' : tab === 'flash' ? 'Una teoría flashera por día, para leerla… y vivirla.' : 'Cosas al azar para colgarse un rato.'}</p></div></div>
+      <div class="chips" id="t4Tabs" style="margin-bottom:12px"><button data-t4="fun" class="${tab === 'fun' ? 'on' : ''}">🎲 Para colgarse</button><button data-t4="flash" class="${tab === 'flash' ? 'on' : ''}">🌀 Flash del día</button><button data-t4="diario" class="${tab === 'diario' ? 'on' : ''}">📓 Diario</button></div>`;
     const bindTabs = () => { $('t4Tabs').onclick = e => { const b = e.target.closest('[data-t4]'); if (b) { tab = b.dataset.t4; S.set('t4Tab', tab); render(); } }; };
     if (tab === 'diario') { v.innerHTML = head + '<div id="t4Diario"></div>'; bindTabs(); Diario.render($('t4Diario')); return; }
+    if (tab === 'flash') { v.innerHTML = head + '<div id="t4Flash"></div>'; bindTabs(); Flash.render($('t4Flash')); return; }
     v.innerHTML = `${head}
       <div class="t4btns">
         <button class="pri t4big" id="t4Any">🎲 Dame algo</button>
