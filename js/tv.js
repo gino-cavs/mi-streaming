@@ -68,14 +68,27 @@ const TV = (() => {
     document.querySelector('header .top').insertAdjacentHTML('beforeend', '<div class="hlogo" id="hLogo"><img class="pet" src="img/vaca.jpg" alt=""><span class="f">FUN</span><span class="v">VS</span><i></i></div>');
     $('bottom').insertAdjacentHTML('beforeend', `<footer id="tvfoot">
         <div class="fclock"><div class="ftime" id="fTime"></div><div><div class="fdate" id="fDate"></div><div class="fwx" id="fWx"></div></div></div>
-        <div class="fctl" id="fCtl"><button data-c="play" title="Pausa / seguir">❚❚</button><button data-c="mute" title="Silenciar">🔊</button>
-          <input type="range" data-c="vol" min="0" max="1" step="0.05" title="Volumen"><button data-c="star" title="Guardar este momento">⭐</button></div>
+        <div class="fnow" id="fNow"></div>
+        <div class="fctl" id="fCtl"><button data-c="prev" title="Anterior">⏮</button><button data-c="play" title="Pausa / seguir">❚❚</button><button data-c="next" title="Siguiente">⏭</button><button data-c="mute" title="Silenciar">🔊</button>
+          <input type="range" data-c="vol" min="0" max="1" step="0.05" title="Volumen"><button data-c="vid" title="Mostrar u ocultar el video">🎬</button><button data-c="star" title="Guardar este momento">⭐</button><button data-c="tv" title="Pantalla TV">📺</button><button data-c="x" title="Cerrar lo que suena">✕</button></div>
       </footer>`);
     $('btnHide').insertAdjacentHTML('beforebegin', `<button id="tvFull" title="Pantalla completa">⛶</button>`);
     $('btnGraf').onclick = () => { on = !on; S.set('tvOn', on); apply(); };
     $('fCtl').querySelector('[data-c=play]').onclick = () => $('tvPlay').click();
     $('fCtl').querySelector('[data-c=mute]').onclick = () => $('tvMute').click();
     $('fCtl').querySelector('[data-c=star]').onclick = () => Momentos.capture(AudioMgr.active);
+    // barra única: anterior / siguiente / cerrar según lo que suene (canal, radio o música)
+    const act = a => { const id = AudioMgr.active; if (!id) return;
+      if (id === 'music') { if (a === 'x') Musica.stop(); else Musica.skip(a === 'next' ? 1 : -1); }
+      else if (id === 'radio') { if (a === 'x') Radio.stop(); else Radio.skip(a === 'next' ? 1 : -1); }
+      else { if (a === 'x') Player.closeAll(); else Zap.step(a === 'next' ? 1 : -1); }
+      setTimeout(tick, 200); };
+    ['prev', 'next', 'x'].forEach(a => $('fCtl').querySelector(`[data-c=${a}]`).onclick = () => act(a));
+    $('fCtl').querySelector('[data-c=tv]').onclick = () => open(false);
+    $('fCtl').querySelector('[data-c=vid]').onclick = () => { const on = !document.body.classList.contains('muvidshow'); document.body.classList.toggle('muvidshow', on); S.set('musHideVid', !on); };
+    document.body.classList.toggle('muvidshow', !S.get('musHideVid', false));
+    $('fNow').onclick = e => { const o = e.target.closest('[data-other]'); if (o) { AudioMgr.focus(o.dataset.other); setTimeout(tick, 150); return; } const id = AudioMgr.active; if (!id) return;
+      Nav.go(id === 'radio' ? 'radios' : id === 'music' ? 'musica' : 'canales'); };
     const fv = $('fCtl').querySelector('[data-c=vol]');
     fv.oninput = e => { const s = AudioMgr.sink(AudioMgr.active); s && s.setVol && s.setVol(+e.target.value); };
     fv.onpointerdown = () => dragging = true; fv.onpointerup = () => dragging = false;
@@ -221,6 +234,14 @@ const TV = (() => {
       refresh();
     }
     $('tvCtl').style.display = s ? '' : 'none'; $('fCtl').style.visibility = s ? '' : 'hidden';
+    document.body.classList.toggle('playing', !!s);
+    // qué suena, en la barra única (y si hay otra cosa cargada, un botón para pasar a esa)
+    const sub = !s ? '' : id === 'radio' ? (Radio.current && (RadioGrilla.nowFor(Radio.current)?.name || Radio.current.tags || '')) : id === 'music' ? (Musica.track?.by || '') : (Canales.status[Player.slots[Player.sel]?.c.uid]?.title || '');
+    const others = ['radio', 'music'].filter(k => k !== id && AudioMgr.sink(k)?.label?.());
+    const nk = [id, name, sub, others.join()].join('|');
+    if ($('fNow').dataset.k !== nk) { $('fNow').dataset.k = nk;
+      $('fNow').innerHTML = s ? `<span class="fic">${id === 'radio' ? '📻' : id === 'music' ? '🎵' : '📺'}</span><div><b>${esc(name)}</b><small>${esc(sub)}</small></div>${others.map(k => `<button class="fother" data-other="${k}" title="Pasar a esto">⇄ ${k === 'radio' ? '📻' : '🎵'} ${esc(AudioMgr.sink(k).label())}</button>`).join('')}` : ''; }
+    $('fCtl').querySelector('[data-c=vid]').style.display = id === 'music' ? '' : 'none';
     if (s) {
       $('tvPlay').style.display = s.toggle ? '' : 'none';
       $('tvPlay').textContent = s.paused && s.paused() ? '▶' : '❚❚';

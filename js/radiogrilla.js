@@ -118,5 +118,7 @@ const RadioGrilla = (() => {
     el.querySelectorAll('[data-ri]').forEach(x => x.addEventListener('keydown', e => { if (e.key === 'Enter') x.click(); }));
     el.querySelectorAll('[data-rg]').forEach(b => b.onclick = () => onAdd?.(data.radios.find(g => g.id === b.dataset.rg)));
   }
-  return { render, load, match };
+  /** Qué programa va ahora en una radio tuya (o null). */
+  function nowFor(r) { const g = data && effective(r); if (!g) return null; const n = new Date(); return shows(g, n, new Date(+n + 60e3)).find(x => x.s <= n && x.e > n) || null; }
+  return { render, load, match, nowFor };
 })();

@@ -1090,3 +1090,58 @@ body.tvlock.tknews .hud-clock { transform:translateY(110%); }
   .tk-lbl { font-size:12px; padding:0 8px; } .tk-time { font-size:13px; padding:0 8px; }
 }
 body.tvlock .hud-wx span { white-space:nowrap; }
+
+/* ===== Menú corto: pestañitas de cada grupo ===== */
+.subtabs { display:flex; gap:6px; padding:8px 14px 0; overflow-x:auto; scrollbar-width:none; }
+.subtabs button { border-radius:20px; padding:5px 14px; font-size:14px; white-space:nowrap; background:var(--panel); border:1px solid transparent; color:var(--mut); }
+.subtabs button.on { background:var(--acc); color:#fff; }
+.subtabs .cnt { background:var(--live); color:#fff; border-radius:10px; padding:0 6px; font-size:11px; margin-left:4px; }
+.ordrow.sub { margin-left:28px; opacity:.92; }
+
+/* ===== 🏠 Ahora ===== */
+.inhead { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin:4px 0 6px; }
+.inhead h1 { font-size:26px; margin:0; }
+.inhead span:first-letter { text-transform:uppercase; }
+.inblk { margin-bottom:6px; }
+.inrow { display:flex; gap:10px; overflow-x:auto; padding-bottom:6px; scrollbar-width:thin; }
+.incard { flex:none; width:220px; text-align:left; display:flex; flex-direction:column; gap:3px; padding:8px; border-radius:12px; background:var(--panel); }
+.incard .inimg { height:118px; border-radius:8px; background:#000 center/cover; position:relative; }
+.incard .inlive { position:absolute; left:6px; top:6px; background:var(--live); color:#fff; font-style:normal; font-size:11px; font-weight:700; padding:1px 6px; border-radius:4px; }
+.incard b { font-size:14px; } .incard small { color:var(--mut); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.inlist { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:8px; }
+.inlist button { text-align:left; display:flex; flex-direction:column; padding:10px 12px; border-radius:10px; background:var(--panel); }
+.inlist button.on { border-color:var(--acc); }
+.inlist span { color:var(--mut); font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.inalb { display:flex; align-items:center; gap:14px; padding:10px; border-radius:12px; background:linear-gradient(120deg, #2a1f4a, var(--panel) 70%); width:100%; max-width:560px; text-align:left; }
+.inalb > span { width:72px; height:72px; border-radius:8px; background:#000 center/cover; flex:none; }
+.inalb div { display:flex; flex-direction:column; flex:1; min-width:0; } .inalb small { color:#c9b6ff; text-transform:uppercase; font-size:11px; letter-spacing:.06em; }
+.inalb b { font-size:18px; } .inalb em { font-style:normal; color:var(--mut); } .inalb > i { font-style:normal; font-size:22px; }
+.inticks { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:6px; }
+.inticks div { background:var(--panel); padding:8px 12px; border-radius:8px; font-size:14px; }
+.inclean { background:#2a2410; border:1px solid #6b5a1c; border-radius:12px; padding:12px 14px; margin-top:14px; }
+.inclean .btns { margin:8px 0 4px; }
+
+/* ===== Barra única de abajo: reloj · lo que suena · controles (radio, música o canal) ===== */
+#bottom #radiobar, #bottom #musicbar { position:fixed !important; left:-9999px !important; bottom:0 !important; }   /* quedan vivas pero fuera de la vista */
+#musicbar .muvid { position:fixed; left:-600px; bottom:0; width:200px; height:200px; }
+#musicbar .muvid iframe { top:0 !important; transform:none !important; }
+body.muvidshow.hasmusic #musicbar .muvid { left:auto; right:14px; bottom:62px; width:240px; height:135px; border-radius:10px; box-shadow:0 8px 24px #000a; z-index:33; }
+body.muvidshow.hasmusic #musicbar .muvid iframe { width:240px; height:240px; top:-52px !important; }
+body.tvlock #musicbar .muvid { left:-600px !important; }
+body.playing:not(.tvlock) #tvfoot, body.hudon:not(.tvlock) #tvfoot { display:flex; }
+body:not(.hudon) .fclock { display:none; }
+body.hasmusic, body.hasmusic.musnovid { padding-bottom:72px; }
+body.playing, body.hudon { padding-bottom:calc(var(--hudb, 0px) + 72px); }
+.fnow { flex:1; min-width:0; display:flex; align-items:center; gap:10px; padding:0 14px; cursor:pointer; font-family:system-ui, sans-serif; }
+.fnow .fic { font-size:20px; }
+.fnow div { min-width:0; display:flex; flex-direction:column; }
+.fnow b { font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#fff; }
+.fnow small { font-size:12px; color:#9aa3b8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fnow .fother { flex:none; font-size:12px; padding:3px 10px; border-radius:16px; background:#ffffff14; color:#cfd6ea; border:1px solid #ffffff22; white-space:nowrap; max-width:200px; overflow:hidden; text-overflow:ellipsis; }
+@media (max-width:700px) {
+  #tvfoot { height:auto; flex-wrap:wrap; }
+  .fnow { order:-1; flex-basis:100%; padding:6px 10px 2px; }
+  .fctl { flex:1; justify-content:center; } .fctl input[type=range], .fctl [data-c=star], .fctl [data-c=tv] { display:none; }
+  body.playing { padding-bottom:110px; }
+  body.muvidshow.hasmusic #musicbar .muvid { bottom:104px; width:160px; height:90px; } body.muvidshow.hasmusic #musicbar .muvid iframe { width:160px; height:160px; top:-35px !important; }
+}

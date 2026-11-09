@@ -250,5 +250,5 @@ const Musica = (() => {
     });
     onChange(() => { if (Nav.current === 'musica') render(); });
   }
-  return { time:() => { try { return p.getCurrentTime(); } catch { return 0; } }, init, render, play, get current() { return cur; }, get track() { return track; }, get playing() { return st() === 1; } };
+  return { stop, skip:d => { try { d > 0 ? p.nextVideo() : p.previousVideo(); } catch {} }, album:() => { loadAlbum(); return album; }, playAlbum:() => album && play(albumItem(album)), time:() => { try { return p.getCurrentTime(); } catch { return 0; } }, init, render, play, get current() { return cur; }, get track() { return track; }, get playing() { return st() === 1; } };
 })();

@@ -126,5 +126,6 @@ const Radio = (() => {
       muted:() => audio.muted, getVol:() => audio.volume, setVol:v => { audio.volume = v; if (v > 0 && audio.muted) AudioMgr.focus('radio'); } });
     onChange(() => { if ($('v-radios').dataset.built) render(); });
   }
-  return { init, render, play, get current() { return cur; } };
+  function skip(d) { if (!db.radios.length) return; const i = db.radios.findIndex(x => x.url === cur?.url); play(db.radios[(i + d + db.radios.length) % db.radios.length]); }
+  return { init, render, play, stop, skip, get current() { return cur; } };
 })();
