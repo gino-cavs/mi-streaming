@@ -172,7 +172,8 @@ async function diario() {
 const DOWS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 async function recordatorios() {
   const recs = db.recs || []; if (!recs.length) return;
-  const guia = recs.some(r => r.k === 'canal') ? await getJ(raw('guia.json')) : null, radios = recs.some(r => r.k === 'radio') ? await getJ(raw('radios.json')) : null;
+  const g1 = recs.some(r => r.k === 'canal') ? await getJ(raw('guia.json')) : null, g2 = recs.some(r => r.k === 'canal') ? await getJ(raw('tvcanales.json')) : null;
+  const guia = { canales:[...(g1?.canales || []), ...(g2?.canales || [])] }, radios = recs.some(r => r.k === 'radio') ? await getJ(raw('radios.json')) : null;
   const n = ar(), nowMin = n.h * 60 + n.m, today = new Date(n.ymd + 'T12:00:00Z').getUTCDay();
   for (const r of recs) {
     let sl = [];

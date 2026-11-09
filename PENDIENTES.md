@@ -16,4 +16,5 @@ Ideas y cosas que quedaron para hacer más adelante.
 ## 📡 Paquete de grafismo y control (hecho el 9/11)
 - Hecho: control desde el celu, barra Ahora / A continuación, guía navegable con el control, Último momento, zócalos, clima 8/18/22, Mientras tanto, previa de Vélez, efemérides, separadores.
 - **Protector de pantalla para la tele**: ⚠️ el usuario quiere hacer él el diseño (recordatorio agendado para el 9/11).
+- **TV de aire** (hecho 9/11): El Trece (grilla del día, schema.org) y TV Pública (semana entera) desde sus webs. ESPN, TNT Sports y DSports bloquean la lectura automática; Telefe, América y El Nueve no publican grilla. Sumar más canales si el usuario pide.
 - **TeleRed**: el buscador (`layout/resultados-SearchTVspeed.php`) y la grilla (`layout/grillaTVupd.php`) responden vacío desde GitHub aun con la cookie de sesión; probablemente solo contestan a visitantes de Argentina, y desde el navegador no se puede por CORS. Quedó como link en los avisos de TV junto a mi.tv.

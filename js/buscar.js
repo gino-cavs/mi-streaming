@@ -27,7 +27,7 @@ const Buscar = (() => {
     // programas de canales (guía de streaming)
     const gd = Guia.data, pc = [];
     for (const g of gd?.canales || []) for (const [dw, s, e, n, pan] of g.sch) if (has(n + ' ' + (pan || []).join(' '), q)) { pc.push([g, dw, s, e, n, pan]); if (pc.length > 30) break; }
-    grp('Programas de streaming', merge(pc, g => g.n).map(([g, dw, s, e, n, pan]) => { const mine = db.chans.find(c => Guia.match(c) === g);
+    grp('Programas (streaming y TV de aire)', merge(pc, g => g.n).map(([g, dw, s, e, n, pan]) => { const mine = db.chans.find(c => Guia.match(c) === g);
       return item('🎙️', n, `${g.n} · ${when(dw, s, e)}${pan?.length ? ' · ' + pan.slice(0, 3).join(', ') : ''}${mine ? '' : ' · (no lo tenés)'}`, () => mine ? Player.play(mine) : (S.set('canView', 'guia'), Nav.go('canales'))); }));
     // radios y sus programas
     grp('Radios', db.radios.filter(r => has(r.name, q)).map(r => item('📻', r.name, RadioGrilla.nowFor(r)?.name || '', () => Radio.play(r))));

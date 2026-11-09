@@ -1291,3 +1291,4 @@ body.tvlock.bkon .hud-ticker, body.tvlock.bkon .hud-clock { transform:translateY
 .rmt-num { display:flex; gap:8px; margin-bottom:8px; } .rmt-num input { flex:1; font-size:17px; } .rmt-num button { padding:10px 16px; font-size:16px; }
 .rmt-list { margin-bottom:8px; } .rmt-list summary { cursor:pointer; padding:8px 0; font-weight:700; }
 .rmt-list button { display:block; width:100%; text-align:left; padding:10px 12px; margin:4px 0; font-size:16px; } .rmt-list i { font-style:normal; color:#3dff7a; font-family:VT323, monospace; margin-right:6px; } .rmt-list .lv { color:var(--live); }
+.rctv { background:var(--panel2, #ffffff0a); border-radius:10px; padding:10px 12px; } .rctv .alrow { align-items:center; } .rctv select { flex:1; }

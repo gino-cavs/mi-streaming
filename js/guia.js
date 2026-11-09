@@ -11,14 +11,17 @@ const Guia = (() => {
   const DOW = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
   async function load() {
     if (data && Date.now() - at < 30 * 60e3) return data;
-    try { const j = await (await fetch(REPO.data + 'guia.json?t=' + Math.floor(Date.now() / 1800e3))).json(); if (j?.canales) { data = j; at = Date.now(); try { S.set('guiaData', j); } catch {} } } catch {}
+    const t = Math.floor(Date.now() / 1800e3);
+    const [j, tv] = await Promise.all([fetch(REPO.data + 'guia.json?t=' + t).then(r => r.json()).catch(() => null), fetch(REPO.data + 'tvcanales.json?t=' + t).then(r => r.json()).catch(() => null)]);
+    // la TV de aire (El Trece, TV Pública: desde la web de cada canal) se suma a la guía de streaming
+    if (j?.canales || tv?.canales) { data = { ...(j || data || {}), canales:[...(j?.canales || data?.canales?.filter(c => !String(c.id).startsWith('tv-')) || []), ...(tv?.canales || [])] }; at = Date.now(); try { S.set('guiaData', data); } catch {} }
     return data;
   }
   // tu canal ↔ canal de la guía (por usuario de YouTube o por nombre)
   function match(c) {
     if (!data) return null;
     const h = norm((c.ref.handle || '').replace(/^@/, '')), n = norm(c.name);
-    return data.canales.find(g => (h && norm(g.h) === h) || norm(g.n) === n) || null;
+    return data.canales.find(g => (h && norm(g.h) === h) || norm(g.n) === n || (g.alias || []).some(a => norm(a) === n || (h && norm(a) === h))) || null;
   }
   // programas de la guía que caen en [from, to] (fechas reales, con hora de Argentina = la de tu dispositivo)
   function shows(g, from, to) {

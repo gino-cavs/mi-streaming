@@ -45,15 +45,21 @@ const Avisos = (() => {
         Grafismo.notify(`🔔 <b>Empieza ${esc(r.name)}</b><small>${esc(r.where)} · tocá para ${r.k === 'tv' ? 'ver en mi.tv' : 'ponerlo'}</small>`, { cls:'info', ms:20000, onclick:() => play(r) }); } }
   }
   function openTv(ed) {
+    Guia.load();
     let d = $('dlgRec'); if (!d) { d = document.createElement('dialog'); d.id = 'dlgRec'; document.body.appendChild(d); }
     d.innerHTML = `<h3>📺 Aviso de un programa de TV</h3>
       <p class="mut" style="font-size:13px;margin-top:0">Fijate el horario en <a class="lnk" href="https://mi.tv/ar/programacion" target="_blank" rel="noopener">la grilla de mi.tv</a> o en <a class="lnk" href="https://www.telered.com.ar/buscador-grilla" target="_blank" rel="noopener">el buscador de TeleRed</a> y cargalo acá.</p>
+      ${(() => { const tv = (Guia.data?.canales || []).filter(g => String(g.id).startsWith('tv-')); if (!tv.length) return '';
+        return `<div class="rctv"><b>De la grilla de la TV de aire</b><div class="alrow"><select id="rcG">${tv.map(g => `<option value="${esc(String(g.id))}">${esc(g.n)}</option>`).join('')}</select><select id="rcP"></select><button type="button" id="rcGo" class="pri">🔔 Avisame</button></div><small class="mut">Te aviso cada vez que lo den, con el horario de la web del canal.</small></div><p class="mut" style="margin:10px 0 4px">…o cargalo a mano:</p>`; })()}
       <label>Programa<input id="rcN" placeholder="Ej: Fútbol de Primera"></label>
       <label>Canal<input id="rcC" placeholder="Ej: ESPN Premium"></label>
       <div class="alrow"><label>Hora<input type="time" id="rcT" value="21:00"></label></div>
       <div class="aldays">${[1, 2, 3, 4, 5, 6, 0].map(n => `<label class="chk"><input type="checkbox" data-d="${n}"> ${['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][n]}</label>`).join('')}</div>
       <div class="btns"><span class="sp"></span><button id="rcX">Cancelar</button><button class="pri" id="rcOk">Guardar</button></div>`;
     d.showModal();
+    if ($('rcG')) { const fillP = () => { const g = Guia.data.canales.find(x => String(x.id) === $('rcG').value); $('rcP').innerHTML = [...new Set(g.sch.map(x => x[3]))].sort().map(n => `<option>${esc(n)}</option>`).join(''); };
+      $('rcG').onchange = fillP; fillP();
+      $('rcGo').onclick = () => { const g = Guia.data.canales.find(x => String(x.id) === $('rcG').value); toggle('canal', g.id, g.n, $('rcP').value); d.close(); }; }
     $('rcX').onclick = () => d.close();
     $('rcOk').onclick = () => { const name = $('rcN').value.trim(), where = $('rcC').value.trim(), days = [...d.querySelectorAll('[data-d]')].filter(c => c.checked).map(c => +c.dataset.d);
       if (!name || !where || !days.length) return toast('Completá programa, canal y al menos un día', { cls:'info' });

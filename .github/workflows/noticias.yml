@@ -46,6 +46,10 @@ jobs:
         env:
           GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: TV de aire (El Trece y TV Pública, desde sus webs, cada 6 horas)
+        continue-on-error: true
+        timeout-minutes: 2
+        run: node scripts/fetch-tvcanales.mjs /tmp/datos "$GITHUB_REPOSITORY"
       - name: Grilla de canales de streaming (laguiadelstreaming.com, cada 6 horas)
         continue-on-error: true
         timeout-minutes: 2
