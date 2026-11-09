@@ -1,11 +1,10 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 await mkdir('out', { recursive:true });
 const UA = { 'User-Agent':'Mozilla/5.0 (FUNVS uso personal)' };
-const get = async (u, n = 3000) => { try { const r = await fetch(u, { headers:UA, signal:AbortSignal.timeout(20000) }); const t = await r.text(); return `${r.status} ${r.headers.get('content-type')}\n` + t.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, n); } catch (e) { return 'ERR ' + e; } };
+const raw = async u => { try { const r = await fetch(u, { headers:UA, signal:AbortSignal.timeout(20000) }); return [r.status, await r.text()]; } catch (e) { return [0, 'ERR ' + e]; } };
 const out = {};
-for (const u of ['https://www.promiedos.com.ar/legal','https://www.promiedos.com.ar/terminos','https://api.promiedos.com.ar/league/tables_and_fixtures/hhbc','https://www.promiedos.com.ar/league/liga-profesional-reserva/hhbc']) out[u] = await get(u);
-const h = await (await fetch('https://www.promiedos.com.ar/league/liga-profesional-reserva/hhbc', { headers:UA })).text();
-out.links = [...new Set(h.match(/href="\/[^"]{2,60}"/g) || [])].slice(0, 80).join(' ');
-out.next = (h.match(/__NEXT_DATA__[^>]*>([\s\S]{0,2500})/) || [])[1] || '';
-out.api = [...new Set(h.match(/https?:\/\/[a-z0-9.-]*promiedos[^"' ]*/g) || [])].join(' ');
+for (const u of ['https://elnine.com.ar/', 'https://www.dataredonda.com/', 'https://www.dataredonda.com/sitemap.xml', 'https://elnine.com.ar/sitemap.xml', 'https://elnine.com.ar/sitemap_index.xml']) {
+  const [s, t] = await raw(u);
+  out[u] = s + ' ' + t.length + ' bytes\n' + [...new Set((t.match(/(?:href="|<loc>)([^"<]*(?:reserv|proyecc)[^"<]*)/gi) || []))].slice(0, 30).join('\n') + '\n--links--\n' + [...new Set((t.match(/(?:href="|<loc>)(https?:\/\/[^"<]*|\/[^"<]{2,80})/g) || []))].slice(0, 60).join(' ');
+}
 await writeFile('out/res.json', JSON.stringify(out, null, 1));
