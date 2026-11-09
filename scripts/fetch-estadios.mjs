@@ -26,29 +26,40 @@ for (const l of LIGAS) {
   console.log(l, j ? 'ok' : 'sin datos');
 }
 
-// 2) el estadio de cada uno (ESPN) y sus coordenadas
-const wdCoord = async q => {
-  const s = await getJ(`https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&language=es&uselang=es&type=item&limit=5&search=${encodeURIComponent(q)}`);
-  const ids = (s?.search || []).map(x => x.id); if (!ids.length) return null;
-  const e = await getJ(`https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&props=claims&ids=${ids.join('|')}`);
-  for (const id of ids) { const c = e?.entities?.[id]?.claims?.P625?.[0]?.mainsnak?.datavalue?.value; if (c) return { lat:+c.latitude.toFixed(5), lng:+c.longitude.toFixed(5), src:'wikidata' }; }
+// 2) el estadio de cada uno: ESPN (API "core", trae el estadio) y si no, Wikidata (club → P115 estadio → P625)
+const ents = async ids => (await getJ(`https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&props=claims|labels&languages=es|en&ids=${ids.join('|')}`))?.entities || {};
+const coordOf = e => { const c = e?.claims?.P625?.[0]?.mainsnak?.datavalue?.value; return c ? { lat:+c.latitude.toFixed(5), lng:+c.longitude.toFixed(5) } : null; };
+const lab = e => e?.labels?.es?.value || e?.labels?.en?.value || '';
+const search = async (q, lang = 'es') => ((await getJ(`https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&language=${lang}&uselang=${lang}&type=item&limit=7&search=${encodeURIComponent(q)}`))?.search || []).map(x => x.id);
+async function viaWikidata(t) {
+  for (const q of [t.n, t.c]) for (const lang of ['es', 'en']) {
+    const ids = await search(q, lang); if (!ids.length) continue;
+    const E = await ents(ids);
+    for (const id of ids) {
+      const v = (E[id]?.claims?.P115 || []).sort((a, b) => (b.rank === 'preferred') - (a.rank === 'preferred') || !!a.qualifiers?.P582 - !!b.qualifiers?.P582).map(x => x.mainsnak?.datavalue?.value?.id).filter(Boolean); if (!v?.length) continue;
+      const V = await ents(v.slice(0, 3));
+      for (const vid of v) { const c = coordOf(V[vid]); if (c) return { ...c, est:lab(V[vid]), src:'wikidata' }; }
+    }
+  }
   return null;
-};
+}
+async function viaEspn(t) {
+  const j = await getJ(`https://sports.core.api.espn.com/v2/sports/soccer/leagues/${t.ligas[0]}/teams/${t.id}?lang=es`);
+  let v = j?.venue; if (v?.$ref && !v.fullName) v = await getJ(v.$ref.replace('http:', 'https:'));
+  return v?.fullName ? { est:v.fullName, city:[v.address?.city, v.address?.country].filter(Boolean).join(', ') } : {};
+}
 const osm = async q => { await sleep(1100); const j = await getJ('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q)); return j?.[0] ? { lat:+(+j[0].lat).toFixed(5), lng:+(+j[0].lon).toFixed(5), src:'osm' } : null; };
 let nuevos = 0, sin = 0;
 const out = [];
 for (const t of teams.values()) {
   const o = old.get(t.id);
   if (o?.lat != null) { out.push({ ...o, ...t, lat:o.lat, lng:o.lng, est:o.est, city:o.city }); continue; }
-  const d = await getJ(`https://site.api.espn.com/apis/site/v2/sports/soccer/${t.ligas[0]}/teams/${t.id}`);
-  const v = d?.team?.franchise?.venue || d?.team?.venue || {};
-  const est = v.fullName || '', city = [v.address?.city, v.address?.country].filter(Boolean).join(', ');
-  let c = null;
-  if (est) c = await wdCoord(est) || await osm([est, city].filter(Boolean).join(', '));
-  if (!c) c = await wdCoord('Estadio ' + t.n);
-  if (!c && city) c = { ...(await osm(city) || {}), aprox:true };
-  if (c?.lat == null) { sin++; c = null; } else nuevos++;
-  out.push({ ...t, est, city, ...(c || {}) });
+  const e = await viaEspn(t);
+  let c = await viaWikidata(t);
+  if (!c && e.est) c = await osm([e.est, e.city].filter(Boolean).join(', '));
+  if (!c && e.city) { const x = await osm(e.city); if (x) c = { ...x, aprox:true }; }
+  if (!c) sin++; else nuevos++;
+  out.push({ ...t, est:c?.est || e.est || '', city:e.city || '', ...(c || {}) });
 }
 await writeFile(dir + '/estadios.json', JSON.stringify({ updated:new Date().toISOString(), equipos:out }));
 console.log(`Estadios: ${out.length} equipos · ${nuevos} ubicados ahora · ${sin} sin ubicar`);
