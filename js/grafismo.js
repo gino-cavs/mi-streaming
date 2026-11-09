@@ -21,19 +21,24 @@ const Grafismo = (() => {
     el.onclick = () => { document.body.classList.remove('bkon'); Nav.go('noticias'); };
   }
 
-  /* ---------- Zócalo: avisos y goles como en la tele (en la Pantalla TV); afuera, el cartelito de siempre ---------- */
+  /* ---------- Avisos en la barra de abajo: en la Pantalla TV todo sale en la franja de la hora (no tapa el video).
+     Uno por vez; si hay Último momento, espera. Afuera de la Pantalla TV, el cartelito de siempre. ---------- */
   let zq = [], zBusy = false;
   function notify(html, opts = {}) {
     if (!inTv()) return toast(html, opts);
-    zq.push({ html, opts }); if (!zBusy) nextZ();
+    barPop(opts.lbl || (/goal/.test(opts.cls || '') ? '⚽ GOL' : 'FUNVS'), html, opts);
   }
+  function barPop(lbl, html, opts = {}) { zq.push({ lbl, html, opts }); if (!zBusy) nextZ(); }
   function nextZ() {
+    if (document.body.classList.contains('bkon')) { setTimeout(nextZ, 3000); return; }   // primero termina el Último momento
     const x = zq.shift(); if (!x) { zBusy = false; return; } zBusy = true;
-    let el = $('zocalo'); if (!el) { el = document.createElement('div'); el.id = 'zocalo'; document.body.appendChild(el); }
-    el.className = 'zoc ' + (x.opts.cls || ''); el.innerHTML = `<div class="zoc-in">${x.html}</div>`;
-    el.onclick = () => { x.opts.onclick?.(); el.classList.remove('on'); };
-    void el.offsetWidth; el.classList.add('on');
-    setTimeout(() => { el.classList.remove('on'); setTimeout(nextZ, 600); }, Math.min(x.opts.ms || 8000, 12000));
+    let el = $('barpop'); if (!el) { el = document.createElement('div'); el.id = 'barpop'; document.body.appendChild(el); }
+    el.className = (x.opts.cls || '').replace(/\binfo\b/, '');
+    el.innerHTML = `<span class="bp-lbl">${x.lbl}</span><div class="bp-txt">${x.html}</div><b class="bp-time">${hm(Date.now())}</b>`;
+    let done = false; const off = () => { if (done) return; done = true; clearTimeout(t); document.body.classList.remove('bpon'); setTimeout(nextZ, 700); };
+    el.onclick = () => { x.opts.onclick?.(); off(); };
+    void el.offsetWidth; document.body.classList.add('bpon');
+    const t = setTimeout(off, Math.min(x.opts.ms || 8000, x.opts.max || 12000));
   }
 
   /* ---------- ⛅ Clima completo a las 8, 18 y 22 (en la Pantalla TV, 30 segundos) ---------- */
@@ -46,10 +51,9 @@ const Grafismo = (() => {
       const now = Date.now(), hrs = j.hourly.time.map((t, i) => ({ t:Date.parse(t), c:j.hourly.weather_code[i], p:j.hourly.precipitation_probability[i] })).filter(h => h.t > now && h.t < now + 12 * 3600e3);
       const storm = hrs.find(h => h.c >= 95), rain = hrs.find(h => h.p >= 70);
       const day = i => `<div class="wxd"><small>${i ? 'MAÑANA' : 'HOY'}</small><span class="wxi">${WX(j.daily.weather_code[i])}</span><b>${Math.round(j.daily.temperature_2m_max[i])}° <em>${Math.round(j.daily.temperature_2m_min[i])}°</em></b><span>${WXT(j.daily.weather_code[i])}</span><span>💧 ${j.daily.precipitation_probability_max[i] ?? 0}%</span></div>`;
-      let el = $('wxfull'); if (!el) { el = document.createElement('div'); el.id = 'wxfull'; document.body.appendChild(el); }
-      el.innerHTML = `<div class="wxh"><b>EL CLIMA</b><span>Monte Grande · ahora ${Math.round(j.current.temperature_2m)}° ${WX(j.current.weather_code)}</span></div><div class="wxrow">${day(0)}${day(1)}</div>
-        ${storm ? `<div class="wxal">⚠️ Tormentas desde las ${hm(storm.t)}</div>` : rain ? `<div class="wxal rain">☔ Lluvia probable desde las ${hm(rain.t)} (${rain.p}%)</div>` : ''}`;
-      el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 30e3); el.onclick = () => el.classList.remove('on');
+      const d = i => `<span class="bp-it"><small>${i ? 'MAÑANA' : 'HOY'}</small> ${WX(j.daily.weather_code[i])} <b>${Math.round(j.daily.temperature_2m_max[i])}°</b>/${Math.round(j.daily.temperature_2m_min[i])}° ${WXT(j.daily.weather_code[i])} · 💧${j.daily.precipitation_probability_max[i] ?? 0}%</span>`;
+      const al = storm ? `<span class="bp-al">⚠️ Tormentas ${hm(storm.t)} h</span>` : rain ? `<span class="bp-al rain">☔ Lluvia ${hm(rain.t)} h (${rain.p}%)</span>` : '';
+      barPop('⛅ EL CLIMA', `<span class="bp-it"><small>MONTE GRANDE</small> ${WX(j.current.weather_code)} <b>${Math.round(j.current.temperature_2m)}°</b></span>${d(0)}${d(1)}${al}`, { ms:30e3, max:30e3, cls:'bpwx' });
     } catch {}
   }
   let lastWx = S.get('wxShown', '');
@@ -72,5 +76,5 @@ const Grafismo = (() => {
     setInterval(wxTick, 60e3); setTimeout(wxTick, 10e3);
     if (Lite.tv) separator();
   }
-  return { init, breaking, notify, weather, separator };
+  return { init, breaking, notify, barPop, weather, separator };
 })();

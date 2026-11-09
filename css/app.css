@@ -1412,3 +1412,22 @@ dialog.resdlg::backdrop { background:rgba(0,0,0,.7); }
 .t4gen { align-self:flex-start; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; background:#7c3aed; color:#fff; border-radius:999px; padding:2px 8px; }
 .t4tema .btns { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
 @media (max-width:600px) { .t4tema { flex-direction:column; } .t4tema img { width:100%; height:auto; aspect-ratio:16/9; } }
+
+/* ===== Avisos y clima en la barra de abajo (Pantalla TV): reemplazan la franja de la hora un rato, sin tapar el video ===== */
+#barpop { position:fixed; left:0; right:0; bottom:0; height:46px; z-index:115; display:flex; align-items:stretch; background:#0b1f5c; color:#fff; border-top:3px solid #2f6bff;
+  transform:translateY(110%); transition:transform .4s ease; cursor:pointer; font-family:Oswald, system-ui, sans-serif; }
+body.bpon #barpop { transform:none; }
+body.tvlock.bpon .hud-ticker, body.tvlock.bpon .hud-clock { transform:translateY(110%) !important; }
+body.bkon #barpop { transform:translateY(110%); }
+.bp-lbl { background:#fff; color:#0b1f5c; font-weight:700; font-size:18px; padding:0 16px; display:flex; align-items:center; letter-spacing:.04em; white-space:nowrap; }
+#barpop.goal { border-top-color:#18a558; } #barpop.goal .bp-lbl { background:#18a558; color:#fff; }
+#barpop.bpwx { background:linear-gradient(90deg, #1238b5, #0b1438); }
+.bp-txt { flex:1; min-width:0; overflow:hidden; display:flex; align-items:center; gap:18px; padding:0 16px; font-size:19px; white-space:nowrap; }
+.bp-txt b { font-weight:700; } .bp-txt small { font-size:13px; letter-spacing:.08em; color:#9fc0ff; font-family:system-ui, sans-serif; }
+.bp-txt br { display:none; } .bp-txt > * { flex:none; } .bp-txt > :last-child { flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.bp-txt > small { color:#cfe0ff; font-size:15px; letter-spacing:0; }
+.bp-it { display:inline-flex; align-items:baseline; gap:6px; }
+.bp-al { background:#ffcc00; color:#3a2a00; font-weight:700; padding:3px 10px; border-radius:6px; } .bp-al.rain { background:#9fc0ff; color:#0b1f5c; }
+.bp-time { display:flex; align-items:center; padding:0 14px; background:#081548; font-size:19px; }
+html.dev-celu #barpop { padding:0 var(--edge, 18px) var(--edgeb, 10px); height:calc(46px + var(--edgeb, 10px)); }
+@media (max-width:600px) { #barpop { height:36px; } .bp-lbl { font-size:12px; padding:0 8px; } .bp-txt { font-size:14px; gap:10px; padding:0 8px; } .bp-time { display:none; } }

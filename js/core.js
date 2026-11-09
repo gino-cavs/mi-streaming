@@ -240,6 +240,8 @@ setInterval(() => DND.paint(), 60e3);
 function warn(t) { $('warns').innerHTML = `<div class="warn">${esc(t)}<button onclick="this.parentNode.remove()">OK</button></div>`; }
 function toast(html, { cls = '', ms = 9000, onclick, force } = {}) {
   if (!force && /goal|race/.test(cls) && DND.active()) { DND.add(html); return; }   // No molestar: se guarda para después
+  // en la Pantalla TV los avisos salen en la barra de abajo (no tapan el video); el cartelito del zapping sigue igual
+  if (document.body.classList.contains('tvlock') && !/zapt/.test(cls) && window.Grafismo?.barPop) return Grafismo.barPop(/goal/.test(cls) ? '⚽ GOL' : 'FUNVS', html, { cls, ms:Math.min(ms, 12000), onclick });
   const d = document.createElement('div');
   d.className = 'toast ' + cls; d.innerHTML = html;
   d.onclick = () => { if (onclick) onclick(); d.remove(); };
