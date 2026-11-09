@@ -1268,3 +1268,14 @@ body.tvlock.bkon .hud-ticker, body.tvlock.bkon .hud-clock { transform:translateY
 @keyframes sepin { from { transform:scale(.85); opacity:0; } }
 @keyframes sepline { from { transform:scaleX(0); } }
 .hud-score[hidden] { display:none !important; }
+
+/* ===== Previa · Mientras tanto · Un día como hoy ===== */
+.pvprev { background:#ffffff14; border-radius:12px; padding:10px 14px; margin:8px auto 0; max-width:640px; font-size:14px; display:flex; flex-direction:column; gap:6px; position:relative; z-index:1; }
+.pvf { display:flex; align-items:center; gap:10px; } .pvf span:first-child { font-weight:700; min-width:110px; } .pvf small { color:#cfe0ff; min-width:90px; }
+.fms { display:flex; gap:3px; } .fm { font-style:normal; font:700 12px Oswald, system-ui, sans-serif; width:20px; height:20px; border-radius:4px; display:flex; align-items:center; justify-content:center; background:#888; }
+.fm.W { background:#18a558; } .fm.D { background:#8a8f9e; } .fm.L { background:#d33; }
+.pvh2h { display:flex; flex-wrap:wrap; gap:4px 12px; } .pvh2h b { flex-basis:100%; } .pvh2h small { color:#cfe0ff; }
+.hud-mt { left:20px; top:104px; display:flex; align-items:center; gap:10px; background:#fff; color:#0b1f5c; border-radius:6px; padding:3px 12px 3px 0; font:600 16px Oswald, system-ui, sans-serif; text-shadow:none; overflow:hidden; }
+.hud-mt .mt-l { background:#0b1f5c; color:#fff; padding:3px 10px; font-size:13px; letter-spacing:.06em; } .hud-mt i { font-style:normal; color:#c8102e; font-size:13px; }
+.hud-mt[hidden] { display:none !important; } body:not(.tvlock) .hud-mt { display:none; }
+.pvefem { background:var(--panel); border-left:4px solid #2f6bff; border-radius:10px; padding:10px 14px; } .pvefem p { margin:0 0 6px; }

@@ -13,7 +13,53 @@ const Partido = (() => {
     return l.sort((a, b) => ({ in:0, pre:1, post:2 }[a.state] - { in:0, pre:1, post:2 }[b.state]))[0] || null;
   }
   const hhmm = d => new Date(d).toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
-  function left(d) { const m = Math.round((Date.parse(d) - Date.now()) / 60e3); return m <= 0 ? 'ya empieza' : m < 60 ? `en ${m} min` : `en ${Math.floor(m / 60)} h ${m % 60} min`; }
+  function left(d) { const s = Math.round((Date.parse(d) - Date.now()) / 1e3), m = Math.floor(s / 60); return s <= 0 ? 'ya empieza' : m < 60 ? `faltan ${m}:${String(s % 60).padStart(2, '0')}` : `en ${Math.floor(m / 60)} h ${m % 60} min`; }
+
+  /* ---------- 📋 Previa: historial frente a frente, cómo vienen y la tabla (ESPN, se guarda 1 hora) ---------- */
+  let previa = S.get('previa', null), pBusy = false;
+  async function loadPrevia(m) {
+    if (!m || pBusy || (previa?.id === m.id && Date.now() - previa.at < 3600e3)) return previa?.id === m.id ? previa : null;
+    pBusy = true;
+    try {
+      const s = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${m.lg || 'arg.1'}/summary?event=${m.id}`)).json();
+      const ss = (s.seasonseries || []).find(x => x.type === 'head-to-head') || s.seasonseries?.[0];
+      const h2h = (ss?.events || []).filter(e => e.status === 'post' || e.statusType?.completed).slice(-5).reverse().map(e => { const H = e.competitors.find(c => c.homeAway === 'home'), A = e.competitors.find(c => c.homeAway === 'away');
+        return { d:e.date.slice(0, 10), t:`${H.team.abbreviation} ${H.score} - ${A.score} ${A.team.abbreviation}` }; });
+      const form = {}; (s.lastFiveGames || []).forEach(x => form[x.team.id] = (x.events || []).slice(0, 5).map(e => e.gameResult).join(''));
+      const tab = {}; (s.standings?.groups || []).forEach(g => (g.standings?.entries || []).forEach(e => { const st = Object.fromEntries(e.stats.map(x => [x.name, x.displayValue])); tab[e.id] = { pos:st.rank, pts:st.points }; }));
+      previa = { id:m.id, at:Date.now(), serie:(ss?.summary || '').replace(/leads series/, 'gana la serie').replace(/series tied/i, 'serie empatada'), h2h, form, tab, venue:s.gameInfo?.venue?.fullName || '' };
+      S.set('previa', previa); if (Nav.current === 'inicio') setTimeout(() => Inicio.render(), 0);
+    } catch {}
+    pBusy = false; return previa?.id === m.id ? previa : null;
+  }
+  const formHtml = f => (f || '').split('').map(r => `<i class="fm ${r}">${{ W:'G', D:'E', L:'P' }[r] || r}</i>`).join('');
+  function previaHtml(m, p) {
+    if (!p) return '';
+    const row = t => `<div class="pvf"><span>${esc(t.shortDisplayName || t.displayName)}</span>${p.tab[t.id] ? `<small>${p.tab[t.id].pos}° · ${p.tab[t.id].pts} pts</small>` : ''}<span class="fms">${formHtml(p.form[t.id])}</span></div>`;
+    return `<div class="pvprev"><div><b>📋 Previa</b>${p.venue ? ` · 🏟️ ${esc(p.venue)}` : ''}</div>${row(m.h.team)}${row(m.a.team)}
+      ${p.h2h.length ? `<div class="pvh2h"><b>Frente a frente${p.serie ? ' · ' + esc(p.serie) : ''}</b>${p.h2h.map(x => `<span>${esc(x.t)} <small>${x.d.split('-').reverse().join('/')}</small></span>`).join('')}</div>` : ''}</div>`;
+  }
+
+  /* ---------- 💙 Un día como hoy (efemérides de Wikipedia y Wikidata, las arma GitHub una vez por mes) ---------- */
+  let efem = S.get('efem', null), efAt = 0;
+  async function loadEfem() { if (Date.now() - efAt < 6 * 3600e3) return efem; efAt = Date.now(); try { const j = await (await fetch(REPO.data + 'efemerides.json?t=' + Math.floor(Date.now() / 864e5))).json(); if (j?.dias) { efem = j; S.set('efem', j); } } catch {} return efem; }
+  function efemHoy() {
+    if (!efem) return null;
+    const n = new Date(), md = String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0'), l = efem.dias[md] || [];
+    const hito = l.find(x => x.k === 'hito'), cumples = l.filter(x => x.k === 'cumple').slice(0, 3);
+    return hito || cumples.length ? { hito, cumples, y:n.getFullYear() } : null;
+  }
+  const cumpleTxt = (c, y) => `${esc(c.t)} cumple ${y - c.y}${c.v ? ` (jugó en Vélez ${esc(c.v)})` : ''}`;
+  let efShown = S.get('efShown', '');
+  function efemTv() {   // en la Pantalla TV, una vez por día, como zócalo
+    const e = efemHoy(), k = new Date().toDateString(); if (!e || efShown === k || !document.body.classList.contains('tvlock') || new Date().getHours() < 11) return;
+    efShown = k; S.set('efShown', k);
+    Grafismo.notify(`<b>💙 Un día como hoy</b>${e.hito ? `<span>${esc(e.hito.y)}: ${esc(e.hito.t.slice(0, 160))}</span>` : ''}${e.cumples.length ? `<small>🎂 ${e.cumples.map(c => cumpleTxt(c, e.y)).join(' · ')}</small>` : ''}`, { ms:12000, onclick:() => Nav.go('velez') });
+  }
+  Inicio.add({ id:'efem', order:75, html() {
+    loadEfem().then(d => { if (d && !$('v-inicio')?.querySelector('[data-b="efem"]') && Nav.current === 'inicio' && efemHoy()) Inicio.render(); });
+    const e = efemHoy(); if (!e) return '';
+    return `<h2 class="sec">💙 Un día como hoy</h2><div class="pvefem">${e.hito ? `<p><b>${esc(e.hito.y)}</b> · ${esc(e.hito.t)}</p>` : ''}${e.cumples.length ? `<p>🎂 ${e.cumples.map(c => cumpleTxt(c, e.y)).join(' · ')}</p>` : ''}<small class="mut">Fuente: Wikipedia y Wikidata</small></div>`; } });
 
   /* ---------- 🔥 Motivación fortinera ---------- */
   let fortin = S.get('fortin', null), busy = false;
@@ -54,7 +100,14 @@ const Partido = (() => {
     const m = match(), show = m && (m.state === 'in' || (m.state === 'pre' && Date.parse(m.date) - Date.now() < 45 * 60e3));
     el.hidden = !show; if (!show) return;
     const lg = t => t.logo ? `<img src="${esc(t.logo)}" alt="">` : '';
-    el.innerHTML = `${lg(m.h.team)}<b>${esc(short(m.h.team))}</b><span class="hs-n">${m.state === 'pre' ? 'vs' : m.hs + ' - ' + m.as}</span><b>${esc(short(m.a.team))}</b>${lg(m.a.team)}<i>${m.state === 'pre' ? hhmm(m.date) : esc(m.st)}</i>`;
+    const cd = () => { const s = Math.max(0, Math.round((Date.parse(m.date) - Date.now()) / 1e3)); return `faltan ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+    el.innerHTML = `${lg(m.h.team)}<b>${esc(short(m.h.team))}</b><span class="hs-n">${m.state === 'pre' ? 'vs' : m.hs + ' - ' + m.as}</span><b>${esc(short(m.a.team))}</b>${lg(m.a.team)}<i>${m.state === 'pre' ? cd() : esc(m.st)}</i>`;
+    // Mientras tanto: los otros partidos de la fecha
+    const mt = $('hudMt'); if (!mt) return;
+    let others = []; try { others = (Fulbito.today()[m.lg]?.events || []).filter(x => x.id !== m.id && x.state !== 'pre'); } catch {}
+    mt.hidden = m.state !== 'in' || !others.length; if (mt.hidden) return;
+    const x = others[Math.floor(Date.now() / 6000) % others.length];
+    mt.innerHTML = `<span class="mt-l">MIENTRAS TANTO</span><span>${esc(short(x.h.team))} <b>${x.hs}-${x.as}</b> ${esc(short(x.a.team))}</span><i>${x.state === 'post' ? 'Final' : esc(x.st)}</i>`;
   }
 
   /* ---------- 🏠 Ahora: el partido arriba de todo ---------- */
@@ -62,11 +115,12 @@ const Partido = (() => {
     const m = match(); if (!m) return '';
     const ch = (() => { try { return Fulbito.channelsFor(m); } catch { return []; } })();
     const lg = t => t.logo ? `<img src="${esc(t.logo)}" alt="">` : '';
-    const mid = m.state === 'pre' ? `<b class="pvs">${hhmm(m.date)}</b><small>${left(m.date)}</small>` : `<b class="pvs">${m.hs} - ${m.as}</b><small>${m.state === 'in' ? '● ' + esc(m.st) : 'Final'}</small>`;
+    const mid = m.state === 'pre' ? `<b class="pvs">${hhmm(m.date)}</b><small id="pvCd">${left(m.date)}</small>` : `<b class="pvs">${m.hs} - ${m.as}</b><small>${m.state === 'in' ? '● ' + esc(m.st) : 'Final'}</small>`;
     return `<div class="pvelez ${m.state}"><div class="pvtag">💙 ${m.state === 'post' ? 'HOY JUGÓ VÉLEZ' : m.state === 'in' ? 'ESTÁ JUGANDO VÉLEZ' : 'HOY JUEGA VÉLEZ'}</div>
       <div class="pvrow"><div class="pvt">${lg(m.h.team)}<span>${esc(m.h.team.shortDisplayName || m.h.team.displayName)}</span></div><div class="pvmid">${mid}</div><div class="pvt">${lg(m.a.team)}<span>${esc(m.a.team.shortDisplayName || m.a.team.displayName)}</span></div></div>
       ${m.goals?.length ? `<div class="pvgoals">⚽ ${m.goals.map(g => `${esc(g.who)} ${esc(g.min)}`).join(' · ')}</div>` : ''}
       ${m.state !== 'post' ? Ver.chips(ch, `${m.h.team.shortDisplayName} vs ${m.a.team.shortDisplayName}`) : ''}
+      ${m.state === 'pre' ? previaHtml(m, previa?.id === m.id ? previa : null) : ''}
       <div class="btns"><button class="pri" data-pv="fortin">🔥 Motivación fortinera</button>${m.state !== 'post' ? '<button data-pv="tv">📺 Modo partido en la tele</button>' : ''}<button data-pv="mundo">💙 Mundo Vélez</button></div></div>`; },
     bind(el) {
       el.querySelector('[data-pv=fortin]').onclick = motivacion;
@@ -75,12 +129,15 @@ const Partido = (() => {
     } });
 
   function init() {
-    $('hud')?.insertAdjacentHTML('beforeend', '<div class="hud-score" id="hudScore" hidden></div>');
+    $('hud')?.insertAdjacentHTML('beforeend', '<div class="hud-score" id="hudScore" hidden></div><div class="hud-mt" id="hudMt" hidden></div>');
     // también en Mundo Vélez
     const orig = Velez.render;
     Velez.render = (...a) => { orig(...a); const v = $('v-velez'); if (v && !v.querySelector('.pvfort')) v.insertAdjacentHTML('afterbegin', '<div class="pvfort"><button class="pri" id="pvFort">🔥 Motivación fortinera</button><span class="mut">videos de la hinchada para la previa</span></div>'); $('pvFort') && ($('pvFort').onclick = motivacion); };
-    setInterval(() => { paintHud(); if (Nav.current === 'inicio' && match()?.state === 'in' && !document.activeElement?.closest?.('#v-inicio')) Inicio.render(); }, 15e3);
+    setInterval(() => { paintHud(); efemTv(); const m = match(); if (m?.state === 'pre' && Date.parse(m.date) - Date.now() < 3 * 3600e3) loadPrevia(m);
+      if (Nav.current === 'inicio' && m && m.state !== 'post' && !document.activeElement?.closest?.('#v-inicio')) Inicio.render(); }, 6e3);
+    setInterval(() => { const el = $('pvCd'), m = match(); if (el && m?.state === 'pre') el.textContent = left(m.date, true); }, 1000);
+    loadEfem();
     paintHud();
   }
-  return { init, onGoal, motivacion, match };
+  return { init, onGoal, motivacion, match, loadPrevia, efemHoy };
 })();

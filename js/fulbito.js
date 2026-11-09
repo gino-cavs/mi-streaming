@@ -81,7 +81,7 @@ const Fulbito = (() => {
     const ligas = db.futbol.leagues;
     const res = await Promise.all(ligas.map(l => board(l, 0).then(j => [l, j]).catch(() => [l, null])));
     const next = {}, scores = {};
-    res.forEach(([l, j]) => { if (j) { next[l] = { name:j.leagues?.[0]?.name, logo:j.leagues?.[0]?.logos?.[0]?.href, events:evs(j) }; } });
+    res.forEach(([l, j]) => { if (j) { next[l] = { name:j.leagues?.[0]?.name, logo:j.leagues?.[0]?.logos?.[0]?.href, events:evs(j).map(m => ({ ...m, lg:l })) }; } });
     Object.values(next).forEach(L => L.events.forEach(m => scores[m.id] = m));
     if (prev) Object.values(scores).forEach(m => {
       const p = prev[m.id]; if (!p) return;
@@ -277,5 +277,5 @@ const Fulbito = (() => {
       const ch = m.state !== 'post' ? channelsFor(m) : [];
       return `⚽ ${n(m.h)} ${m.state === 'pre' ? 'vs' : m.hs + '-' + m.as} ${n(m.a)} ${m.state === 'in' ? '(' + m.st + ')' : m.state === 'pre' ? '· ' + m.st : '(final)'}${ch.length ? ' · 📺 ' + ch[0] : ''}`; });
   function init() { onChange(() => { if ($('v-fulbito').dataset.built) render(); }); poll().catch(() => {}); loadGuide(); setInterval(loadGuide, 20 * 60e3); }
-  return { channelsFor, soundOn:() => local.sound, init, render, poll, matchRow, todayFor, liveCount, board, simplify, evs, ticker };
+  return { today:() => today, channelsFor, soundOn:() => local.sound, init, render, poll, matchRow, todayFor, liveCount, board, simplify, evs, ticker };
 })();
