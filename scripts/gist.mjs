@@ -1,8 +1,18 @@
 // Lee la configuración de FUNVS desde el Gist privado de sincronización (secreto GIST_ID).
 // Nunca imprime su contenido: tiene claves (YouTube, Telegram).
 export async function readDb() {
-  const id = process.env.GIST_ID; if (!id) return null;
+  let id = (process.env.GIST_ID || '').trim(); if (!id) return null;
   const h = { Accept:'application/vnd.github+json', 'User-Agent':'mi-streaming' };
+  // Si en el secreto quedó el TOKEN de sincronización (ghp_… / github_pat_…) en vez del código del Gist,
+  // lo uso para encontrar el Gist de FUNVS. Nunca se imprime.
+  const m = id.match(/[0-9a-f]{20,40}/);
+  if (m && /^[0-9a-f]+$/.test(m[0]) && !/^(ghp_|github_pat_|gho_)/.test(id)) id = m[0];
+  else try {
+    const gs = await (await fetch('https://api.github.com/gists?per_page=100', { headers:{ ...h, Authorization:'Bearer ' + id } })).json();
+    const g = Array.isArray(gs) && gs.find(x => x.files?.['mi-streaming.json']);
+    if (!g) { console.log('El secreto GIST_ID no es un código de Gist válido (ni un token que lo encuentre)'); return null; }
+    id = g.id;
+  } catch { return null; }
   if (process.env.GH_TOKEN) h.Authorization = 'Bearer ' + process.env.GH_TOKEN;
   try {
     let g = await (await fetch('https://api.github.com/gists/' + id, { headers:h })).json();

@@ -2,6 +2,7 @@
 // Lo corre GitHub Actions cada 30 minutos. Uso: node scripts/fetch-news.mjs salida/news.json
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { readDb } from './gist.mjs';
 
 const out = process.argv[2] || 'news.json';
 const cfg = JSON.parse(await readFile(new URL('../news-config.json', import.meta.url), 'utf8'));
@@ -9,15 +10,11 @@ const LOC = 'hl=es-419&gl=AR&ceid=AR:es-419';
 
 // Programas del Calendario: se leen del archivo de sincronización (gist) si está configurado GIST_ID
 if (process.env.GIST_ID) {
-  try {
-    const g = await (await fetch('https://api.github.com/gists/' + process.env.GIST_ID, { headers:{ Accept:'application/vnd.github+json', 'User-Agent':'mi-streaming' } })).json();
-    const f = g.files?.['mi-streaming.json'];
-    const data = JSON.parse(f.truncated ? await (await fetch(f.raw_url)).text() : f.content);
-    for (const p of data.programs || []) {
-      if (p && p.id && p.name) cfg.topics.push({ id:'prog:' + p.id, label:p.name, q:`"${p.name}" when:4d` });
-    }
-    console.log(`Programas del calendario: ${(data.programs || []).length}`);
-  } catch (e) { console.log('No pude leer los programas del calendario: ' + e.message); }
+  const data = await readDb();
+  for (const p of data?.programs || []) {
+    if (p && p.id && p.name) cfg.topics.push({ id:'prog:' + p.id, label:p.name, q:`"${p.name}" when:4d` });
+  }
+  console.log(`Programas del calendario: ${(data?.programs || []).length}`);
 }
 const urlFor = t => t.home ? `https://news.google.com/rss?${LOC}`
   : t.topic ? `https://news.google.com/rss/headlines/section/topic/${t.topic}?${LOC}`
