@@ -1,0 +1,10 @@
+import { writeFile, mkdir } from 'node:fs/promises';
+await mkdir('out', { recursive:true });
+const UA = { 'User-Agent':'Mozilla/5.0 (FUNVS uso personal)' };
+const get = async u => { try { const r = await fetch(u, { headers:UA, signal:AbortSignal.timeout(20000) }); return `${r.status}\n` + (await r.text()).slice(0, 4000); } catch (e) { return 'ERR ' + e; } };
+const out = {};
+for (const u of ['https://www.promiedos.com.ar/robots.txt','https://www.dataredonda.com/robots.txt','https://elnine.com.ar/robots.txt','https://www.promiedos.com.ar/league/reserva','https://www.dataredonda.com/']) out[u] = await get(u);
+const d = await (await fetch('https://site.api.espn.com/apis/site/v2/leagues/dropdown?sport=soccer&limit=1000', { headers:UA })).json().catch(() => null);
+out.espnArg = (d?.leagues || []).filter(l => /arg|reserv/i.test(l.slug + l.name)).map(l => l.slug + ' | ' + l.name);
+for (const s of ['arg.reserve', 'arg.res', 'arg.reserva', 'arg.r', 'arg.reserves']) out['sb ' + s] = (await get(`https://site.api.espn.com/apis/site/v2/sports/soccer/${s}/scoreboard`)).slice(0, 200);
+await writeFile('out/res.json', JSON.stringify(out, null, 1));
