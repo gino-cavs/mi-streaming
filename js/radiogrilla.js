@@ -100,7 +100,7 @@ const RadioGrilla = (() => {
       return `<div class="eprow rgrow ${on ? 'islive' : ''}">
         <div class="epch" data-ri="${i}" tabindex="0"><span class="rgdial">${esc(g?.dial || '📻')}</span><span class="epname">${on ? '🔊 ' : ''}${esc(g?.n || r.name)}${g?.own ? ' <small class="mut">✏️ tuya</small>' : ''}</span><button class="rgedit" data-ed="${i}" title="Editar la grilla de esta radio">✏️</button></div>
         <div class="eptrack">${progs.map(b => { const L = pct(b.s), W = Math.max(pct(b.e) - L, 2.5), air = b.s <= now && b.e > now, time = `${b.s < from ? 'desde ' : ''}${hhmm(b.s)}–${hhmm(b.e)}`;
-          return `<div class="epb guide ${air ? 'onair' : ''}" style="left:${L}%;width:${W}%" data-ri="${i}" title="${esc(b.name + (b.pan?.length ? ' · con ' + b.pan.join(', ') : '') + ' · ' + time)}"><b>${esc(b.name)}</b><small>${esc(time)}${b.pan?.length ? ' · ' + esc(b.pan.slice(0, 2).join(', ')) : ''}</small></div>`; }).join('')
+          return `<div class="epb guide ${air ? 'onair' : ''}" style="left:${L}%;width:${W}%" data-ri="${i}" title="${esc(b.name + (b.pan?.length ? ' · con ' + b.pan.join(', ') : '') + ' · ' + time)}"><b>${esc(b.name)}</b><small>${esc(time)}${b.pan?.length ? ' · ' + esc(b.pan.slice(0, 2).join(', ')) : ''}</small><button class="epbell ${Avisos.has('radio', keyOf(r), b.name) ? 'on' : ''}" data-rbell="${i}" data-bn="${esc(b.name)}" title="Avisame cuando empiece">🔔</button></div>`; }).join('')
           || `<div class="epempty">${g ? 'Sin programas en este horario' : 'Esta radio no publica su grilla: tocá ✏️ para escribirla vos'}</div>`}</div></div>`;
     }).join('');
     const ticks = Array.from({ length:SLOTS / 2 }, (_, i) => new Date(+from + i * 2 * SLOT * 60e3));
@@ -112,7 +112,8 @@ const RadioGrilla = (() => {
       <div class="rgfoot"><p class="mut" style="font-size:12px;margin:0">La programación sale de la web de cada radio y se actualiza una vez por mes (última: ${ago(data.updated)})${db.radPedido > Date.parse(data.updated) ? ' · <b>actualización pedida, en camino</b>' : ''}. Tocá una radio o un programa para escucharla; con ✏️ la corregís o escribís vos.</p>
         <button id="rgAsk">🔄 Actualizar desde las webs</button></div>
       ${missing.length ? `<details class="epadd"><summary>➕ Radios con grilla que no tenés (${missing.length})</summary><div class="chips">${missing.map(g => `<button data-rg="${g.id}">${esc(g.n)} <small>${esc(g.dial)}</small> ＋</button>`).join('')}</div></details>` : ''}`;
-    el.querySelectorAll('[data-ri]').forEach(x => x.addEventListener('click', e => { if (e.target.closest('[data-ed]')) return; Radio.play(db.radios[+x.dataset.ri]); }));
+    el.querySelectorAll('[data-rbell]').forEach(b => b.onclick = e => { e.stopPropagation(); const r = db.radios[+b.dataset.rbell]; Avisos.toggle('radio', keyOf(r), effective(r)?.n || r.name, b.dataset.bn); b.classList.toggle('on', Avisos.has('radio', keyOf(r), b.dataset.bn)); });
+    el.querySelectorAll('[data-ri]').forEach(x => x.addEventListener('click', e => { if (e.target.closest('[data-ed],[data-rbell]')) return; Radio.play(db.radios[+x.dataset.ri]); }));
     el.querySelectorAll('[data-ed]').forEach(b => b.onclick = e => { e.stopPropagation(); edit(db.radios[+b.dataset.ed]); });
     $('rgAsk').onclick = ask;
     el.querySelectorAll('[data-ri]').forEach(x => x.addEventListener('keydown', e => { if (e.key === 'Enter') x.click(); }));

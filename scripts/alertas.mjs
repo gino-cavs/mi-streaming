@@ -168,10 +168,32 @@ async function diario() {
   if (on.t420 && [4, 16].includes(n.h) && n.m >= 20 && n.m < 40) await send(`420:${n.ymd}:${n.h}`, `🍃 Son las ${n.h}:20`);
 }
 
+/* ---------- 🔔 Avisame cuando empieza (los que marcaste con 🔔 en FUNVS) ---------- */
+const DOWS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+async function recordatorios() {
+  const recs = db.recs || []; if (!recs.length) return;
+  const guia = recs.some(r => r.k === 'canal') ? await getJ(raw('guia.json')) : null, radios = recs.some(r => r.k === 'radio') ? await getJ(raw('radios.json')) : null;
+  const n = ar(), nowMin = n.h * 60 + n.m, today = new Date(n.ymd + 'T12:00:00Z').getUTCDay();
+  for (const r of recs) {
+    let sl = [];
+    if (r.k === 'tv') sl = (r.days || []).map(d => [DOWS[d], r.time]);
+    else if (r.k === 'canal') { const g = guia?.canales?.find(x => String(x.id) === String(r.ref)); sl = (g?.sch || []).filter(x => norm(x[3]) === norm(r.name)).map(x => [x[0], x[1]]); }
+    else if (r.k === 'radio') { const own = db.radEdit?.[r.ref], g = radios?.radios?.find(x => x.id === r.ref); sl = (own || g?.sch || []).filter(x => norm(x[3]) === norm(r.name)).map(x => [x[0], x[1]]); }
+    for (const [dw, t] of sl) {
+      if (!t) continue;
+      for (const add of [0, 1]) {                     // hoy, o pasada la medianoche
+        const dIdx = (today + add) % 7; if (DOWS[dIdx] !== dw) continue;
+        const left = mins(t) + add * 1440 - nowMin;
+        if (left > 0 && left <= 13) await send(`rec:${r.id}:${n.ymd}:${dw}:${t}`, `🔔 <b>${esc(r.name)}</b>\nEmpieza a las ${t} · ${esc(r.where)}`, true);
+      }
+    }
+  }
+}
+
 /* ---------- vuelta principal ---------- */
 const until = Date.now() + 9 * 60e3;
 let hot = await futbol();
-await canales(); await motor(); await clasicos(); await actualidad(); await resumenes(); await diario();
+await recordatorios(); await canales(); await motor(); await clasicos(); await actualidad(); await resumenes(); await diario();
 while (hot && !process.env.NO_LOOP && Date.now() + 45e3 < until) { await writeFile(stFile, JSON.stringify(st)); await sleep(45e3); hot = await futbol(); }
 await writeFile(stFile, JSON.stringify(st));
 console.log(`Telegram: ${sentCount} aviso(s) enviado(s)${first ? ' (primera corrida: aprendí el estado)' : ''}`);

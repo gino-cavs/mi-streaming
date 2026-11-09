@@ -62,6 +62,7 @@ const Guia = (() => {
           const time = `${b.s < from ? 'desde ' + hhmm(b.s) : hhmm(b.s)}${b.open ? (b.live ? ' · sin hora de fin' : '') : '–' + hhmm(b.e)}`;
           return `<div class="epb ${b.live ? 'live' : ''} ${b.soon ? 'soon' : ''} ${b.prem ? 'prem' : ''} ${b.guide ? 'guide' : ''} ${b.onair ? 'onair' : ''} ${b.open ? 'open' : ''}" style="left:${L}%;width:${W}%" data-play="${c.uid}" title="${esc(b.t + (b.sub ? ' · ' + b.sub : '') + (b.pan?.length ? ' · con ' + b.pan.join(', ') : '') + ' · ' + time)}">
             <b>${b.live ? (b.prem ? '🎬 ' : '● ') : ''}${esc(b.t)}</b><small>${esc(time)}${b.sub && b.sub !== b.t ? ' · ' + esc(b.sub) : ''}</small>
+            ${b.guide && g ? `<button class="epbell ${Avisos.has('canal', g.id, b.t) ? 'on' : ''}" data-bell="${esc(String(g.id))}" data-bn="${esc(b.t)}" data-bw="${esc(c.name)}" title="Avisame cuando empiece">🔔</button>` : ''}
             ${b.guide || b.sub ? `<a class="ephv" href="${hv(b.sub || b.t)}" target="_blank" rel="noopener" title="¿Qué se habló? (búsqueda en transcripciones)">🔎</a>` : ''}</div>`; }).join('') || `<div class="epempty">${st.st === 'off' ? 'Sin programación cargada' : '…'}</div>`}</div></div>`;
     }).join('');
     const ticks = Array.from({ length:SLOTS }, (_, i) => new Date(+from + i * SLOT * 60e3));
@@ -72,7 +73,8 @@ const Guia = (() => {
       </div>
       <p class="mut" style="font-size:12px;margin-top:8px">● en vivo y 🕒 programados: YouTube. Programas y horarios de fin: <a class="lnk" href="https://laguiadelstreaming.com/" target="_blank" rel="noopener">La Guía del Streaming</a>${data ? ' (actualizada ' + ago(data.updated) + ')' : ''}. 🔎 = qué se habló en ese programa (<a class="lnk" href="https://hagovusqueda.com/" target="_blank" rel="noopener">Hagovusqueda</a>).</p>
       ${missing.length ? `<details class="epadd"><summary>➕ Canales de la guía que no tenés (${missing.length})</summary><div class="chips">${missing.map(g => `<button data-addg="${g.id}" title="${esc(g.cats.join(', '))}">${g.logo ? `<img src="${esc(g.logo)}" alt="">` : ''}${esc(g.n)} ＋</button>`).join('')}</div></details>` : ''}`;
-    el.querySelectorAll('[data-play]').forEach(x => x.addEventListener('click', e => { if (e.target.closest('a')) return; const c = db.chans.find(y => y.uid === x.dataset.play); if (c) Player.play(c); }));
+    el.querySelectorAll('[data-bell]').forEach(b => b.onclick = e => { e.stopPropagation(); Avisos.toggle('canal', b.dataset.bell, b.dataset.bw, b.dataset.bn); b.classList.toggle('on', Avisos.has('canal', b.dataset.bell, b.dataset.bn)); });
+    el.querySelectorAll('[data-play]').forEach(x => x.addEventListener('click', e => { if (e.target.closest('a,[data-bell]')) return; const c = db.chans.find(y => y.uid === x.dataset.play); if (c) Player.play(c); }));
     el.querySelectorAll('[data-addg]').forEach(b => b.onclick = () => add(data.canales.find(g => String(g.id) === b.dataset.addg)));
   }
   function add(g) {

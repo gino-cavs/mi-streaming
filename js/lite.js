@@ -14,7 +14,7 @@ const Lite = (() => {
   // ¿está sonando algo? (video en Canales o radio)
   const busy = () => { try { return Player.slots.some(Boolean) || (!!Radio.current && !document.getElementById('radioAudio').paused); } catch { return false; } };
   // relojes de fondo: los del reproductor, la pantalla TV, el zapping, la radio y la música siguen; el resto espera
-  const KEEP = /\/(player|tv|zapping|radio|radiogrilla|musica|core|app|lite|reloj)\.js/;
+  const KEEP = /\/(player|tv|zapping|radio|radiogrilla|musica|core|app|lite|reloj|avisos)\.js/;
   const _si = window.setInterval.bind(window);
   window.setInterval = function (fn, ms, ...a) {
     if (typeof fn !== 'function') return _si(fn, ms, ...a);

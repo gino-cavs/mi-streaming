@@ -49,7 +49,8 @@ const Buscar = (() => {
     let tk = []; try { tk = Fulbito.ticker().filter(t => has(t, q)); } catch {}
     grp('Fútbol hoy', tk.map(t => item('⚽', t, '', () => Nav.go('fulbito'))));
     G.push(`<h4>Afuera</h4>` + item('▶️', `Buscar “${qq}” en YouTube`, '', () => window.open('https://www.youtube.com/results?search_query=' + encodeURIComponent(qq), '_blank'))
-      + item('🎵', `Buscar “${qq}” en YouTube Music`, '', () => window.open('https://music.youtube.com/search?q=' + encodeURIComponent(qq), '_blank')));
+      + item('🎵', `Buscar “${qq}” en YouTube Music`, '', () => window.open('https://music.youtube.com/search?q=' + encodeURIComponent(qq), '_blank'))
+      + item('🗓', 'Grilla de TV de cable (mi.tv)', 'Para ver qué dan hoy y cargar un aviso', () => window.open('https://mi.tv/ar/programacion', '_blank')));
     return G.join('');
   }
   function open() {

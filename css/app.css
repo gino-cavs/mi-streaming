@@ -1175,3 +1175,11 @@ body.playing, body.hudon { padding-bottom:calc(var(--hudb, 0px) + 72px); }
 .bres:hover, .bres:focus { background:#ffffff0d; border-color:var(--acc); }
 .bres .bic { font-size:18px; width:24px; text-align:center; }
 .bres b { display:block; font-weight:600; } .bres small { color:var(--mut); font-size:12px; }
+
+/* ===== 🔔 Avisos ===== */
+.epbell { position:absolute; right:4px; bottom:3px; border:0; background:none; padding:0 3px; font-size:12px; opacity:.35; filter:grayscale(1); }
+.epb:hover .epbell, .epbell:focus { opacity:.8; }
+.epbell.on { opacity:1 !important; filter:none; }
+.recrow { display:flex; gap:4px; } .recrow > button:first-child { flex:1; text-align:left; display:flex; flex-direction:column; padding:10px 12px; border-radius:10px; background:var(--panel); }
+.recrow span { color:var(--mut); font-size:13px; } .recx { padding:0 10px; }
+.vmitv { margin-left:-4px; margin-right:6px; text-decoration:none; font-size:13px; opacity:.7; } .vmitv:hover { opacity:1; }

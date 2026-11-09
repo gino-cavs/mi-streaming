@@ -43,9 +43,10 @@ const Ver = (() => {
   function chips(channels, query, opts = {}) {
     const ch = (channels || []).map(c => {
       const s = servOf(c);
-      if (s) return `<a class="vch own" href="${esc(s[2])}" target="_blank" rel="noopener" title="Lo tenés en ${esc(s[1])}">📺 ${esc(c)} · <b>${esc(s[1])} ✓</b></a>`;
+      const g = `<a class="vmitv" href="https://mi.tv/ar/canales/${norm(c).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}" target="_blank" rel="noopener" title="Qué pasa hoy en ${esc(c)} (grilla de mi.tv)">🗓</a>`;
+      if (s) return `<a class="vch own" href="${esc(s[2])}" target="_blank" rel="noopener" title="Lo tenés en ${esc(s[1])}">📺 ${esc(c)} · <b>${esc(s[1])} ✓</b></a>${g}`;
       const p = platOf(c);
-      return p && p.u ? `<a class="vch" href="${esc(p.u)}" target="_blank" rel="noopener" title="No lo tenés en tus servicios · oficial: ${esc(p.n)}">📺 ${esc(c)} ↗</a>` : `<span class="vch">📺 ${esc(c)}</span>`; }).join('');
+      return (p && p.u ? `<a class="vch" href="${esc(p.u)}" target="_blank" rel="noopener" title="No lo tenés en tus servicios · oficial: ${esc(p.n)}">📺 ${esc(c)} ↗</a>` : `<span class="vch">📺 ${esc(c)}</span>`) + g; }).join('');
     return `<div class="tvch ver">${ch}${query ? `<button class="vbus" data-buscar="${esc(query)}" title="Buscar transmisiones en vivo">🔎 ${esc(opts.label || 'Buscar en vivo')}</button>` : ''}</div>`;
   }
 
