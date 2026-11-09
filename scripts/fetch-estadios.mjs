@@ -30,15 +30,23 @@ for (const l of LIGAS) {
 const ents = async ids => (await getJ(`https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&props=claims|labels&languages=es|en&ids=${ids.join('|')}`))?.entities || {};
 const coordOf = e => { const c = e?.claims?.P625?.[0]?.mainsnak?.datavalue?.value; return c ? { lat:+c.latitude.toFixed(5), lng:+c.longitude.toFixed(5) } : null; };
 const lab = e => e?.labels?.es?.value || e?.labels?.en?.value || '';
+// (búsqueda por prefijo, ya no se usa)
 const search = async (q, lang = 'es') => ((await getJ(`https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&language=${lang}&uselang=${lang}&type=item&limit=7&search=${encodeURIComponent(q)}`))?.search || []).map(x => x.id);
-async function viaWikidata(t) {
-  for (const q of [t.n, t.c]) for (const lang of ['es', 'en']) {
-    const ids = await search(q, lang); if (!ids.length) continue;
+// país de cada liga (para no confundir River de Argentina con River de Uruguay); en las copas sale de la ciudad de ESPN
+const PAIS = { arg:'Q414', uru:'Q77', bra:'Q155', chi:'Q298', col:'Q739', per:'Q419', ecu:'Q736', bol:'Q750', par:'Q733', ven:'Q717', esp:'Q29', eng:'Q145', ita:'Q38', ger:'Q183', fra:'Q142', por:'Q45', mex:'Q96', usa:'Q30', ksa:'Q851' };
+const PAISN = { argentina:'Q414', uruguay:'Q77', brasil:'Q155', brazil:'Q155', chile:'Q298', colombia:'Q739', peru:'Q419', 'perú':'Q419', ecuador:'Q736', bolivia:'Q750', paraguay:'Q733', venezuela:'Q717' };
+const fullSearch = async q => ((await getJ(`https://www.wikidata.org/w/api.php?action=query&list=search&format=json&srlimit=5&srsearch=${encodeURIComponent(q)}`))?.query?.search || []).map(x => x.title);
+async function viaWikidata(t, city) {
+  const lg = t.ligas.find(l => PAIS[l.split('.')[0]]), cc = lg ? PAIS[lg.split('.')[0]] : PAISN[(city || '').split(',').pop().trim().toLowerCase()];
+  const name = t.n.replace(/\s*\(.*?\)\s*/g, ' ').trim();
+  for (const q of [cc && `${name} haswbstatement:P115 haswbstatement:P17=${cc}`, `${name} haswbstatement:P115 haswbstatement:P31=Q476028`, `${name} haswbstatement:P115`].filter(Boolean)) {
+    const ids = await fullSearch(q); if (!ids.length) continue;
     const E = await ents(ids);
     for (const id of ids) {
-      const v = (E[id]?.claims?.P115 || []).sort((a, b) => (b.rank === 'preferred') - (a.rank === 'preferred') || !!a.qualifiers?.P582 - !!b.qualifiers?.P582).map(x => x.mainsnak?.datavalue?.value?.id).filter(Boolean); if (!v?.length) continue;
+      const v = (E[id]?.claims?.P115 || []).sort((a, b) => (b.rank === 'preferred') - (a.rank === 'preferred') || (a.qualifiers?.P582 ? 1 : 0) - (b.qualifiers?.P582 ? 1 : 0)).map(x => x.mainsnak?.datavalue?.value?.id).filter(Boolean);
+      if (!v.length) continue;
       const V = await ents(v.slice(0, 3));
-      for (const vid of v) { const c = coordOf(V[vid]); if (c) return { ...c, est:lab(V[vid]), src:'wikidata' }; }
+      for (const vid of v) { const c = coordOf(V[vid]); if (c) return { ...c, est:lab(V[vid]), src:'wikidata', wd:id }; }
     }
   }
   return null;
@@ -55,7 +63,7 @@ for (const t of teams.values()) {
   const o = old.get(t.id);
   if (o?.lat != null) { out.push({ ...o, ...t, lat:o.lat, lng:o.lng, est:o.est, city:o.city }); continue; }
   const e = await viaEspn(t);
-  let c = await viaWikidata(t);
+  let c = await viaWikidata(t, e.city);
   if (!c && e.est) c = await osm([e.est, e.city].filter(Boolean).join(', '));
   if (!c && e.city) { const x = await osm(e.city); if (x) c = { ...x, aprox:true }; }
   if (!c) sin++; else nuevos++;
