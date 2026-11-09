@@ -1064,3 +1064,5 @@ html.lite .zfx { background:#000; }
 .albtx .btns { margin-top:6px; flex-wrap:wrap; align-items:center; }
 @media (max-width:600px) { .albdia { flex-direction:column; align-items:flex-start; } .albcov { width:100%; height:180px; } }
 .albcov .muplay { opacity:1; }
+html.lite .tk-run { animation:tk 60s linear infinite !important; }   /* el ticker sí se mueve (es liviano) */
+html.tvapp #player.tvmode .zi:focus { outline:3px solid #ffd400 !important; background:#ffffff1a; }

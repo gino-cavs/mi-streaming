@@ -359,7 +359,8 @@ const Player = (() => {
     $('player').classList.add('show');
     mountVideo(sel); paintBar(sel);
     // con una sola pantalla, el chat se abre solo al lado si es un vivo
-    if (layout === 1 && e.ch && liveish && !opts.audio && chatOn) setChat(sel, true);
+    if (layout === 1 && e.ch && liveish && !opts.audio && chatOn && !Lite.on) setChat(sel, true);   // liviano: el chat (pesadísimo) solo si lo pedís
+    if (Lite.tv && !opts.audio && !$('player').classList.contains('tvmode')) TV.open();   // en la tele: directo a pantalla completa
     zapFx(target, c);
     if (layout > 1) { const empty = slots.findIndex((x, j) => !x && j < layout); if (empty >= 0) sel = empty; paintSel(); }
     $('scroller').scrollTo({ top:0, behavior:'smooth' });

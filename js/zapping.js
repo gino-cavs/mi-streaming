@@ -3,7 +3,7 @@
    Clic para cambiar · ▲▼ (o las flechas del teclado en Pantalla TV) para canal anterior / siguiente
    ========================================================= */
 const Zap = (() => {
-  let open = S.get('zapOpen', true), q = '', closed = new Set(S.get('zapClosed', []));
+  let open = S.get('zapOpen', !Lite.tv), q = '', closed = new Set(S.get('zapClosed', []));
   const PCOL = { youtube:'var(--yt)', twitch:'var(--tw)', kick:'var(--kick)' };
   const st = c => (Canales.status[c.uid] || {}).st || '?';
   // orden de la lista: primero los que están en vivo, después cada categoría
@@ -50,8 +50,9 @@ const Zap = (() => {
     inp.oninput = () => { q = inp.value; const pos = inp.selectionStart; render(); $('zapQ').focus(); $('zapQ').setSelectionRange(pos, pos); };
     $('zapUp').onclick = () => step(-1); $('zapDn').onclick = () => step(1);
     z.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const g = b.dataset.g; closed.has(g) ? closed.delete(g) : closed.add(g); S.set('zapClosed', [...closed]); render(); });
-    z.querySelectorAll('[data-z]').forEach(b => b.onclick = () => Player.play(db.chans.find(c => c.uid === b.dataset.z)));
-    z.querySelectorAll('[data-sr]').forEach(b => b.onclick = () => T247[b.dataset.srk].play(b.dataset.sr));
+    const tvPick = () => { if (Lite.tv && $('player').classList.contains('tvmode')) listOpen(false); };   // en la tele: elegís y se cierra
+    z.querySelectorAll('[data-z]').forEach(b => b.onclick = () => { Player.play(db.chans.find(c => c.uid === b.dataset.z)); tvPick(); });
+    z.querySelectorAll('[data-sr]').forEach(b => b.onclick = () => { T247[b.dataset.srk].play(b.dataset.sr); tvPick(); });
   }
   let digits = '', dTimer = null;
   function init() {
@@ -59,6 +60,10 @@ const Zap = (() => {
     // en la Pantalla TV, las flechas arriba/abajo cambian de canal (como el control remoto)
     document.addEventListener('keydown', e => {
       if (!$('player').classList.contains('tvmode') || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+      // control de la tele: ← abre la lista en el canal actual; dentro de la lista ▲▼ se mueven, OK elige, → la cierra
+      const inList = !!document.activeElement?.closest?.('#zap');
+      if (e.key === 'ArrowLeft' && !inList) { e.preventDefault(); listOpen(true); return; }
+      if (inList) { if (e.key === 'ArrowRight') { e.preventDefault(); listOpen(false); } return; }
       if (e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); step(-1); }
       if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); step(1); }
       if (/^[0-9]$/.test(e.key)) {
@@ -70,5 +75,10 @@ const Zap = (() => {
     onChange(render);
     render();
   }
-  return { init, render, step };
+  function listOpen(v) {
+    open = v; render();
+    if (v) { const z = $('zap'), b = z?.querySelector('.zi.now') || z?.querySelector('.zi'); b?.focus(); b?.scrollIntoView({ block:'center' }); }
+    else document.activeElement?.blur?.();
+  }
+  return { init, render, step, listOpen, get open() { return open; } };
 })();

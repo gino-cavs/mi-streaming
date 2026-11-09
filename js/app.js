@@ -57,6 +57,7 @@ const FUNVSApp = (() => {
     if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); return true; }
     const d = [...document.querySelectorAll('dialog[open]')].pop(); if (d) { d.close(); return true; }
     const p = $('player');
+    if (p?.classList.contains('tvmode') && Zap.open && Lite.tv) { Zap.listOpen(false); return true; }
     if (p?.classList.contains('tvmode')) { TV.close(); return true; }
     if (p?.classList.contains('show') && Player.slots.some(Boolean)) { Player.closeAll(); return true; }
     const first = document.querySelector('#sections [data-s]')?.dataset.s;
