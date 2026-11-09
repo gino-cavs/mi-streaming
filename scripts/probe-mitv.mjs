@@ -7,8 +7,9 @@ let log = '';
 for (const u of ['https://mi.tv/robots.txt', 'https://mi.tv/ar', 'https://mi.tv/ar/programacion', 'https://mi.tv/ar/canales']) {
   const r = await get(u); const f = u.replace(/\W+/g, '_') + '.html'; await writeFile('out/' + f, r.t); log += `${u} → ${r.st} ${r.url} ${r.t.length}\n`;
 }
-const home = (await get('https://mi.tv/ar')).t;
+const home = (await get('https://mi.tv/ar/sitemap')).t; await writeFile('out/sitemap.html', home);
 const links = [...new Set([...home.matchAll(/href="(\/ar\/canales\/[^"#?]+)"/g)].map(m => m[1]))];
 log += `canales en la home: ${links.length} · ${links.slice(0, 15).join(' ')}\n`;
-if (links[0]) { const r = await get('https://mi.tv' + links[0]); await writeFile('out/canal.html', r.t); log += `canal ${links[0]} → ${r.st} ${r.t.length}\n`; }
+for (const l of [links.find(x => /telefe/.test(x)), links.find(x => /tyc|espn/.test(x))].filter(Boolean)) { const r = await get('https://mi.tv' + l); await writeFile('out/canal_' + l.split('/').pop() + '.html', r.t); log += `canal ${l} → ${r.st} ${r.t.length}\n`; }
+const any = [...new Set([...home.matchAll(/href="([^"]+)"/g)].map(m => m[1]))]; log += 'links sitemap: ' + any.length + ' · ' + any.slice(0, 40).join(' ') + '\n';
 await writeFile('out/log.txt', log);
