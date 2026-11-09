@@ -1227,3 +1227,44 @@ body.tvlock #infobar { bottom:62px; }
 .ib-bar { display:block; height:4px; background:#ffffff22; border-radius:2px; margin-top:4px; } .ib-bar i { display:block; height:100%; background:#ff3b3b; border-radius:2px; }
 @media (max-width:600px) { .ib-next { display:none; } .ib-ch { max-width:42%; } .ib-num { font-size:22px; } .ib-logo { width:30px; height:30px; } #infobar b { font-size:14px; } }
 .epb:focus, .epch:focus { outline:3px solid #ffd400 !important; z-index:2; }
+
+/* ===== 🟥 Último momento (tiene prioridad sobre la barra de abajo, 1 minuto) ===== */
+#breaking { position:fixed; left:0; right:0; bottom:0; height:46px; z-index:116; display:flex; align-items:stretch; background:#c8102e; color:#fff; border-top:3px solid #fff;
+  transform:translateY(110%); transition:transform .45s ease; font-family:Oswald, 'Arial Narrow', system-ui, sans-serif; cursor:pointer; }
+body.bkon #breaking { transform:none; }
+.bk-lbl { background:#fff; color:#c8102e; font-weight:700; font-size:19px; padding:0 16px; display:flex; align-items:center; letter-spacing:.04em; animation:bkblink 1s steps(2) 6; }
+.bk-txt { flex:1; overflow:hidden; display:flex; align-items:center; padding:0 16px; font-size:21px; font-weight:500; white-space:nowrap; }
+.bk-txt span { overflow:hidden; text-overflow:ellipsis; }
+.bk-time { display:flex; align-items:center; padding:0 14px; background:#8e0b20; font-size:20px; }
+@keyframes bkblink { 50% { background:#ffd400; } }
+body.tvlock.bkon .hud-ticker, body.tvlock.bkon .hud-clock { transform:translateY(110%) !important; }
+@media (max-width:600px) { #breaking { height:36px; } .bk-lbl { font-size:12px; padding:0 8px; } .bk-txt { font-size:14px; padding:0 8px; } .bk-time { font-size:13px; padding:0 8px; } }
+
+/* ===== Zócalo (avisos y goles en la Pantalla TV) ===== */
+#zocalo { position:fixed; left:24px; bottom:64px; z-index:117; max-width:min(620px, 80vw); transform:translateX(-120%); transition:transform .45s ease; cursor:pointer; }
+#zocalo.on { transform:none; }
+.zoc-in { background:#fff; color:#0b1f5c; border-left:8px solid #2f6bff; padding:8px 18px 9px; font:500 18px Oswald, system-ui, sans-serif; box-shadow:0 8px 24px #0008; display:flex; flex-direction:column; }
+.zoc-in b, .zoc-in .g { font-weight:700; font-size:20px; } .zoc-in small { color:#3a4a7a; font-size:14px; font-family:system-ui, sans-serif; }
+.zoc.goal .zoc-in { border-left-color:#18a558; }
+
+/* ===== Clima completo ===== */
+#wxfull { position:fixed; right:24px; top:110px; z-index:117; width:min(420px, 90vw); background:linear-gradient(160deg, #1238b5f2, #0b1438f2); color:#fff; border-radius:14px; padding:14px 18px; box-shadow:0 12px 30px #000a;
+  transform:translateX(130%); transition:transform .5s ease; font-family:Oswald, system-ui, sans-serif; cursor:pointer; }
+#wxfull.on { transform:none; }
+.wxh { display:flex; justify-content:space-between; align-items:baseline; gap:10px; } .wxh b { font-size:22px; letter-spacing:.08em; } .wxh span { font-size:14px; color:#cfe0ff; font-family:system-ui, sans-serif; }
+.wxrow { display:flex; gap:10px; margin-top:10px; }
+.wxd { flex:1; background:#ffffff14; border-radius:10px; padding:10px; display:flex; flex-direction:column; align-items:center; gap:2px; font-family:system-ui, sans-serif; font-size:13px; }
+.wxd small { font:700 12px Oswald, system-ui, sans-serif; letter-spacing:.1em; color:#9fc0ff; } .wxi { font-size:40px; } .wxd b { font:700 24px Oswald, system-ui, sans-serif; } .wxd em { font-style:normal; color:#9fc0ff; font-size:18px; }
+.wxal { margin-top:10px; background:#ffcc00; color:#3a2a00; font:700 16px Oswald, system-ui, sans-serif; padding:6px 12px; border-radius:8px; text-align:center; } .wxal.rain { background:#9fc0ff; color:#0b1f5c; }
+
+/* ===== Separador ===== */
+.sep { position:fixed; inset:0; z-index:190; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; background:radial-gradient(circle at 50% 45%, #1a3fb8, #050b22 70%); transition:opacity .5s; pointer-events:none; }
+.sep.out { opacity:0; }
+.sep-logo { display:flex; align-items:center; gap:0; font:900 min(14vw, 120px)/1 Oswald, system-ui, sans-serif; animation:sepin .6s ease-out; }
+.sep-logo img { width:min(16vw, 130px); height:min(16vw, 130px); border-radius:50%; object-fit:cover; border:5px solid #fff; margin-right:-12px; z-index:1; box-shadow:0 0 30px #5b8cff; }
+.sep-logo .f { background:#fff; color:#0b1f5c; padding:0 22px 0 30px; } .sep-logo .v { background:#2f6bff; color:#fff; padding:0 22px; }
+.sep-line { width:min(60vw, 520px); height:5px; background:linear-gradient(90deg, transparent, #ff6a1a, #2f6bff, transparent); animation:sepline 1.6s ease-in-out; }
+.sep-sub { font:700 min(5vw, 34px) Oswald, system-ui, sans-serif; color:#fff; letter-spacing:.04em; animation:sepin .8s ease-out; }
+@keyframes sepin { from { transform:scale(.85); opacity:0; } }
+@keyframes sepline { from { transform:scaleX(0); } }
+.hud-score[hidden] { display:none !important; }

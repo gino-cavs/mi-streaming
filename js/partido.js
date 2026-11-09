@@ -70,7 +70,7 @@ const Partido = (() => {
       <div class="btns"><button class="pri" data-pv="fortin">🔥 Motivación fortinera</button>${m.state !== 'post' ? '<button data-pv="tv">📺 Modo partido en la tele</button>' : ''}<button data-pv="mundo">💙 Mundo Vélez</button></div></div>`; },
     bind(el) {
       el.querySelector('[data-pv=fortin]').onclick = motivacion;
-      el.querySelector('[data-pv=tv]')?.addEventListener('click', () => { TV.open(); paintHud(); });
+      el.querySelector('[data-pv=tv]')?.addEventListener('click', () => { const m = match(); TV.open(); if (m) setTimeout(() => Grafismo.separator(`FUNVS presenta · ${m.h.team.shortDisplayName} vs ${m.a.team.shortDisplayName}`), 50); paintHud(); });
       el.querySelector('[data-pv=mundo]').onclick = () => Nav.go('velez');
     } });
 

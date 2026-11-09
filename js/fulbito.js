@@ -107,7 +107,7 @@ const Fulbito = (() => {
     const who = g ? `${g.who}${g.pen ? ' (penal)' : ''}${g.og ? ' (en contra)' : ''} ${g.min}` : '';
     const line = `${m.h.team.shortDisplayName || m.h.team.displayName} ${m.hs} - ${m.as} ${m.a.team.shortDisplayName || m.a.team.displayName}`;
     if (m.id !== 'test' && isFav(team)) Stats.bump('gol', { id:m.id + '-' + m.hs + '-' + m.as, line, t:Date.now() });
-    toast(`<span class="g">⚽ ¡GOL de ${esc(team.shortDisplayName || team.displayName)}!</span>${esc(line)}${who ? `<small>${esc(who)}</small>` : ''}`,
+    Grafismo.notify(`<span class="g">⚽ ¡GOL de ${esc(team.shortDisplayName || team.displayName)}!</span>${esc(line)}${who ? `<small>${esc(who)}</small>` : ''}`,
       { cls:'goal', ms:15000, onclick:() => Nav.go('fulbito') });
     if (local.sound && !DND.active()) beep();
     if (local.notif && !DND.active() && document.hidden && 'Notification' in window && Notification.permission === 'granted') {

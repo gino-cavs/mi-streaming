@@ -42,7 +42,7 @@ const Avisos = (() => {
     for (const r of list()) { const n = next(r, new Date(+now - 90e3)); if (!n) continue;
       const k = r.id + '@' + n.toISOString().slice(0, 16), dt = n - now;
       if (dt <= 30e3 && dt > -120e3 && !shown.has(k)) { shown.add(k); S.set('recShown', [...shown].slice(-50));
-        toast(`🔔 <b>Empieza ${esc(r.name)}</b><small>${esc(r.where)} · tocá para ${r.k === 'tv' ? 'ver en mi.tv' : 'ponerlo'}</small>`, { cls:'info', ms:20000, onclick:() => play(r) }); } }
+        Grafismo.notify(`🔔 <b>Empieza ${esc(r.name)}</b><small>${esc(r.where)} · tocá para ${r.k === 'tv' ? 'ver en mi.tv' : 'ponerlo'}</small>`, { cls:'info', ms:20000, onclick:() => play(r) }); } }
   }
   function openTv(ed) {
     let d = $('dlgRec'); if (!d) { d = document.createElement('dialog'); d.id = 'dlgRec'; document.body.appendChild(d); }

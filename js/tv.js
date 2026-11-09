@@ -142,6 +142,7 @@ const TV = (() => {
   /* ---------- Pantalla TV ---------- */
   function open(full) {
     const p = $('player');
+    if (!document.body.classList.contains('tvlock')) try { Grafismo.separator(); } catch {}
     p.classList.add('show', 'tvmode');
     document.body.classList.add('tvlock');
     if (!on) { on = true; S.set('tvOn', on); apply(); }
