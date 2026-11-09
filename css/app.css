@@ -1310,3 +1310,7 @@ body.tvlock.bkon .hud-ticker, body.tvlock.bkon .hud-clock { transform:translateY
 .fltxt.in { opacity:1; } .fltxt small { display:block; color:#c9b6ff; font-size:13px; letter-spacing:.1em; margin-bottom:6px; }
 .flbar { position:absolute; left:50%; bottom:18px; transform:translateX(-50%); display:flex; gap:8px; background:#0008; padding:8px; border-radius:30px; }
 .flbar button { background:#ffffff14; border:1px solid #ffffff2a; color:#fff; border-radius:22px; padding:8px 14px; font-size:16px; }
+.fllock { background:repeating-linear-gradient(45deg, #1a1430, #1a1430 14px, #1e1838 14px, #1e1838 28px); border:1px dashed #7a5cff88; border-radius:16px; padding:18px 20px; max-width:760px; margin-bottom:12px; }
+.fllock h3 { font-size:28px; margin:2px 0 8px; } .fllock p { margin:0 0 6px; }
+.flestreno { display:inline-block; background:#ff3b6b; color:#fff; font-weight:700; font-size:12px; letter-spacing:.08em; padding:3px 10px; border-radius:6px; margin-bottom:8px; animation:bkblink 1.2s steps(2) 4; }
+.flcol { margin:16px 0 6px; } .flmiss { align-self:center; font-size:13px; }
