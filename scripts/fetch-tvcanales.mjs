@@ -1,7 +1,7 @@
 // 📺 Programación de canales de TV de aire, desde la web de cada canal (sus robots.txt lo permiten).
 // Sale en el mismo formato que la guía de streaming: [día, inicio, fin, programa, conductores], para que la guía,
 // la barra Ahora / A continuación, los avisos y el buscador la usen igual. Se lee cada 6 horas como mucho.
-// ESPN, TNT Sports y DSports bloquean la lectura automática; Telefe y América no publican grilla: no están.
+// ESPN, TNT Sports y DSports bloquean la lectura automática; Telefe, América y El Nueve no publican grilla: no están.
 // Uso: node scripts/fetch-tvcanales.mjs carpeta_salida [usuario/repo]
 import { writeFile, mkdir } from 'node:fs/promises';
 const dir = process.argv[2] || '.', repo = process.argv[3] || 'klasito7/mi-streaming';
@@ -22,17 +22,22 @@ async function eltrece() {
   const h = await get('https://www.eltrecetv.com.ar/grilla/'), out = [];
   for (const m of h.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
     let d; try { d = JSON.parse(m[1]); } catch { continue; }
-    for (const x of [].concat(d)) if (x['@type'] === 'BroadcastEvent') for (const e of x.subEvent || []) {
-      const [y, mo, da] = (e.startDate.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/) || []).slice(1).map(Number); if (!y) continue;
-      out.push([DOW[new Date(Date.UTC(y, mo - 1, da)).getUTCDay()], hm(e.startDate.split('T')[1]), hm(e.endDate?.split('T')[1]), ent(e.name), []]);
-    }
+    for (const x of [].concat(d)) if (x['@type'] === 'BroadcastEvent') { let last = '', extra = 0;
+      for (const e of x.subEvent || []) {
+        const [y, mo, da] = (e.startDate.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/) || []).slice(1).map(Number); if (!y) continue;
+        const s = hm(e.startDate.split('T')[1]); if (last && s < last) extra = 1; last = s;   // pasada la medianoche, es el día siguiente
+        out.push([DOW[(new Date(Date.UTC(y, mo - 1, da)).getUTCDay() + extra) % 7], s, hm(e.endDate?.split('T')[1]), ent(e.name), []]);
+      } }
   }
   return out;
 }
 /* TV Pública: la semana entera en los datos de la página de horarios */
 async function tvpublica() {
-  const h = await get('https://www.canal7.com.ar/horarios'), m = h.match(/__NEXT_DATA__\s*=\s*(\{[\s\S]*?\})\s*;?\s*<\/script>/), out = [];
-  if (!m) return out; let d; try { d = JSON.parse(m[1]); } catch { return out; }
+  const h = await get('https://www.canal7.com.ar/horarios'), out = [];
+  const i = h.indexOf('__NEXT_DATA__ ='); if (i < 0) return out;
+  let s = h.indexOf('{', i), dep = 0, inS = false, j = s;
+  for (; j < h.length; j++) { const c = h[j]; if (inS) { if (c === '\\') j++; else if (c === '"') inS = false; continue; } if (c === '"') inS = true; else if (c === '{') dep++; else if (c === '}' && !--dep) break; }
+  let d; try { d = JSON.parse(h.slice(s, j + 1)); } catch { return out; }
   const page = d.props?.pageProps?.page || {};
   for (const [dia, list] of Object.entries(page)) { const n = DIA[dia.toLowerCase()]; if (n == null || !Array.isArray(list)) continue;
     for (const p of list) out.push([DOW[n], hm(p.inicio), hm(p.fin), ent(p.post_title), []]); }
@@ -61,8 +66,7 @@ function fill(sch) {
 }
 const CANALES = [
   { id:'tv-eltrece', n:'El Trece', alias:['el trece', 'eltrece', 'canal 13', 'trece'], web:'https://www.eltrecetv.com.ar/grilla/', p:eltrece },
-  { id:'tv-tvpublica', n:'TV Pública', alias:['tv publica', 'television publica', 'canal 7', 'tvp'], web:'https://www.canal7.com.ar/horarios', p:tvpublica },
-  { id:'tv-elnueve', n:'El Nueve', alias:['el nueve', 'canal 9', 'elnueve'], web:'https://www.elnueve.com.ar/horarios', p:elnueve },
+  { id:'tv-tvpublica', n:'TV Pública', alias:['tv publica', 'television publica', 'canal 7', 'tvp', 'tvpublicaargentina'], web:'https://www.canal7.com.ar/horarios', p:tvpublica, h:'TVPublicaArgentina' },
 ];
 const canales = [];
 for (const C of CANALES) {
@@ -71,7 +75,7 @@ for (const C of CANALES) {
   // El Trece publica solo el día: junto lo nuevo con los otros días que ya tenía (de la última semana)
   if (old && sch.length) { const days = new Set(sch.map(x => x[0])); sch = [...sch, ...old.sch.filter(x => !days.has(x[0]))]; }
   const { p, ...meta } = C;
-  if (sch.length >= 3) canales.push({ ...meta, cats:['TV de aire'], logo:'', h:'', sch });
+  if (sch.length >= 3) canales.push({ h:'', ...meta, cats:['TV de aire'], logo:'', sch });
   else { console.log(C.n, ': no pude leer la grilla'); if (old) canales.push(old); }
 }
 await writeFile(dir + '/tvcanales.json', JSON.stringify({ updated:new Date().toISOString(), canales }));
