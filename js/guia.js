@@ -56,14 +56,14 @@ const Guia = (() => {
       }
       const logo = c.avatar || g?.logo;
       return `<div class="eprow ${st.st === 'live' ? 'islive' : ''}" data-u="${c.uid}">
-        <div class="epch" data-play="${c.uid}"><span class="epnum">${esc(Canales.numTxt(c))}</span><span class="eplogo" style="${logo ? `background-image:url('${esc(logo)}')` : ''}">${logo ? '' : esc(c.name[0] || '?')}</span><span class="epname">${esc(c.name)}</span></div>
+        <div class="epch" data-play="${c.uid}" tabindex="0"><span class="epnum">${esc(Canales.numTxt(c))}</span><span class="eplogo" style="${logo ? `background-image:url('${esc(logo)}')` : ''}">${logo ? '' : esc(c.name[0] || '?')}</span><span class="epname">${esc(c.name)}</span></div>
         <div class="eptrack">${blocks.filter(b => b.e > from && b.s < to).map(b => {
           const L = pct(b.s), W = Math.max(pct(b.e) - L, 2.5);
           const time = `${b.s < from ? 'desde ' + hhmm(b.s) : hhmm(b.s)}${b.open ? (b.live ? ' · sin hora de fin' : '') : '–' + hhmm(b.e)}`;
-          return `<div class="epb ${b.live ? 'live' : ''} ${b.soon ? 'soon' : ''} ${b.prem ? 'prem' : ''} ${b.guide ? 'guide' : ''} ${b.onair ? 'onair' : ''} ${b.open ? 'open' : ''}" style="left:${L}%;width:${W}%" data-play="${c.uid}" title="${esc(b.t + (b.sub ? ' · ' + b.sub : '') + (b.pan?.length ? ' · con ' + b.pan.join(', ') : '') + ' · ' + time)}">
+          return `<div class="epb ${b.live ? 'live' : ''} ${b.soon ? 'soon' : ''} ${b.prem ? 'prem' : ''} ${b.guide ? 'guide' : ''} ${b.onair ? 'onair' : ''} ${b.open ? 'open' : ''}" style="left:${L}%;width:${W}%" data-play="${c.uid}" tabindex="0" title="${esc(b.t + (b.sub ? ' · ' + b.sub : '') + (b.pan?.length ? ' · con ' + b.pan.join(', ') : '') + ' · ' + time)}">
             <b>${b.live ? (b.prem ? '🎬 ' : '● ') : ''}${esc(b.t)}</b><small>${esc(time)}${b.sub && b.sub !== b.t ? ' · ' + esc(b.sub) : ''}</small>
-            ${b.guide && g ? `<button class="epbell ${Avisos.has('canal', g.id, b.t) ? 'on' : ''}" data-bell="${esc(String(g.id))}" data-bn="${esc(b.t)}" data-bw="${esc(c.name)}" title="Avisame cuando empiece">🔔</button>` : ''}
-            ${b.guide || b.sub ? `<a class="ephv" href="${hv(b.sub || b.t)}" target="_blank" rel="noopener" title="¿Qué se habló? (búsqueda en transcripciones)">🔎</a>` : ''}</div>`; }).join('') || `<div class="epempty">${st.st === 'off' ? 'Sin programación cargada' : '…'}</div>`}</div></div>`;
+            ${b.guide && g ? `<button tabindex="-1" class="epbell ${Avisos.has('canal', g.id, b.t) ? 'on' : ''}" data-bell="${esc(String(g.id))}" data-bn="${esc(b.t)}" data-bw="${esc(c.name)}" title="Avisame cuando empiece">🔔</button>` : ''}
+            ${b.guide || b.sub ? `<a tabindex="-1" class="ephv" href="${hv(b.sub || b.t)}" target="_blank" rel="noopener" title="¿Qué se habló? (búsqueda en transcripciones)">🔎</a>` : ''}</div>`; }).join('') || `<div class="epempty">${st.st === 'off' ? 'Sin programación cargada' : '…'}</div>`}</div></div>`;
     }).join('');
     const ticks = Array.from({ length:SLOTS }, (_, i) => new Date(+from + i * SLOT * 60e3));
     const missing = data ? data.canales.filter(g => !db.chans.some(c => match(c) === g)) : [];
@@ -82,5 +82,7 @@ const Guia = (() => {
     db.chans.push({ uid:uid(), platform:'youtube', ref:{ handle:'@' + g.h }, name:g.n, cat:db.cats[0] || '' });
     Canales.ensureNums(); save(); toast(`📺 ${esc(g.n)} agregado`, { ms:3000 }); $('btnRefresh')?.click(); Canales.render();
   }
-  return { render, load, match, get data() { return data; } };
+  /** Programa actual y siguiente de un canal tuyo (para la barra Ahora / A continuación) */
+  function nowNext(c) { const g = match(c); if (!g) return {}; const n = new Date(), l = shows(g, new Date(+n - 6 * 3600e3), new Date(+n + 18 * 3600e3)); const now = l.find(x => x.s <= n && x.e > n); return { now, next:l.find(x => x.s >= (now ? now.e : n) - 60e3 && x !== now) }; }
+  return { render, load, match, nowNext, get data() { return data; } };
 })();

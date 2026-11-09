@@ -1208,3 +1208,22 @@ body:not(.tvlock) .hud-score { display:none; }
 @keyframes gzin { from { transform:scale(1.15); opacity:0; } }
 @keyframes gzv { to { transform:scale(1.08) rotate(-3deg); } }
 .fclock > div:nth-child(2) { display:flex; flex-direction:column; justify-content:center; padding:0 14px; }
+
+/* ===== ℹ️ Ahora / A continuación ===== */
+#infobar { position:fixed; left:50%; bottom:calc(var(--botH, 60px) + 14px); transform:translate(-50%, 20px); opacity:0; pointer-events:none; z-index:120; display:flex; align-items:stretch;
+  width:min(880px, 94vw); background:#0b0f1ef2; border:1px solid #2f6bff66; border-top:3px solid #2f6bff; border-radius:10px; box-shadow:0 10px 30px #000a; overflow:hidden; transition:opacity .3s, transform .3s; font-family:system-ui, sans-serif; color:#fff; }
+#infobar.on { opacity:1; transform:translate(-50%, 0); }
+body.tvlock #infobar { bottom:62px; }
+.ib-ch { display:flex; align-items:center; gap:10px; padding:10px 14px; background:linear-gradient(135deg, #2f6bff, #1238b5); min-width:0; flex:none; max-width:30%; }
+.ib-num { font:700 30px VT323, monospace; color:#3dff7a; }
+.ib-logo { width:42px; height:42px; border-radius:50%; background:#fff center/cover; flex:none; display:flex; align-items:center; justify-content:center; }
+.ib-name { font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ib-now, .ib-next { display:flex; flex-direction:column; justify-content:center; padding:8px 16px; min-width:0; gap:2px; }
+.ib-now { flex:1; } .ib-next { flex:0 1 32%; border-left:1px solid #ffffff22; background:#ffffff08; }
+#infobar small { font-size:11px; letter-spacing:.08em; color:#9fc0ff; }
+#infobar b { font-size:17px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ib-next b { font-size:15px; color:#dbe2f3; }
+#infobar em { font-style:normal; font-size:12px; color:#9aa3b8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ib-bar { display:block; height:4px; background:#ffffff22; border-radius:2px; margin-top:4px; } .ib-bar i { display:block; height:100%; background:#ff3b3b; border-radius:2px; }
+@media (max-width:600px) { .ib-next { display:none; } .ib-ch { max-width:42%; } .ib-num { font-size:22px; } .ib-logo { width:30px; height:30px; } #infobar b { font-size:14px; } }
+.epb:focus, .epch:focus { outline:3px solid #ffd400 !important; z-index:2; }

@@ -14,7 +14,7 @@ const FUNVSApp = (() => {
 
   function move(dir) {
     const cur = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
-    const all = [...scope().querySelectorAll(SEL)].filter(el => el !== cur && vis(el) && !el.closest('[inert],[aria-hidden="true"]'));
+    const all = [...scope().querySelectorAll(SEL)].filter(el => el !== cur && !cur?.contains(el) && el.getAttribute('tabindex') !== '-1' && vis(el) && !el.closest('[inert],[aria-hidden="true"]'));
     if (!cur) { const vh = innerHeight; const f = all.find(el => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.top < vh; }) || all[0]; f?.focus(); return !!f; }
     const a = cur.getBoundingClientRect(), ax = a.left + a.width / 2, ay = a.top + a.height / 2;
     let best = null, bs = Infinity;
@@ -35,6 +35,8 @@ const FUNVSApp = (() => {
   }
 
   const DIRS = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right' };
+  // OK del control sobre la grilla (bloques que no son botones): ponerlo
+  document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('.epb,.epch')) { e.preventDefault(); e.target.click(); } });
   document.addEventListener('keydown', e => {
     if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
     const k = e.key, sink = () => AudioMgr.sink('slot' + (Player.slots[Player.sel] ? Player.sel : Player.slots.findIndex(Boolean)));

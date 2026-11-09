@@ -109,6 +109,7 @@ const Radio = (() => {
     } else audio.src = r.url;
     audio.play().catch(err);
     bar(); render(); TV.refresh();
+    try { InfoBar.forRadio(r); } catch {}
   }
   function stop() { audio.pause(); audio.removeAttribute('src'); audio.load(); if (hls) { hls.destroy(); hls = null; } cur = null; bar(); if ($('v-radios').dataset.built) render(); TV.refresh(); }
 

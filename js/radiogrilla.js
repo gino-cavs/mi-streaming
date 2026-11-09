@@ -100,7 +100,7 @@ const RadioGrilla = (() => {
       return `<div class="eprow rgrow ${on ? 'islive' : ''}">
         <div class="epch" data-ri="${i}" tabindex="0"><span class="rgdial">${esc(g?.dial || '📻')}</span><span class="epname">${on ? '🔊 ' : ''}${esc(g?.n || r.name)}${g?.own ? ' <small class="mut">✏️ tuya</small>' : ''}</span><button class="rgedit" data-ed="${i}" title="Editar la grilla de esta radio">✏️</button></div>
         <div class="eptrack">${progs.map(b => { const L = pct(b.s), W = Math.max(pct(b.e) - L, 2.5), air = b.s <= now && b.e > now, time = `${b.s < from ? 'desde ' : ''}${hhmm(b.s)}–${hhmm(b.e)}`;
-          return `<div class="epb guide ${air ? 'onair' : ''}" style="left:${L}%;width:${W}%" data-ri="${i}" title="${esc(b.name + (b.pan?.length ? ' · con ' + b.pan.join(', ') : '') + ' · ' + time)}"><b>${esc(b.name)}</b><small>${esc(time)}${b.pan?.length ? ' · ' + esc(b.pan.slice(0, 2).join(', ')) : ''}</small><button class="epbell ${Avisos.has('radio', keyOf(r), b.name) ? 'on' : ''}" data-rbell="${i}" data-bn="${esc(b.name)}" title="Avisame cuando empiece">🔔</button></div>`; }).join('')
+          return `<div class="epb guide ${air ? 'onair' : ''}" style="left:${L}%;width:${W}%" data-ri="${i}" tabindex="0" title="${esc(b.name + (b.pan?.length ? ' · con ' + b.pan.join(', ') : '') + ' · ' + time)}"><b>${esc(b.name)}</b><small>${esc(time)}${b.pan?.length ? ' · ' + esc(b.pan.slice(0, 2).join(', ')) : ''}</small><button tabindex="-1" class="epbell ${Avisos.has('radio', keyOf(r), b.name) ? 'on' : ''}" data-rbell="${i}" data-bn="${esc(b.name)}" title="Avisame cuando empiece">🔔</button></div>`; }).join('')
           || `<div class="epempty">${g ? 'Sin programas en este horario' : 'Esta radio no publica su grilla: tocá ✏️ para escribirla vos'}</div>`}</div></div>`;
     }).join('');
     const ticks = Array.from({ length:SLOTS / 2 }, (_, i) => new Date(+from + i * 2 * SLOT * 60e3));
@@ -121,5 +121,6 @@ const RadioGrilla = (() => {
   }
   /** Qué programa va ahora en una radio tuya (o null). */
   function nowFor(r) { const g = data && effective(r); if (!g) return null; const n = new Date(); return shows(g, n, new Date(+n + 60e3)).find(x => x.s <= n && x.e > n) || null; }
-  return { render, load, match, nowFor, get data() { return data; } };
+  function nowNext(r) { const g = data && effective(r); if (!g) return {}; const n = new Date(), l = shows(g, new Date(+n - 6 * 3600e3), new Date(+n + 18 * 3600e3)); const now = l.find(x => x.s <= n && x.e > n); return { now, next:l.find(x => x.s >= (now ? now.e : n) - 60e3 && x !== now) }; }
+  return { render, load, match, nowFor, nowNext, get data() { return data; } };
 })();

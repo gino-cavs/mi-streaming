@@ -382,6 +382,7 @@ const Player = (() => {
     if (layout === 1 && e.ch && liveish && !opts.audio && chatOn && !Lite.on) setChat(sel, true);   // liviano: el chat (pesadísimo) solo si lo pedís
     if (Lite.tv && !opts.audio && !$('player').classList.contains('tvmode')) TV.open();   // en la tele: directo a pantalla completa
     zapFx(target, c);
+    try { InfoBar.forChannel(c); } catch {}
     if (layout > 1) { const empty = slots.findIndex((x, j) => !x && j < layout); if (empty >= 0) sel = empty; paintSel(); }
     $('scroller').scrollTo({ top:0, behavior:'smooth' });
     TV.refresh(); Zap.render(); paintChatBtn();
