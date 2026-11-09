@@ -26,28 +26,41 @@ for (const l of LIGAS) {
   console.log(l, j ? 'ok' : 'sin datos');
 }
 
-// 2) el estadio de cada uno: ESPN (API "core", trae el estadio) y si no, Wikidata (club → P115 estadio → P625)
-const ents = async ids => (await getJ(`https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&props=claims|labels&languages=es|en&ids=${ids.join('|')}`))?.entities || {};
-const coordOf = e => { const c = e?.claims?.P625?.[0]?.mainsnak?.datavalue?.value; return c ? { lat:+c.latitude.toFixed(5), lng:+c.longitude.toFixed(5) } : null; };
-const lab = e => e?.labels?.es?.value || e?.labels?.en?.value || '';
-// (búsqueda por prefijo, ya no se usa)
-const search = async (q, lang = 'es') => ((await getJ(`https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&language=${lang}&uselang=${lang}&type=item&limit=7&search=${encodeURIComponent(q)}`))?.search || []).map(x => x.id);
-// país de cada liga (para no confundir River de Argentina con River de Uruguay); en las copas sale de la ciudad de ESPN
+// 2) el estadio de cada uno. Primero Wikidata (club → P115 estadio actual → P625), con UNA consulta por país;
+//    si no aparece, el estadio que dice ESPN buscado en OpenStreetMap.
 const PAIS = { arg:'Q414', uru:'Q77', bra:'Q155', chi:'Q298', col:'Q739', per:'Q419', ecu:'Q736', bol:'Q750', par:'Q733', ven:'Q717', esp:'Q29', eng:'Q145', ita:'Q38', ger:'Q183', fra:'Q142', por:'Q45', mex:'Q96', usa:'Q30', ksa:'Q851' };
 const PAISN = { argentina:'Q414', uruguay:'Q77', brasil:'Q155', brazil:'Q155', chile:'Q298', colombia:'Q739', peru:'Q419', 'perú':'Q419', ecuador:'Q736', bolivia:'Q750', paraguay:'Q733', venezuela:'Q717' };
-const fullSearch = async q => ((await getJ(`https://www.wikidata.org/w/api.php?action=query&list=search&format=json&srlimit=5&srsearch=${encodeURIComponent(q)}`))?.query?.search || []).map(x => x.title);
+const SUDAM = ['Q414', 'Q77', 'Q155', 'Q298', 'Q739', 'Q419', 'Q736', 'Q750', 'Q733', 'Q717'];
+const nrm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ');
+const STOP = new Set('club atletico atletica deportivo deportiva sociedad social y de del la el los las fc cf ca cd sc ac afc sad futbol football fútbol esporte clube sport sporting association calcio ss us asociacion corporacion'.split(' '));
+const toks = s => nrm(s).split(/\s+/).filter(w => w && !STOP.has(w));
+const pool = {};
+async function clubsOf(cc) {
+  if (pool[cc]) return pool[cc];
+  const q = `SELECT ?club ?l ?v ?vl ?c ?sl WHERE { ?club wdt:P31/wdt:P279* wd:Q476028; wdt:P17 wd:${cc}; wikibase:sitelinks ?sl; p:P115 ?st. FILTER(?sl >= 3)
+    ?st ps:P115 ?v. FILTER NOT EXISTS { ?st pq:P582 [] } ?v wdt:P625 ?c.
+    { ?club rdfs:label ?l } UNION { ?club skos:altLabel ?l } FILTER(LANG(?l) IN ("es","en","pt"))
+    OPTIONAL { ?v rdfs:label ?vl FILTER(LANG(?vl) = "es") } }`;
+  const j = await getJ('https://query.wikidata.org/sparql?query=' + encodeURIComponent(q), { Accept:'application/sparql-results+json' });
+  const m = new Map();
+  for (const x of j?.results?.bindings || []) {
+    const id = x.club.value; const o = m.get(id) || { names:new Set(), sl:+x.sl.value, v:x.vl?.value || '', c:x.c.value };
+    o.names.add(x.l.value); m.set(id, o);
+  }
+  console.log('Wikidata', cc, m.size, 'clubes');
+  return pool[cc] = [...m.values()].map(o => ({ ...o, toks:[...o.names].map(toks) }));
+}
 async function viaWikidata(t, city) {
-  const lg = t.ligas.find(l => PAIS[l.split('.')[0]]), cc = lg ? PAIS[lg.split('.')[0]] : PAISN[(city || '').split(',').pop().trim().toLowerCase()];
-  const name = t.n.replace(/\s*\(.*?\)\s*/g, ' ').trim();
-  for (const q of [cc && `${name} haswbstatement:P115 haswbstatement:P17=${cc}`, `${name} haswbstatement:P115 haswbstatement:P31=Q476028`, `${name} haswbstatement:P115`].filter(Boolean)) {
-    const ids = await fullSearch(q); if (!ids.length) continue;
-    const E = await ents(ids);
-    for (const id of ids) {
-      const v = (E[id]?.claims?.P115 || []).sort((a, b) => (b.rank === 'preferred') - (a.rank === 'preferred') || (a.qualifiers?.P582 ? 1 : 0) - (b.qualifiers?.P582 ? 1 : 0)).map(x => x.mainsnak?.datavalue?.value?.id).filter(Boolean);
-      if (!v.length) continue;
-      const V = await ents(v.slice(0, 3));
-      for (const vid of v) { const c = coordOf(V[vid]); if (c) return { ...c, est:lab(V[vid]), src:'wikidata', wd:id }; }
+  const lg = t.ligas.find(l => PAIS[l.split('.')[0]]), cc = lg ? PAIS[lg.split('.')[0]] : PAISN[nrm((city || '').split(',').pop()).trim()];
+  const want = [toks(t.n), toks(t.c)].filter(x => x.length);
+  for (const list of cc ? [[cc]] : [SUDAM]) {
+    let best = null;
+    for (const p of list) for (const k of await clubsOf(p)) {
+      // todas las palabras del nombre de ESPN tienen que estar en algún nombre del club
+      const hit = want.some(w => k.toks.some(n => w.every(x => n.some(y => y === x || (x.length >= 4 && y.startsWith(x))))));
+      if (hit && (!best || k.sl > best.sl)) best = k;
     }
+    if (best) { const [lat, lng] = best.c.match(/Point\(([-\d.]+) ([-\d.]+)\)/).slice(1, 3).map(Number).reverse(); return { lat:+lat.toFixed(5), lng:+lng.toFixed(5), est:best.v, src:'wikidata' }; }
   }
   return null;
 }
