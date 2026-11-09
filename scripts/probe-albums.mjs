@@ -15,3 +15,4 @@ for (const g of G) for (const q of [g + ' album', g]) {
   out += `\n## ${q}: ${it.length} playlists, ${ol.length} álbumes\n` + ol.slice(0, 8).map(x => `  ${x.id.playlistId} | ${x.snippet.title} | ${x.snippet.channelTitle}`).join('\n') + '\n';
 }
 await writeFile('out/r.txt', out);
+// 1794184420
