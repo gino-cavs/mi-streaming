@@ -13,19 +13,7 @@ Ideas y cosas que quedaron para hacer más adelante.
 - **Mundo Vélez**: resumen de lo que se habló en los directos (transcripciones).
 - **Boxeo**: conseguir una fuente con la agenda de veladas (día, hora y canal).
 
-## 📡 Próximo paquete de grafismo (elegido el 8/11, se hace todo junto con el control desde el celu)
-- **Barra "Ahora / A continuación" al hacer zapping**: número y logo del canal, programa actual con barrita de avance y el que sigue.
-- **Arreglar la guía en el Fire Stick**: hoy no se puede recorrer con el control (los bloques de la grilla no se pueden seleccionar). Que se mueva con las flechas y OK ponga el canal.
-- **Placa roja de ÚLTIMO MOMENTO**: abajo, en el lugar de FUNVS AL MINUTO; tiene prioridad (si cae en los 10 minutos del minuto a minuto, lo reemplaza) y dura 1 minuto como máximo.
-- **Zócalo de TV para avisos**: recordatorios y goles de otros equipos como zócalo, no como cartelito.
-- **Clima completo** a las 8, 18 y 22 h: pronóstico de hoy y mañana y alerta si hay tormenta.
-- **"Mientras tanto…"**: durante el partido de Vélez, franja con los resultados de los otros partidos de la fecha.
-- **Previa de Vélez**: cuenta regresiva desde una hora antes + historial frente a frente y datos del partido.
-- **Efemérides fortineras**: "Un día como hoy…" de Vélez, una por día.
-- **Protector de pantalla para la tele**: ⚠️ antes de hacerlo, recordarle al usuario que quiere hacer él un diseño.
-- **Separadores** (aprobado si no pesa): 2-3 s con el logo de FUNVS y la perrita al prender la app en la tele, al entrar a la Pantalla TV y antes del partido de Vélez ("FUNVS presenta: Vélez vs …"). En modo liviano, versión simple.
-- **Grilla de TV de cable desde TeleRed** (en vez de mi.tv, que no deja leerla automáticamente). TeleRed no tiene robots.txt (sin restricciones).
-  - Buscador de programas de la semana: `layout/resultados-SearchTVspeed.php` (POST con el formulario `#searchtvform`: searched, desde=0, hasta=6, categorias, medio…).
-  - Grilla por horas: `layout/grillaTVupd.php?prti=&prtf=&wn=&pack=D` y por canal `layout/grillaTV.php?wn=&m=`.
-  - Desde GitHub respondieron vacío: probablemente piden la cookie de sesión de la página o algún campo más. Investigarlo en el paquete.
-  - Uso: avisos de TV buscando el programa por nombre (canal, día y hora automáticos) y "Ahora / A continuación" para canales de cable.
+## 📡 Paquete de grafismo y control (hecho el 9/11)
+- Hecho: control desde el celu, barra Ahora / A continuación, guía navegable con el control, Último momento, zócalos, clima 8/18/22, Mientras tanto, previa de Vélez, efemérides, separadores.
+- **Protector de pantalla para la tele**: ⚠️ el usuario quiere hacer él el diseño (recordatorio agendado para el 9/11).
+- **TeleRed**: el buscador (`layout/resultados-SearchTVspeed.php`) y la grilla (`layout/grillaTVupd.php`) responden vacío desde GitHub aun con la cookie de sesión; probablemente solo contestan a visitantes de Argentina, y desde el navegador no se puede por CORS. Quedó como link en los avisos de TV junto a mi.tv.

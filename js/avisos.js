@@ -47,7 +47,7 @@ const Avisos = (() => {
   function openTv(ed) {
     let d = $('dlgRec'); if (!d) { d = document.createElement('dialog'); d.id = 'dlgRec'; document.body.appendChild(d); }
     d.innerHTML = `<h3>📺 Aviso de un programa de TV</h3>
-      <p class="mut" style="font-size:13px;margin-top:0">Fijate el horario en <a class="lnk" href="https://mi.tv/ar/programacion" target="_blank" rel="noopener">la grilla de mi.tv</a> y cargalo acá.</p>
+      <p class="mut" style="font-size:13px;margin-top:0">Fijate el horario en <a class="lnk" href="https://mi.tv/ar/programacion" target="_blank" rel="noopener">la grilla de mi.tv</a> o en <a class="lnk" href="https://www.telered.com.ar/buscador-grilla" target="_blank" rel="noopener">el buscador de TeleRed</a> y cargalo acá.</p>
       <label>Programa<input id="rcN" placeholder="Ej: Fútbol de Primera"></label>
       <label>Canal<input id="rcC" placeholder="Ej: ESPN Premium"></label>
       <div class="alrow"><label>Hora<input type="time" id="rcT" value="21:00"></label></div>
