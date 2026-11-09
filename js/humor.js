@@ -61,7 +61,7 @@ const Humor = (() => {
   function step(d) { const s = Player.slots[Player.sel ?? 0] || Player.slots.find(Boolean); if (!s?.c?.humor) return false; play(s.c.humor, d); return true; }
 
   Inicio.add({ id:'humor', order:5, html() {
-    return `<h2 class="sec">🎭 ¿Cómo estás?</h2><div class="hmrow">${Object.entries(MOODS).map(([k, m]) => `<button class="hmb" data-hm="${k}"><span>${m.ic}</span>${esc(m.n)}</button>`).join('')}
+    return `<h2 class="sec">🎭 ¿Cómo estás?</h2><div class="hmrow">${Object.entries(MOODS).map(([k, m]) => `<button class="hmb ${Franja.sug() === k ? 'sug' : ''}" data-hm="${k}"><span>${m.ic}</span>${esc(m.n)}</button>`).join('')}
       <button class="hmb hmcfg" data-hmcfg title="Tus comediantes">🎤 <small>${esc(comedians().map(h => '@' + h).join(', '))}</small> ✎</button></div>`; },
     bind(el) {
       el.querySelectorAll('[data-hm]').forEach(b => b.onclick = () => play(b.dataset.hm));

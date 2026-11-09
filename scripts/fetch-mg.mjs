@@ -27,7 +27,10 @@ const uniq = l => { const seen = new Set(); return l.filter(i => { const k = nor
 const LOCAL = ['"Monte Grande"', '"Esteban Echeverría"', '"Luis Guillón"', '"El Jagüel"', '"9 de Abril" Echeverría'];
 let noticias = (await Promise.all(LOCAL.map(q => gnews(q + ' when:7d')))).flat();
 const muni = rss(await get('https://www.estebanecheverria.gob.ar/feed/')).map(i => ({ ...i, s:'Municipio', muni:true }));
-const caps = t => /[a-záéíóúñ]/.test(t) ? t : t.charAt(0) + t.slice(1).toLowerCase().replace(/\b(monte grande|esteban echeverr[ií]a|gray|luis guill[oó]n|el jag[uü]el|canning)\b/g, w => w.replace(/\b\w/g, c => c.toUpperCase()));
+const caps = t => { const up = (t.match(/[A-ZÁÉÍÓÚÑÜ]/g) || []).length, lo = (t.match(/[a-záéíóúñü]/g) || []).length; if (up <= lo) return t;
+  let x = t.toLowerCase(); x = x.charAt(0).toUpperCase() + x.slice(1);
+  for (const n of ['Monte Grande', 'Esteban Echeverría', 'Echeverría', 'Fernando Gray', 'Gray', 'Luis Guillón', 'El Jagüel', 'Canning', 'Santa Catalina', 'Papa']) x = x.split(n.toLowerCase()).join(n);
+  return x; };
 const lugar = /monte grande|guill[oó]n|jag[uü]el|9 de abril|canning/i, partido = /esteban echeverr[ií]a/i, contexto = /(municipio|intendente|gray|distrito|vecin|partido de|comisar|polic|hospital|barrio|calle|escuela n|concejo)/i;
 noticias = uniq([...noticias, ...muni]).filter(i => Date.now() - Date.parse(i.d) < 7 * 864e5)
   .map(i => ({ ...i, t:caps(i.t), s:/^https?:/.test(i.s) ? new URL(i.s).hostname.replace(/^www\./, '') : i.s.replace(/^Esteban Echeverr[ií]a – Municipio$/, 'Municipio') }))
@@ -36,7 +39,7 @@ noticias = uniq([...noticias, ...muni]).filter(i => Date.now() - Date.parse(i.d)
   .sort((a, b) => Date.parse(b.d) - Date.parse(a.d)).slice(0, 40);
 
 // --- agenda: lo del Municipio que suena a evento ---
-const agenda = muni.map(i => ({ ...i, t:caps(i.t) })).filter(i => /(feria|festival|expo|show|concierto|recital|muestra|taller|torneo|marat[oó]n|carrera|fiesta|celebraci|encuentro|jornada|cine|teatro|vacunaci|operativo|inscripci)/i.test(i.t)).slice(0, 10);
+const agenda = uniq(muni.map(i => ({ ...i, t:caps(i.t) }))).filter(i => /(feria|festival|expo|show|concierto|recital|muestra|taller|torneo|marat[oó]n|carrera|fiesta|celebraci|encuentro|jornada|cine|teatro|vacunaci|operativo|inscripci)/i.test(i.t)).slice(0, 10);
 
 // --- tren Roca según las noticias (últimas 6 h; prioriza ramal Ezeiza) ---
 const roca = fresh(uniq([...(await gnews('"línea Roca" when:1d')), ...(await gnews('"tren Roca" when:1d'))]), 8)

@@ -36,8 +36,9 @@ const Inicio = (() => {
 
   function render() {
     const v = $('v-inicio'); if (!v) return;
-    const now = new Date(), parts = blocks.map(b => { let h = ''; try { h = b.html(); } catch {} return h ? `<div class="inblk" data-b="${b.id}">${h}</div>` : ''; }).join('');
-    v.innerHTML = `<div class="inhead"><h1>${hola(now.getHours())} 👋</h1><span class="mut">${now.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' })}</span></div>
+    const ord = [...blocks].sort((a, z) => Franja.order(a.id, a.order) - Franja.order(z.id, z.order));   // 🕰️ según la franja del día
+    const now = new Date(), parts = ord.map(b => { let h = ''; try { h = b.html(); } catch {} return h ? `<div class="inblk" data-b="${b.id}">${h}</div>` : ''; }).join('');
+    v.innerHTML = `<div class="inhead"><h1>${hola(now.getHours())} ${Franja.now().ic}</h1><span class="mut">${now.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' })}</span></div>
       ${parts || '<div class="empty">Todavía no hay nada para mostrar acá: agregá canales, radios o tus equipos y aparece lo que está pasando.</div>'}`;
     blocks.forEach(b => { const el = v.querySelector(`[data-b="${b.id}"]`); if (el && b.bind) try { b.bind(el); } catch {} });
   }

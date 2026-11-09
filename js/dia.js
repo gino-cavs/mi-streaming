@@ -73,7 +73,7 @@ const Dia = (() => {
       const legs = viaje(D).map(v => { const t = at(D, v.t), past = !late && t < n - 5 * 6e4, mins = Math.round((t - n) / 6e4);
         return `<div class="dleg ${past ? 'past' : ''}"><b>${v.t}${v.hasta ? '–' + v.hasta : ''}</b><span>${v.ic} ${esc(v.n)}</span><small>${esc(v.s)}</small>${!late && mins > 0 && mins < 120 ? `<em>en ${mins} min</em>` : ''}</div>`; }).join('');
       const est = Transporte.estado('roca');
-      body = `<div class="dlegs">${legs}</div><p class="mut" style="font-size:12px">${est ? '🚆 ' + esc(est) : '🚆 Estado del Roca y del 28 en vivo: cuando conectemos la API de Transporte.'}</p>`;
+      body = `<div class="dlegs">${legs}</div><p class="mut" style="font-size:12px">${est ? '🚆 ' + esc(est) : '🚆 Roca sin novedades en las últimas horas (según las noticias). El 28 en vivo, cuando salga la API nueva de la Ciudad.'}</p>`;
     } else body = `<p class="mut">${P === 'home' ? 'Trabajás desde casa: nada de transporte, solo el clima.' : 'Día libre: nada de transporte. ¡A disfrutar! 🍃'}</p>`;
     return `<h2 class="sec">🗓 ${quien}: ${ic} ${nn} <button class="lnk" data-dchg style="margin-left:8px;font-size:12px">cambiar</button></h2>${body}`;
   }, bind(el) {

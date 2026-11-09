@@ -45,6 +45,10 @@ jobs:
           GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
           YT_KEY: ${{ secrets.YT_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: MG News (Monte Grande y Esteban Echeverría)
+        continue-on-error: true
+        timeout-minutes: 4
+        run: node scripts/fetch-mg.mjs /tmp/datos "$GITHUB_REPOSITORY"
       - name: Feeds de tus canales de YouTube (gratis, para ahorrar cuota)
         continue-on-error: true
         timeout-minutes: 3
