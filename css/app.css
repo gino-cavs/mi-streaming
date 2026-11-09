@@ -1391,3 +1391,9 @@ html.dev-pc body.tvlock.tvui.hudon .hud-np { left:20px; }
 html.dev-pc body.tvlock.hudon #player.zaphot .hud-np { left:270px; }
 /* en celu y tele no hay mouse: sin capa, así tocar el video le llega a YouTube (por si el navegador no lo deja arrancar solo) */
 html:not(.dev-pc) .slot .vw.ytclean::after { display:none; }
+dialog.resdlg { width:min(760px,96vw); max-height:92vh; padding:0; border:0; border-radius:16px; background:#0b1020; color:#fff; }
+dialog.resdlg::backdrop { background:rgba(0,0,0,.7); }
+.resbody { padding:12px; overflow:auto; max-height:calc(92vh - 52px); }
+.resw { position:relative; margin-bottom:10px; }
+.resw iframe { width:100%; height:560px; border:0; border-radius:10px; background:#fff; }
+.resdel { position:absolute; top:6px; right:6px; background:#000a; color:#fff; border:0; border-radius:50%; width:26px; height:26px; }

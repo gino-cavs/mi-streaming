@@ -224,10 +224,9 @@ const Fulbito = (() => {
       <div id="fList"></div>
       <p class="mut" style="font-size:12px;margin-top:10px">Resultados: datos públicos de ESPN · Canales de TV: futbolenvivoargentina.com</p>`;
     $('fMap').onclick = () => FulbitoMapa.open();
-    // 🌱 Reserva: ESPN no la tiene. Tabla y fixture en Promiedos; los partidos, en LPF Play (oficial de la Liga).
-    $('fRes').onclick = () => toast(`<b>🌱 Reserva · Torneo Proyección</b><small>ESPN no la publica, así que va a las fuentes:</small>
-      <div class="btns" style="margin-top:8px"><a class="lnk btnl pri" href="https://www.promiedos.com.ar/league/liga-profesional-reserva/hhbc" target="_blank" rel="noopener">📊 Tabla y fixture (Promiedos) ↗</a>
-      <a class="lnk btnl" href="https://www.lpfplay.com" target="_blank" rel="noopener">📺 Ver en vivo (LPF Play) ↗</a></div>`, { ms:12000, cls:'info' });
+    // 🌱 Reserva: ESPN no la tiene. Se muestra con los widgets oficiales y gratis de Sofascore (los pegás una vez desde su web);
+    //    links a Promiedos (tabla) y LPF Play (los partidos, transmisión oficial).
+    $('fRes').onclick = () => Reserva.open();
     $('fDays').onclick = async e => {
       const b = e.target.closest('[data-d]'); if (!b) return;
       day = +b.dataset.d;
@@ -283,4 +282,26 @@ const Fulbito = (() => {
       return `⚽ ${n(m.h)} ${m.state === 'pre' ? 'vs' : m.hs + '-' + m.as} ${n(m.a)} ${m.state === 'in' ? '(' + m.st + ')' : m.state === 'pre' ? '· ' + m.st : '(final)'}${ch.length ? ' · 📺 ' + ch[0] : ''}`; });
   function init() { onChange(() => { if ($('v-fulbito').dataset.built) render(); }); poll().catch(() => {}); loadGuide(); setInterval(loadGuide, 20 * 60e3); }
   return { today:() => today, channelsFor, soundOn:() => local.sound, init, render, poll, matchRow, todayFor, liveCount, board, simplify, evs, ticker };
+})();
+
+const Reserva = (() => {
+  const srcOf = t => { const m = String(t || '').match(/https:\/\/widgets\.sofascore\.com\/[^"'\s<>]+/); return m ? m[0].replace(/&amp;/g, '&') : null; };
+  function open() {
+    let d = $('dlgRes'); if (!d) { d = document.createElement('dialog'); d.id = 'dlgRes'; d.className = 'resdlg'; document.body.appendChild(d); }
+    const W = db.resWidgets || [];
+    d.innerHTML = `<div class="maphead"><b>🌱 Reserva · Torneo Proyección</b><span class="sp"></span><button id="resAdd" title="Agregar un widget de Sofascore">＋ Widget</button><button id="resX">✕</button></div>
+      <div class="resbody">${W.length ? W.map((w, i) => `<div class="resw"><iframe src="${esc(w)}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe><button class="resdel" data-i="${i}" title="Quitar">✕</button></div>`).join('')
+        : `<div class="empty" style="text-align:left;line-height:1.5">Para ver la tabla y los partidos acá adentro, una sola vez:<br>
+          1. Abrí <a href="https://www.sofascore.com/tournament/football/argentina/campeonato-de-reserva-de-primera-division/18817" target="_blank" rel="noopener">la Reserva en Sofascore ↗</a> (en la compu)<br>
+          2. Abajo de la tabla tocá <b>"Embed live standings on your website"</b> (o "Insertar") y copiá el código<br>
+          3. Volvé y tocá <b>＋ Widget</b> y pegalo. Podés sumar más (partidos, goleadores…)</div>`}
+        <div class="btns" style="margin-top:10px"><a class="lnk btnl" href="https://www.promiedos.com.ar/league/liga-profesional-reserva/hhbc" target="_blank" rel="noopener">📊 Promiedos ↗</a><a class="lnk btnl pri" href="https://www.lpfplay.com" target="_blank" rel="noopener">📺 Ver en vivo (LPF Play) ↗</a></div>
+        <p class="mut" style="font-size:11px">Datos: widgets oficiales de Sofascore (gratis para insertar). Partidos: LPF Play, transmisión oficial de la Liga.</p></div>`;
+    if (!d.open) d.showModal();
+    $('resX').onclick = () => d.close();
+    $('resAdd').onclick = () => { const src = srcOf(prompt('Pegá el código del widget de Sofascore (el <iframe …> que copiaste)')); if (!src) return toast('<b>No encontré un widget de Sofascore en lo que pegaste</b>', { cls:'info' });
+      db.resWidgets = [...W, src]; save(); open(); };
+    d.querySelectorAll('.resdel').forEach(b => b.onclick = () => { db.resWidgets = W.filter((_, i) => i !== +b.dataset.i); save(); open(); });
+  }
+  return { open };
 })();
