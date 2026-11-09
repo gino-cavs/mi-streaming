@@ -150,7 +150,7 @@ setInterval(() => { if (Nav.current === 'canales' && S.get('canView', 'cards') =
 $('btnLikeSetup').onclick = () => { $('dlgSet').close(); Likes.openSetup(); };
 $('btnTg').onclick = () => { $('dlgSet').close(); Telegram.open(); };
 $('btnDnd').onclick = () => DND.toggle(); DND.paint();
-initSettings(); Nav.init();
+initSettings(); Nav.init(); Control.init();
 onChange(() => Nav.badges());
 Nav.go(location.hash.slice(1) || 'inicio');
 showSync(); startTimer(); Canales.refresh();
