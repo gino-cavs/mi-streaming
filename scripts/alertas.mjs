@@ -190,10 +190,46 @@ async function recordatorios() {
   }
 }
 
+/* ---------- 🗓️ Resumen del domingo (20 h): tu semana en FUNVS ---------- */
+async function domingo() {
+  const n = ar(), dow = new Date(n.ymd + 'T12:00:00Z').getUTCDay();
+  // los álbumes del día se van juntando todos los días (para el resumen)
+  const alb = await getJ(raw('album.json')); st.albums = st.albums || {};
+  if (alb?.date) st.albums[alb.date] = { g:alb.genre, a:alb.artist, t:alb.album, y:alb.year };
+  for (const d of Object.keys(st.albums)) if (Date.parse(n.ymd) - Date.parse(d) > 14 * 864e5) delete st.albums[d];
+  if (on.domingo === false || dow !== 0 || n.h !== 20 || st.sent[`domingo:${n.ymd}`]) return;
+  // lo que viste y escuchaste: lo de ahora menos la foto de hace una semana
+  const sum = {}; for (const dev of Object.values(db.stats || {})) for (const [q, b] of Object.entries(dev)) for (const k of ['canal', 'radio', 'musica', 'artista']) for (const [name, s] of Object.entries(b.secs?.[k] || {})) { sum[k] = sum[k] || {}; sum[k][name] = (sum[k][name] || 0) + s; }
+  const prevSnap = st.weekSnap, week = {};   // la primera vez solo saco la foto (no hay con qué comparar)
+  if (prevSnap) for (const k of Object.keys(sum)) for (const [name, s] of Object.entries(sum[k])) { const d = s - (prevSnap[k]?.[name] || 0); if (d > 300) (week[k] = week[k] || []).push([name, d]); }
+  st.weekSnap = sum;
+  const top = (k, ic, lbl) => { const l = (week[k] || []).sort((a, b) => b[1] - a[1]).slice(0, 3); return l.length ? `${ic} <b>${lbl}:</b> ${l.map(([x, s]) => `${esc(x)} (${s >= 3600 ? Math.round(s / 3600) + ' h' : Math.round(s / 60) + ' min'})`).join(', ')}` : ''; };
+  // Vélez de la semana (ESPN)
+  let velez = '';
+  try {
+    const t = await getJ('https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/teams');
+    const team = (t?.sports?.[0]?.leagues?.[0]?.teams || []).map(x => x.team).find(x => norm(x.displayName).includes('velez'));
+    if (team) {
+      const [p, f] = await Promise.all([getJ(`https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/teams/${team.id}/schedule`), getJ(`https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/teams/${team.id}/schedule?fixture=true`)]);
+      const line = ev => { const c = ev.competitions[0], H = c.competitors.find(x => x.homeAway === 'home'), A = c.competitors.find(x => x.homeAway === 'away'), sc = x => x.score?.displayValue ?? x.score ?? '';
+        return `${esc(H.team.shortDisplayName)} ${sc(H)}-${sc(A)} ${esc(A.team.shortDisplayName)}`; };
+      const done = (p?.events || []).filter(e => e.competitions?.[0]?.status?.type?.state === 'post' && Date.now() - Date.parse(e.date) < 7 * 864e5).map(line);
+      const nx = (f?.events || []).filter(e => Date.parse(e.date) > Date.now()).sort((a, b) => Date.parse(a.date) - Date.parse(b.date))[0];
+      const when = nx ? new Date(nx.date).toLocaleString('es-AR', { timeZone:'America/Argentina/Buenos_Aires', weekday:'long', day:'numeric', hour:'2-digit', minute:'2-digit', hourCycle:'h23' }) : '';
+      velez = `💙 <b>Vélez:</b> ${done.length ? done.join(' · ') : 'no jugó esta semana'}${nx ? `\n   Próximo: ${esc(nx.competitions[0].competitors.map(x => x.team.shortDisplayName).join(' vs '))}, ${esc(when)}` : ''}`;
+    }
+  } catch {}
+  const albums = Object.entries(st.albums).filter(([d]) => Date.parse(n.ymd) - Date.parse(d) < 7 * 864e5).sort().map(([, x]) => `   · ${esc(x.g)}: ${esc(x.a)} – <i>${esc(x.t)}</i>${x.y ? ` (${x.y})` : ''}`);
+  const pend = Object.values(db.resume || {}).length;
+  const parts = ['🗓️ <b>Tu semana en FUNVS</b>', top('canal', '📺', 'Lo que más viste'), top('radio', '📻', 'Lo que más escuchaste'), top('artista', '🎵', 'Artistas'), velez,
+    albums.length ? `💿 <b>Los álbumes de la semana:</b>\n${albums.join('\n')}` : '', pend ? `⏯ Tenés ${pend} video${pend > 1 ? 's' : ''} para seguir viendo.` : '', '¡Buena semana! 💙'].filter(Boolean);
+  await send(`domingo:${n.ymd}`, parts.join('\n\n'), true);
+}
+
 /* ---------- vuelta principal ---------- */
 const until = Date.now() + 9 * 60e3;
 let hot = await futbol();
-await recordatorios(); await canales(); await motor(); await clasicos(); await actualidad(); await resumenes(); await diario();
+await recordatorios(); await domingo(); await canales(); await motor(); await clasicos(); await actualidad(); await resumenes(); await diario();
 while (hot && !process.env.NO_LOOP && Date.now() + 45e3 < until) { await writeFile(stFile, JSON.stringify(st)); await sleep(45e3); hot = await futbol(); }
 await writeFile(stFile, JSON.stringify(st));
 console.log(`Telegram: ${sentCount} aviso(s) enviado(s)${first ? ' (primera corrida: aprendí el estado)' : ''}`);
