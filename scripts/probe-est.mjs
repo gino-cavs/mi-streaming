@@ -5,3 +5,4 @@ await writeFile('out/team.json', JSON.stringify({ keys:Object.keys(j), venue:j.v
 try { execSync('node scripts/fetch-estadios.mjs out klasito7/mi-streaming arg.1,uru.1,conmebol.libertadores,eng.1 > out/log.txt 2>&1', { timeout:1500000 }); } catch (e) { await writeFile('out/err.txt', String(e)); }
 // v3
 // v4
+// v5

@@ -37,7 +37,7 @@ const toks = s => nrm(s).split(/\s+/).filter(w => w && !STOP.has(w));
 const pool = {};
 async function clubsOf(cc) {
   if (pool[cc]) return pool[cc];
-  const q = `SELECT ?club ?l ?v ?vl ?c ?sl WHERE { ?club wdt:P31/wdt:P279* wd:Q476028; wdt:P17 wd:${cc}; wikibase:sitelinks ?sl; p:P115 ?st. FILTER(?sl >= 3)
+  const q = `SELECT ?club ?l ?v ?vl ?c ?sl WHERE { VALUES ?k { wd:Q476028 wd:Q847017 wd:Q2367225 } ?club wdt:P31/wdt:P279? ?k; wdt:P17 wd:${cc}; wikibase:sitelinks ?sl; p:P115 ?st. FILTER(?sl >= 3)
     ?st ps:P115 ?v. FILTER NOT EXISTS { ?st pq:P582 [] } ?v wdt:P625 ?c.
     { ?club rdfs:label ?l } UNION { ?club skos:altLabel ?l } FILTER(LANG(?l) IN ("es","en","pt"))
     OPTIONAL { ?v rdfs:label ?vl FILTER(LANG(?vl) = "es") } }`;
@@ -56,9 +56,12 @@ async function viaWikidata(t, city) {
   for (const list of cc ? [[cc]] : [SUDAM]) {
     let best = null;
     for (const p of list) for (const k of await clubsOf(p)) {
-      // todas las palabras del nombre de ESPN tienen que estar en algún nombre del club
-      const hit = want.some(w => k.toks.some(n => w.every(x => n.some(y => y === x || (x.length >= 4 && y.startsWith(x))))));
-      if (hit && (!best || k.sl > best.sl)) best = k;
+      // todas las palabras del nombre de ESPN tienen que estar en algún nombre del club; gana el nombre completo y el más parecido
+      want.forEach((w, wi) => k.toks.forEach(n => {
+        if (!w.every(x => n.some(y => y === x || (x.length >= 4 && y.startsWith(x))))) return;
+        const sc = (wi === 0 ? 1000 : 0) - (n.length - w.length) * 100 + Math.min(k.sl, 99);
+        if (!best || sc > best.sc) best = { ...k, sc };
+      }));
     }
     if (best) { const [lat, lng] = best.c.match(/Point\(([-\d.]+) ([-\d.]+)\)/).slice(1, 3).map(Number).reverse(); return { lat:+lat.toFixed(5), lng:+lng.toFixed(5), est:best.v, src:'wikidata' }; }
   }
