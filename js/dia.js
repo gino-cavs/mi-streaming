@@ -8,7 +8,8 @@ const Dia = (() => {
   const OPC = { oficina:['🏢', 'Oficina'], home:['🏠', 'Home office'], franco:['🌴', 'Franco'] };
   const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const plus = n => { const d = new Date(); d.setDate(d.getDate() + n); return d; };
-  const plan = d => (db.plan || {})[ymd(d)];
+  const finde = d => d.getDay() === 0 || d.getDay() === 6;   // sábados y domingos: siempre franco (salvo que lo cambies)
+  const plan = d => (db.plan || {})[ymd(d)] || (finde(d) ? 'franco' : undefined);
   function setPlan(d, v) {
     db.plan = db.plan || {}; db.plan[ymd(d)] = v;
     Object.keys(db.plan).forEach(k => { if (Date.parse(k) < Date.now() - 7 * 864e5) delete db.plan[k]; });
