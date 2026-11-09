@@ -37,10 +37,40 @@ const Musica = (() => {
     } catch {}
   }
 
+  /* ---------- 💿 Álbum del día (lo elige GitHub: género al azar + álbum de Wikidata + temas oficiales de YouTube) ---------- */
+  let album = S.get('albumDia', null), albAt = 0;
+  async function loadAlbum() {
+    if (Date.now() - albAt < 3600e3) return; albAt = Date.now();
+    try { const j = await (await fetch(REPO.data + 'album.json?t=' + Math.floor(Date.now() / 3600e3))).json(); if (j?.ids?.length && j.date !== album?.date) { album = j; S.set('albumDia', j); if (Nav.current === 'musica') render(); } } catch {}
+  }
+  const albumItem = a => ({ id:'alb-' + a.date, kind:'list', ref:'alb-' + a.date, ids:a.ids, name:a.album, by:a.artist, count:a.ids.length, thumb:a.thumb });
+  function albumCard() {
+    if (!album) return '';
+    const it = albumItem(album), on = cur && cur.id === it.id, saved = db.music.items.some(i => i.ref === it.ref);
+    return `<div class="albdia">
+      <div class="albcov" style="background-image:url('${esc(album.thumb)}')" data-alb="play" tabindex="0"><span class="muplay">${on && p && st() === 1 ? '❚❚' : '▶'}</span></div>
+      <div class="albtx"><span class="albtag">💿 Álbum del día · ${esc(album.genre)}</span>
+        <b>${esc(album.album)}</b><span>${esc(album.artist)}${album.year ? ' · ' + esc(album.year) : ''} · ${album.ids.length} temas</span>
+        <div class="btns"><button class="pri" data-alb="play">${on ? '🎵 Sonando' : '▶ Escuchar'}</button>
+          <button data-alb="ytm" title="Buscar el álbum completo en YouTube Music">↗ Completo en YouTube Music</button>
+          ${album.wiki ? `<a class="lnk" href="${esc(album.wiki)}" target="_blank" rel="noopener">📖 Wikipedia</a>` : ''}
+          <button data-alb="save" ${saved ? 'disabled' : ''}>${saved ? '✓ Guardado' : '＋ Guardar'}</button></div>
+        <small class="mut">Mañana, otro género. Suenan los temas oficiales que encontré del álbum (pueden no estar todos ni en orden).</small></div></div>`;
+  }
+  function albumClicks(v) {
+    v.querySelectorAll('[data-alb]').forEach(b => b.onclick = () => {
+      const it = albumItem(album), a = b.dataset.alb;
+      if (a === 'play') { if (cur && cur.id === it.id && p) toggle(); else play(it); }
+      if (a === 'ytm') window.open(`https://music.youtube.com/search?q=${encodeURIComponent(album.artist + ' ' + album.album)}`, '_blank');
+      if (a === 'save' && !db.music.items.some(i => i.ref === it.ref)) { db.music.items.unshift({ ...it, id:uid() }); save(); render(); toast('💿 Guardado en tu música', { ms:2000 }); }
+    });
+  }
+
   /* ---------- Pantalla ---------- */
   function render() {
     const v = $('v-musica');
-    v.innerHTML = `
+    loadAlbum();
+    v.innerHTML = albumCard() + `
       <div class="box">
         <form id="muForm" class="rsearch" style="margin:0">
           <input id="muUrl" placeholder="Pegá un link de YouTube Music: playlist, álbum o tema">
@@ -53,7 +83,7 @@ const Musica = (() => {
       ${db.music.items.length ? `<div class="mugrid">${db.music.items.map(it => `
         <div class="mucard ${cur && cur.id === it.id ? 'playing' : ''}" tabindex="0" data-mu="${it.id}">
           <div class="mucover" style="${it.thumb ? `background-image:url('${esc(it.thumb)}')` : ''}">${it.thumb ? '' : '🎵'}<span class="muplay">${cur && cur.id === it.id && p && st() === 1 ? '❚❚' : '▶'}</span></div>
-          <b>${esc(it.name || it.ref)}</b><span>${esc([it.kind === 'playlist' ? (it.count ? it.count + ' temas' : 'Playlist') : 'Tema', it.by].filter(Boolean).join(' · '))}</span>
+          <b>${esc(it.name || it.ref)}</b><span>${esc([it.kind === 'playlist' || it.kind === 'list' ? (it.count ? it.count + ' temas' : 'Playlist') : 'Tema', it.by].filter(Boolean).join(' · '))}</span>
           <button class="mudel" data-del="${it.id}" title="Quitar">✕</button>
         </div>`).join('')}</div>`
         : '<div class="empty">Todavía no agregaste música. Pegá arriba el link de una playlist o un álbum de YouTube Music.</div>'}`;
@@ -68,6 +98,7 @@ const Musica = (() => {
       await info(it);
       db.music.items.unshift(it); save(); render();
     };
+    albumClicks(v);
     v.querySelectorAll('[data-del]').forEach(b => b.onclick = ev => { ev.stopPropagation(); db.music.items = db.music.items.filter(i => i.id !== b.dataset.del); save(); render(); });
     v.querySelectorAll('[data-mu]').forEach(c => c.onclick = () => { const it = db.music.items.find(i => i.id === c.dataset.mu); if (cur && cur.id === it.id && p) toggle(); else play(it); });
   }
@@ -88,7 +119,8 @@ const Musica = (() => {
     $('muVid').innerHTML = '<div id="muYT"></div>';
     const vars = { autoplay:1, playsinline:1, rel:0, origin:location.origin };
     if (it.kind === 'playlist') { vars.listType = 'playlist'; vars.list = it.ref; }
-    p = new YT.Player('muYT', { width:'100%', height:'100%', videoId:it.kind === 'video' ? it.ref : (it.first || undefined), playerVars:vars,
+    if (it.kind === 'list') vars.playlist = it.ids.slice(1).join(',');   // álbum armado tema por tema
+    p = new YT.Player('muYT', { width:'100%', height:'100%', videoId:it.kind === 'video' ? it.ref : it.kind === 'list' ? it.ids[0] : (it.first || undefined), playerVars:vars,
       events:{
         onReady:() => { ready = true; errs = 0; p.playVideo(); if (shuffle && it.kind === 'playlist') applyShuffle(true); kick(it); },
         onStateChange:e => { if (e.data === 1) { AudioMgr.focus('music'); errs = 0; note(''); } upd(); },
@@ -96,9 +128,9 @@ const Musica = (() => {
           lastErr = e.data; note(ERR[e.data] || 'YouTube dio el error ' + e.data);
           if (e.data === 101 || e.data === 150 || e.data === 100 || e.data === 153) {
             errs++;
-            if (errs >= 3 || it.kind !== 'playlist') {
+            if (errs >= 3 || (it.kind !== 'playlist' && it.kind !== 'list')) {
               toast(`<b>${it.kind === 'playlist' ? 'Varios temas seguidos' : 'Este tema'} no se pueden escuchar fuera de YouTube</b><small>Los sellos bloquean algunos temas. Tocá acá para abrirlo en YouTube Music.</small>`, { cls:'info', ms:12000, onclick:() => window.open(ytmUrl(), '_blank') });
-              if (errs >= 6 || it.kind !== 'playlist') return;
+              if (errs >= 6 || (it.kind !== 'playlist' && it.kind !== 'list')) return;
             }
             try { p.nextVideo(); } catch {}
           }
@@ -132,7 +164,7 @@ const Musica = (() => {
       else if (++n > 40) clearInterval(t);
     }, 250);
   }
-  const ytmUrl = () => track?.vid ? `https://music.youtube.com/watch?v=${track.vid}${cur?.kind === 'playlist' ? '&list=' + cur.ref : ''}` : cur?.kind === 'playlist' ? `https://music.youtube.com/playlist?list=${cur.ref}` : `https://music.youtube.com/watch?v=${cur?.ref}`;
+  const ytmUrl = () => cur?.kind === 'list' && !track?.vid ? `https://music.youtube.com/search?q=${encodeURIComponent(cur.by + ' ' + cur.name)}` : track?.vid ? `https://music.youtube.com/watch?v=${track.vid}${cur?.kind === 'playlist' ? '&list=' + cur.ref : ''}` : cur?.kind === 'playlist' ? `https://music.youtube.com/playlist?list=${cur.ref}` : `https://music.youtube.com/watch?v=${cur?.ref}`;
   function upd() {
     if (!p || !p.getVideoData) return;
     try { const d = p.getVideoData(); if (d && d.title) track = { title:d.title, by:(d.author || '').replace(/ - Topic$/, ''), vid:d.video_id }; } catch {}
