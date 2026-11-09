@@ -108,25 +108,46 @@ const T420 = (() => {
     if (k === 'bien') return { k, ic:'🍃', t:'Recordatorio buena onda', body:pick(BIEN) };
     return { k:'musica', ic:'🎶', t:'Tema al azar', body:'' };
   }
-  /* 🎶 Tema al azar: 3 por día, eclécticos (género al azar), oficiales de YouTube Music. Se ven de a uno: ⏭ para el siguiente. */
-  let temas = null;
+  /* 🎶 Tema al azar: 3 por día, eclécticos (un género distinto cada uno). GitHub elige los álbumes (Wikidata) y tu navegador
+     busca un tema oficial ("Artista - Topic", lo de YouTube Music) con tu clave. Lo encontrado queda guardado para el día
+     en todos tus aparatos, así cada búsqueda se hace una sola vez. Se ven de a uno: ⏭ para el siguiente. */
+  let cands = null;
   const hoy = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
-  async function loadTemas() { if (temas?.date === hoy()) return temas; try { temas = await (await fetch(REPO.data + 'temas420.json?t=' + Math.floor(Date.now() / 1800e3))).json(); } catch { temas = null; } return temas; }
-  const seenT = () => { const x = db.t420m; return x?.date === hoy() ? x.n : 0; };
+  async function loadCands() { if (cands?.date === hoy()) return cands; try { cands = await (await fetch(REPO.data + 'temas420.json?t=' + Math.floor(Date.now() / 1800e3))).json(); } catch { cands = null; } return cands; }
+  const st = () => { if (db.t420m?.date !== hoy() || !Array.isArray(db.t420m.temas)) db.t420m = { date:hoy(), n:0, temas:[], ci:0 }; return db.t420m; };
+  const nrm = x => norm(x || '').replace(/[^a-z0-9 ]/g, ' ').trim();
+  async function resolve(k) {
+    const m = st(); if (m.temas[k]) return m.temas[k];
+    const j = await loadCands(), C = j?.date === hoy() ? j.cand || [] : [];
+    while (m.ci < C.length) {
+      const c = C[m.ci++]; let t = null;
+      if (db.key) try {
+        const r = await Canales.yt('search', { part:'snippet', type:'video', videoCategoryId:'10', maxResults:25, q:`${c.artist} ${c.album}` });
+        const first = nrm(c.artist).split(' ')[0], tr = (r.items || []).filter(x => x.id?.videoId && / - Topic$/.test(x.snippet.channelTitle) && nrm(x.snippet.channelTitle).startsWith(first));
+        const x = tr[Math.floor(Math.random() * tr.length)];
+        if (x) t = { ...c, title:x.snippet.title.replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"'), id:x.id.videoId, thumb:`https://i.ytimg.com/vi/${x.id.videoId}/hqdefault.jpg` };
+      } catch {}
+      else t = { ...c, title:c.album, id:null, thumb:'' };   // sin clave: te lo busco en YouTube Music
+      if (t) { m.temas[k] = t; save(); return t; }
+    }
+    save(); return null;
+  }
   const temaItem = t => ({ id:'t420-' + t.id, kind:'list', ref:'t420-' + t.id, ids:[t.id], name:t.title, by:t.artist, count:1, thumb:t.thumb });
+  const MAX = 3;
   async function temaCard(el, next) {
-    const j = await loadTemas(), L = j?.date === hoy() ? j.temas || [] : [];
-    if (!L.length) { el.querySelector('.t4body').textContent = 'Los temas de hoy todavía se están eligiendo. Probá en un rato 🌱'; return; }
-    let n = seenT(); if (n === 0 || (next && n < L.length)) { n++; db.t420m = { date:hoy(), n }; save(); }
-    const t = L[n - 1], left = L.length - n;
-    el.querySelector('.t4body').outerHTML = `<div class="t4tema"><img src="${esc(t.thumb)}" alt="" loading="lazy"><div><span class="t4gen">${esc(t.genre)}</span><b>${esc(t.title)}</b><small>${esc(t.artist)} · ${esc(t.album)}${t.year ? ' (' + esc(t.year) + ')' : ''}</small>
-      <div class="btns"><button class="pri" data-tm="play">▶ Escuchar</button><a class="lnk btnl" href="https://music.youtube.com/watch?v=${esc(t.id)}" target="_blank" rel="noopener">🎵 YouTube Music ↗</a>
+    const m = st(); if (m.n === 0 || (next && m.n < MAX)) { m.n++; save(); }
+    el.querySelector('.t4body').textContent = '🔎 Buscando un tema…';
+    const t = await resolve(m.n - 1);
+    if (!t) { el.querySelector('.t4body').textContent = 'Los temas de hoy todavía se están eligiendo. Probá en un rato 🌱'; if (m.n > 0 && !m.temas[m.n - 1]) { m.n--; save(); } return; }
+    const left = MAX - m.n, ytm = t.id ? `https://music.youtube.com/watch?v=${t.id}` : `https://music.youtube.com/search?q=${encodeURIComponent(t.artist + ' ' + t.album)}`;
+    el.querySelector('.t4body').outerHTML = `<div class="t4tema">${t.thumb ? `<img src="${esc(t.thumb)}" alt="" loading="lazy">` : ''}<div><span class="t4gen">${esc(t.genre)}</span><b>${esc(t.title)}</b><small>${esc(t.artist)} · ${esc(t.album)}${t.year ? ' (' + esc(t.year) + ')' : ''}</small>
+      <div class="btns">${t.id ? '<button class="pri" data-tm="play">▶ Escuchar</button>' : ''}<a class="lnk btnl ${t.id ? '' : 'pri'}" href="${esc(ytm)}" target="_blank" rel="noopener">🎵 YouTube Music ↗</a>
       ${left > 0 ? `<button data-tm="next">⏭ Otro (${left} más hoy)</button>` : '<span class="mut" style="font-size:12px;align-self:center">Mañana hay 3 más 🍃</span>'}</div></div></div>`;
-    el.querySelector('[data-tm=play]').onclick = () => Musica.play(temaItem(t));
+    el.querySelector('[data-tm=play]')?.addEventListener('click', () => Musica.play(temaItem(t)));
     el.querySelector('[data-tm=next]')?.addEventListener('click', () => { el.innerHTML = `<div class="t4ic">🎶</div><div class="t4t">Tema al azar</div><div class="t4body"></div>`; temaCard(el, true); });
   }
   // para el Modo viaje: el tema de hoy que toca, sonando
-  async function randomPlay() { const j = await loadTemas(), L = j?.date === hoy() ? j.temas || [] : []; if (!L.length) return null; const t = L[Math.max(0, seenT() - 1)]; Musica.play(temaItem(t)); return t.artist + ' – ' + t.title; }
+  async function randomPlay() { const m = st(); const t = await resolve(Math.max(0, m.n - 1)); if (!t?.id) return null; if (!m.n) { m.n = 1; save(); } Musica.play(temaItem(t)); return t.artist + ' – ' + t.title; }
 
   let tab = S.get('t4Tab', 'fun');
   function render() {
