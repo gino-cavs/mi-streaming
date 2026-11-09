@@ -106,6 +106,10 @@ function initSettings() {
     $('setHud').checked = TV.on; $('setZfx').checked = S.get('zapFx', { on:true }).on; $('setYtClean').checked = S.get('ytClean', true); $('setLite').checked = Lite.on; $('setZfxS').checked = !!S.get('zapFx', {}).sound;
     $('setKey').value = db.key;
     $('setRef').value = String(db.refresh);
+    { const tot = Canales.quotaTotal(), L = { pc:'🖥️ compu', tv:'📺 tele', celu:'📱 celu' }, pct = Math.min(100, tot / 100);
+      $('setQuota').innerHTML = `<div class="qbar"><i style="width:${pct}%;background:${pct > 85 ? '#e11d48' : pct > 60 ? '#f59e0b' : '#22c55e'}"></i></div>
+        <small>📊 Cuota de YouTube de hoy: <b>${tot.toLocaleString('es-AR')}</b> de 10.000 · ${Object.entries(db.ytq || {}).filter(([, v]) => v?.d === Canales.qDay()).map(([k, v]) => `${L[k] || k} ${v.u.toLocaleString('es-AR')}`).join(' · ') || 'sin uso todavía'}
+        · se reinicia a las ~5 AM. Si pasa de 6.000, los canales se actualizan más espaciado solos.</small>`; }
     $('setTok').value = db.sync.token;
     $('dndSched').checked = DND.st.sched; $('dndFrom').value = DND.st.from; $('dndTo').value = DND.st.to;
     $('syncCode').textContent = db.sync.gistId || '(se genera al conectar el token)';
@@ -144,7 +148,10 @@ function initSettings() {
 let refTimer;
 function startTimer() {
   clearInterval(refTimer);
-  refTimer = setInterval(() => { if (!document.hidden) Canales.refresh(); }, db.refresh * 60e3);
+  // si el día viene gastador, se espacia solo: más de 6.000 → cada 15 min; más de 8.500 → cada 45 min (para no quedarte sin vivos)
+  let lastRef = Date.now();
+  refTimer = setInterval(() => { if (document.hidden) return; const t = Canales.quotaTotal(), every = Math.max(db.refresh, t > 8500 ? 45 : t > 6000 ? 15 : 0) * 60e3;
+    if (Date.now() - lastRef >= every - 5e3) { lastRef = Date.now(); Canales.refresh(); } }, db.refresh * 60e3);
 }
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { if (pushTimer) push(); return; }

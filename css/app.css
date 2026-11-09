@@ -1437,3 +1437,9 @@ html.dev-celu #barpop { padding:0 var(--edge, 18px) var(--edgeb, 10px); height:c
 .hmb:hover, .hmb:focus-visible { outline:2px solid var(--acc); }
 .hmcfg { font-weight:400; color:var(--mut); } .hmcfg small { max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .ringb { background:#ffffff10; border-radius:12px; padding:8px 14px; margin:8px 0; text-align:left; } .ringb p { margin:6px 0; font-size:16px; }
+.quota { margin:4px 0 8px; } .quota small { color:var(--mut); font-size:12px; line-height:1.4; }
+.qbar { height:8px; background:#ffffff14; border-radius:6px; overflow:hidden; margin-bottom:4px; } .qbar i { display:block; height:100%; border-radius:6px; }
+/* 🌙 Dormir: todo a oscuras (solo el video de lluvia, que ya es negro); con mover el mouse o tocar el control vuelven los controles */
+body.oscuro .hud, body.oscuro #barpop, body.oscuro #breaking, body.oscuro .infobar, body.oscuro #infobar, body.oscuro #toasts, body.oscuro .hud-clock, body.oscuro .hud-ticker, body.oscuro #zocalo { display:none !important; }
+body.oscuro #player.tvmode, body.oscuro #player.tvmode .slot, body.oscuro #player.tvmode .stage { background:#000 !important; }
+body.oscuro #player.tvmode .stage { padding-bottom:0 !important; }

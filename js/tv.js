@@ -171,6 +171,7 @@ const TV = (() => {
     showUi(); refresh(); updateTicker();
   }
   function close() {
+    document.body.classList.remove('oscuro');
     const p = $('player');
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     p.classList.remove('tvmode');

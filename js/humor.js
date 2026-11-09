@@ -1,7 +1,8 @@
 /* =========================================================
    🎭 ¿Cómo estás? Perfiles de humor en Ahora: tocás cómo te sentís y FUNVS pone algo para ese momento.
    😂 Reírme (stand-up y "try not to laugh"; tus comediantes, de arranque Matt Rife) · 😴 Cansado (chill largo)
-   💻 Para laburar (lo-fi en vivo) · 📰 Ponerme al día (un canal de noticias en vivo de los tuyos).
+   💻 Para laburar (lo-fi en vivo) · 📰 Ponerme al día (un canal de noticias en vivo de los tuyos)
+   🌙 Dormir (lluvia con pantalla negra: Pantalla TV sin carteles, todo a oscuras).
    ▲▼ / ⏭ pasan a otro video del mismo humor. Lo que se busca en YouTube se guarda 12 h (cuida la cuota).
    ========================================================= */
 const Humor = (() => {
@@ -10,6 +11,7 @@ const Humor = (() => {
     cansado:{ ic:'😴', n:'Estoy cansado', q:[['chill ambient music mix', 'long'], ['lofi rain sleep music', 'long']] },
     laburar:{ ic:'💻', n:'Fondo para laburar', q:[['lofi hip hop radio', 'live'], ['jazz cafe music live', 'live'], ['deep focus music', 'long']] },
     info:   { ic:'📰', n:'Ponerme al día', news:true },
+    dormir: { ic:'🌙', n:'Dormir', q:[['sonido de lluvia pantalla negra', 'long'], ['rain sounds black screen 10 hours', 'long'], ['lluvia para dormir pantalla negra', 'long']], dark:true },
   };
   const comedians = () => (db.humor ||= { comedians:['MattRife'] }).comedians;
   const pools = S.get('humorPool', {}), seen = new Set(S.get('humorSeen', []));
@@ -40,7 +42,7 @@ const Humor = (() => {
     if (M.news) {   // de tus canales: uno de noticias que esté en vivo
       const l = db.chans.filter(c => /noticia/i.test(c.cat || '') || /c5n|a24|tn|ln\+|cr[oó]nica|canal 26/i.test(c.name)).filter(c => Canales.isLive(c));
       if (!l.length) return toast('<b>No hay canales de noticias en vivo ahora</b>', { cls:'info' });
-      cur = null; return Player.play(l[Math.floor(Math.random() * l.length)]);
+      cur = null; document.body.classList.remove('oscuro'); return Player.play(l[Math.floor(Math.random() * l.length)]);
     }
     toast(`${M.ic} <b>Buscando algo para "${esc(M.n)}"…</b>`, { cls:'info zapt', ms:2500 });
     let l; try { l = await pool(id); } catch (e) { return toast(`<b>${esc(e.message)}</b>`, { cls:'info' }); }
@@ -50,6 +52,8 @@ const Humor = (() => {
     seen.add(v.id); S.set('humorSeen', [...seen].slice(-400));
     cur = id;
     Player.play({ uid:'humor-' + id, name:`${M.ic} ${v.t}`, platform:'youtube', ref:{ video:v.id }, cat:M.n, humor:id });
+    if (M.dark) { if (!document.body.classList.contains('tvlock')) TV.open(); document.body.classList.add('oscuro'); return; }   // 🌙 sin carteles ni brillo
+    document.body.classList.remove('oscuro');
     toast(`<b>${M.ic} ${esc(v.t)}</b><small>${esc(v.by)} · ▲▼ para otro</small>`, { cls:'info zapt', ms:4000 });
   }
   // ▲▼ mientras suena un humor: otro video del mismo

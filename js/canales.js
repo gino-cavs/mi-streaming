@@ -38,7 +38,16 @@ const Canales = (() => {
   }
 
   /* ---------- YouTube API ---------- */
+  /* 📊 Medidor de cuota: YouTube da 10.000 unidades por día (se reinicia a las 4/5 AM de acá, medianoche de California).
+     Una búsqueda cuesta 100; todo lo demás, 1. Cada aparato cuenta lo suyo y lo comparte (db.ytq) para ver el total. */
+  const qDay = () => new Date(Date.now() - 8 * 3600e3).toISOString().slice(0, 10);   // día de YouTube (hora del Pacífico, aprox.)
+  const quota = () => { let x = S.get('ytq', null); if (x?.d !== qDay()) x = { d:qDay(), u:0, by:{} }; return x; };
+  function count(path) { const x = quota(), c = path === 'search' ? 100 : 1; x.u += c; x.by[path] = (x.by[path] || 0) + c; S.set('ytq', x); }
+  function quotaShare() { const x = quota(); db.ytq = db.ytq || {}; Object.keys(db.ytq).forEach(k => { if (db.ytq[k]?.d !== qDay()) delete db.ytq[k]; }); if (db.ytq[Device.mode]?.u !== x.u) { db.ytq[Device.mode] = { d:x.d, u:x.u, by:x.by }; save(); } }
+  function quotaTotal() { quotaShare(); return Object.values(db.ytq || {}).filter(v => v?.d === qDay()).reduce((a, v) => a + v.u, 0); }
+  setInterval(quotaShare, 10 * 60e3);
   async function yt(path, params) {
+    count(path);
     const q = new URLSearchParams({ ...params, key:db.key });
     const r = await fetch(`https://www.googleapis.com/youtube/v3/${path}?${q}`);
     const j = await r.json();
@@ -377,5 +386,5 @@ const Canales = (() => {
     $('newCat').onkeydown = e => { if (e.key === 'Enter') $('addCat').click(); };
     onChange(render);
   }
-  return { checkOne, byNum, numTxt, ensureNums, isLive, init, render, refresh, card, bindGrid, sortChans, status, liveCount, yt, get lastUpd() { return lastUpd; } };
+  return { quota, quotaTotal, qDay, checkOne, byNum, numTxt, ensureNums, isLive, init, render, refresh, card, bindGrid, sortChans, status, liveCount, yt, get lastUpd() { return lastUpd; } };
 })();
