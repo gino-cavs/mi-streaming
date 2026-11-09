@@ -1443,3 +1443,10 @@ html.dev-celu #barpop { padding:0 var(--edge, 18px) var(--edgeb, 10px); height:c
 body.oscuro .hud, body.oscuro #barpop, body.oscuro #breaking, body.oscuro .infobar, body.oscuro #infobar, body.oscuro #toasts, body.oscuro .hud-clock, body.oscuro .hud-ticker, body.oscuro #zocalo { display:none !important; }
 body.oscuro #player.tvmode, body.oscuro #player.tvmode .slot, body.oscuro #player.tvmode .stage { background:#000 !important; }
 body.oscuro #player.tvmode .stage { padding-bottom:0 !important; }
+.dbtns { display:inline-flex; gap:8px; flex-wrap:wrap; } .dbtns button { padding:6px 12px; border-radius:10px; }
+.dbtns.big button { font-size:17px; padding:12px 18px; flex:1; } .dbtns button.on { background:var(--acc); color:#fff; }
+#barpop .dbtns button { font-size:15px; padding:4px 12px; background:#fff; color:#0b1f5c; border:0; } #barpop .dbtns button:focus { outline:3px solid #ffcc00; }
+.dlegs { display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:8px; }
+.dleg { background:var(--panel2); border-radius:12px; padding:10px 12px; display:flex; flex-direction:column; gap:2px; }
+.dleg b { font-size:20px; font-family:Oswald, system-ui, sans-serif; } .dleg small { color:var(--mut); } .dleg em { font-style:normal; color:#22c55e; font-weight:700; font-size:13px; }
+.dleg.past { opacity:.45; }

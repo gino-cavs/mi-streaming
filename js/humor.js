@@ -3,7 +3,7 @@
    😂 Reírme (stand-up y "try not to laugh"; tus comediantes, de arranque Matt Rife) · 😴 Cansado (chill largo)
    💻 Para laburar (lo-fi en vivo) · 📰 Ponerme al día (un canal de noticias en vivo de los tuyos)
    🌙 Dormir (lluvia con pantalla negra: Pantalla TV sin carteles, todo a oscuras).
-   ▲▼ / ⏭ pasan a otro video del mismo humor. Lo que se busca en YouTube se guarda 12 h (cuida la cuota).
+   ▲▼ / ⏭ pasan a otro video del mismo humor. Lo que se busca en YouTube se guarda (48 h lo de reírse, 7 días el resto) para cuidar la cuota.
    ========================================================= */
 const Humor = (() => {
   const MOODS = {
@@ -19,7 +19,8 @@ const Humor = (() => {
   let cur = null;   // humor que está sonando
 
   async function pool(id) {
-    const p = pools[id]; if (p && Date.now() - p.at < 12 * 3600e3 && p.v.length) return p.v;
+    const ttl = id === 'reir' ? 48 * 3600e3 : 7 * 864e5;   // lo de reírse cambia más; lluvia, chill y lo-fi duran una semana
+    const p = pools[id]; if (p && Date.now() - p.at < ttl && p.v.length) return p.v;
     const M = MOODS[id], vids = [];
     if (!db.key) throw new Error('Para esto necesito tu clave de YouTube (⚙ Ajustes).');
     if (M.handles) for (const h of comedians()) try {

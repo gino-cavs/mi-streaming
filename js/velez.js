@@ -26,9 +26,9 @@ const Velez = (() => {
     loadingS = false;
     if (Nav.current === 'velez') render();
   }
-  // Videos de goles y resúmenes (YouTube). Se buscan cada 3 horas para cuidar la cuota.
+  // Videos de goles y resúmenes (YouTube). Se buscan cada 12 horas para cuidar la cuota.
   async function loadVideos() {
-    if (loadingV || !db.key || (vids && Date.now() - vids.at < 3 * 3600e3)) return;
+    if (loadingV || !db.key || (vids && Date.now() - vids.at < 12 * 3600e3)) return;
     loadingV = true;
     try {
       const after = new Date(Date.now() - 21 * 864e5).toISOString();

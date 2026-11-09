@@ -81,6 +81,13 @@ const Reloj = (() => {
       if (wet) { out.lines.push(wet); out.speak.push(wet.replace(/^\S+\s/, '').replace(/\s*\(\d+%\)/, '')); }
       out.lines.push(`🌡️ Ahora ${now}°, máxima ${mx}° y mínima ${mn}°, ${WXT(c)}.`); out.speak.push(`Ahora hacen ${now} grados. Máxima de ${mx}, ${WXT(c)}.`);
     } catch {}
+    try {   // 🗓 cómo es hoy
+      const P = Dia.plan();
+      if (P === 'oficina') { const v = Dia.viaje(new Date())[0], est = Transporte.estado('roca'); out.lines.unshift(`🏢 Hoy vas a la oficina: tren ${v.t} en Monte Grande.${est ? ' ' + est : ''}`); out.speak.unshift(`Hoy vas a la oficina. Tu tren sale a las ${v.t.replace(/^0/, '').replace(':', ' y ')}.${est ? ' ' + est : ''}`); }
+      else if (P === 'home') { out.lines.unshift('🏠 Hoy es home office.'); out.speak.unshift('Hoy es home office.'); }
+      else if (P === 'franco') { out.lines.unshift('🌴 Hoy tenés franco. ¡A disfrutar!'); out.speak.unshift('Hoy tenés franco.'); }
+      else out.askPlan = true;
+    } catch {}
     try {
       const m = Partido.match();
       if (m && m.state !== 'post') {
@@ -111,10 +118,12 @@ const Reloj = (() => {
     let d = $('dlgRing'); if (!d) { d = document.createElement('dialog'); d.id = 'dlgRing'; d.className = 'rdlg ring'; document.body.appendChild(d); }
     const now = new Date();
     d.innerHTML = `<div class="ringt">${now.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hourCycle:'h23' })}</div>
-      <h3>${test ? 'Así va a sonar' : now.getHours() < 12 ? '☀️ ¡Buen día!' : '⏰ Arriba'}</h3>${b.lines.length ? `<div class="ringb">${b.lines.map(l => `<p>${esc(l)}</p>`).join('')}</div>` : ''}<p>📻 ${esc(r.name)}${RadioGrilla.nowFor(r) ? ' · ' + esc(RadioGrilla.nowFor(r).name) : ''}</p>
+      <h3>${test ? 'Así va a sonar' : now.getHours() < 12 ? '☀️ ¡Buen día!' : '⏰ Arriba'}</h3>${b.lines.length ? `<div class="ringb">${b.lines.map(l => `<p>${esc(l)}</p>`).join('')}</div>` : ''}${b.askPlan ? `<p class="mut" style="margin:6px 0 2px">¿Cómo es hoy?</p><div class="dbtns">${Object.entries(Dia.OPC).map(([k, [ic, n]]) => `<button data-rplan="${k}">${ic} ${n}</button>`).join('')}</div>` : ''}<p>📻 ${esc(r.name)}${RadioGrilla.nowFor(r) ? ' · ' + esc(RadioGrilla.nowFor(r).name) : ''}</p>
       <div class="btns">${b.velez ? '<button id="rgVel">💙 Ver la previa</button>' : ''}<button id="rgSn">😴 10 minutos más</button><button class="pri" id="rgOk" autofocus>✓ Ya me levanté</button></div>`;
     d.showModal(); $('rgOk').focus();
     const stopTalk = () => { try { speechSynthesis.cancel(); } catch {} };
+    d.querySelectorAll('[data-rplan]').forEach(x => x.onclick = () => { db.plan = db.plan || {}; const t = new Date(); db.plan[`${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`] = x.dataset.rplan; save();
+      d.querySelectorAll('[data-rplan]').forEach(y => y.classList.toggle('on', y === x)); });
     $('rgOk').onclick = () => { stopTalk(); if (talking) rise(); d.close(); };   // la radio sigue sonando
     if ($('rgVel')) $('rgVel').onclick = () => { stopTalk(); if (talking) rise(); d.close(); Nav.go('velez'); };
     $('rgSn').onclick = () => { stopTalk(); clearInterval(up); d.close(); Radio.stop(); snoozeAt = Date.now() + 10 * 60e3; toast('😴 Te despierto en 10 minutos', { ms:3000 }); };

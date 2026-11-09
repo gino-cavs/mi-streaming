@@ -73,25 +73,47 @@ const Canales = (() => {
     c.avatar = (ch.snippet.thumbnails.medium || ch.snippet.thumbnails.default).url;
     if (!c.name || c.name === c.ref.handle) c.name = ch.snippet.title;
   }
+  /* Ahorro de cuota al revisar vivos:
+     · los últimos videos de cada canal salen del feed público que junta GitHub (gratis); la lista por la API (1 unidad por canal)
+       se pide solo 1 de cada 4 vueltas, o si no hay feed;
+     · los canales "fríos" (sin vivo en las últimas 24 h) se revisan 1 de cada 4 vueltas; los "calientes", siempre;
+     · siempre se vuelve a mirar el último vivo conocido (los vivos 24/7 de las noticias quedan enganchados). */
+  let cycle = 0, feeds = null;
+  const devId = () => { let d = S.get('devId', ''); if (!d) { d = Device.mode + '-' + uid(); S.set('devId', d); } return d; };
+  const hot = S.get('hub2hot', {});
+  async function loadFeeds() {
+    if (feeds && Date.now() - feeds._at < 10 * 60e3) return feeds;
+    try { const j = await (await fetch(REPO.data + 'ytfeeds.json?t=' + Math.floor(Date.now() / 300e3))).json(); j._at = Date.now(); feeds = j; } catch { feeds = feeds || { ch:{} }; }
+    return feeds;
+  }
   async function refreshYT() {
     const list = db.chans.filter(c => c.platform === 'youtube');
     if (!list.length) return;
     if (!db.key) { list.forEach(c => status[c.uid] = { st:'?' }); return; }
+    cycle++;
+    const F = await loadFeeds(), feedOk = F?.at && Date.now() - Date.parse(F.at) < 90 * 60e3;
     const want = {};
     for (const c of list) {
       try {
         if (c.ref.video) { want[c.uid] = [c.ref.video]; continue; }
+        const st0 = status[c.uid] || {}, isHot = st0.st === 'live' || st0.st === 'soon' || Date.now() - (hot[c.uid] || 0) < 864e5 || !st0.st || st0.st === '?';
+        const full = cycle % 4 === 1, known = [st0.vid].filter(Boolean);
+        const fd = feedOk && c.ref.channelId && F.ch?.[c.ref.channelId];
+        // con feed: alcanza con mirar esos videos (casi gratis: 1 unidad cada 50 videos de TODOS los canales)
+        if (fd && !(full && isHot)) { want[c.uid] = [...new Set([...known, ...fd])]; continue; }
+        if (!isHot && !full) continue;   // sin feed y frío: queda como estaba hasta su vuelta
         await resolveYT(c);
         const j = await yt('playlistItems', { part:'contentDetails', playlistId:c.ref.uploads, maxResults:50 });
         // canales que suben muchos clips (A24, C5N…): el vivo puede quedar más atrás de los últimos 15 → miro hasta 50
         const its = j.items || [], heavy = its.length > 15 && Date.now() - Date.parse(its[14].contentDetails.videoPublishedAt || 0) < 2 * 864e5;
-        want[c.uid] = its.slice(0, heavy ? 50 : 15).map(i => i.contentDetails.videoId);
+        want[c.uid] = [...new Set([...known, ...its.slice(0, heavy ? 50 : 15).map(i => i.contentDetails.videoId)])];
       } catch (e) {
         status[c.uid] = { st:'?', err:e.message };
         warn(e instanceof TypeError ? NET_MSG : 'YouTube: ' + e.message);
         if (e instanceof TypeError) break;
       }
     }
+    S.set('hub2hot', hot);
     saveLocal();
     const ids = [...new Set(Object.values(want).flat())];
     const vids = {};
@@ -113,6 +135,7 @@ const Canales = (() => {
       // últimos directos ya terminados (para Mundo Vélez)
       const past = vs.filter(v => v.liveStreamingDetails?.actualEndTime).slice(0, 3)
                      .map(v => ({ vid:v.id, title:v.snippet.title, end:v.liveStreamingDetails.actualEndTime, thumb:(v.snippet.thumbnails.medium || v.snippet.thumbnails.default).url }));
+      if (live) hot[u] = Date.now();
       if (pick) {
         const th = pick.snippet.thumbnails;
         status[u] = { st: live ? 'live' : 'soon', prem:isPrem(pick), vid:pick.id, title:pick.snippet.title,
@@ -160,8 +183,14 @@ const Canales = (() => {
     if (busy) return; busy = true;
     $('btnRefresh').textContent = '…';
     await pull();
-    try { await Promise.all([refreshYT().catch(e => warn(e instanceof TypeError ? NET_MSG : 'YouTube: ' + e.message)), refreshOthers()]); } catch {}
-    lastUpd = new Date(); S.set('hub2status', status);
+    // 🤝 si otro aparato (compu, tele, celu) revisó YouTube hace menos de 8 minutos, uso lo suyo y no gasto cuota
+    const sh = db.ytShare, me = devId();
+    const useShared = sh && sh.dev !== me && Date.now() - sh.at < 8 * 60e3 && sh.st;
+    const doYT = useShared ? Promise.resolve(Object.entries(sh.st).forEach(([u, v]) => { status[u] = v; if (v.st === 'live') hot[u] = Date.now(); }))
+      : refreshYT().then(() => { const st = {}; db.chans.filter(c => c.platform === 'youtube').forEach(c => { const v = status[c.uid]; if (v) { const { err, ...rest } = v; st[c.uid] = rest; } });
+          db.ytShare = { dev:me, at:Date.now(), st }; save(); });
+    try { await Promise.all([doYT.catch(e => warn(e instanceof TypeError ? NET_MSG : 'YouTube: ' + e.message)), refreshOthers()]); } catch {}
+    lastUpd = new Date(); S.set('hub2status', status); S.set('hub2hot', hot);
     busy = false; $('btnRefresh').textContent = '⟳';
     render(); Nav.badges(); Zap.render();
   }
@@ -337,8 +366,23 @@ const Canales = (() => {
     if (added) { if (!db.cats.includes(cat)) db.cats.push(cat); save(); render(); refresh(); toast(`<b>📺 Sumé ${added} canal${added > 1 ? 'es' : ''} de noticias</b><small>Con su grilla en la Guía (categoría "${cat}")</small>`, { ms:5000 }); }
     else save();
   }
+  /* 💙 Canales sumados a pedido (una sola vez cada uno): van a la categoría de Mundo Vélez */
+  function seedVelez() {
+    db.series = db.series || {}; const done = db.series.velezSeed = db.series.velezSeed || [];
+    const L = [['velezdebate', 'VÉLEZ DEBATE', 'UCmKet5LnHUaIvZ2L9uYvptw', 'https://yt3.ggpht.com/nN_9bhsjTTxBUSnj9aUx9NUQySZfqBGa-BffCHvX83AAiHFYTGq33OQ2o9tr9-5wBvHmT_guwx8=s240-c-k-c0x00ffffff-no-rj']];
+    let cat = db.velez?.streamCat || db.cats.find(k => norm(k).includes('velez')); if (!cat) { cat = 'Vélez'; db.cats.push(cat); }
+    if (db.velez && !db.velez.streamCat) db.velez.streamCat = cat;
+    let added = 0;
+    for (const [h, n, id, av] of L) {
+      if (done.includes(h)) continue; done.push(h);
+      if (db.chans.some(c => c.ref?.channelId === id)) continue;
+      db.chans.push({ uid:uid(), platform:'youtube', ref:{ handle:h, channelId:id }, name:n, cat, avatar:av, num:Math.max(0, ...db.chans.map(x => +x.num || 0)) + 1 }); added++;
+    }
+    save(); if (added) { render(); refresh(); }
+  }
   function init() {
     setTimeout(() => seedNoticias().catch(() => {}), 4000);
+    setTimeout(() => { try { seedVelez(); } catch {} }, 5000);
     if (ensureNums()) saveLocal();
     document.body.insertAdjacentHTML('beforeend', `<dialog id="dlgOrder" style="width:min(760px,96vw)"><h3>🔢 Ordenar y editar canales</h3>
       <p>Arrastrá con ☰, usá ↑ ↓ o escribí el número de canal. También podés cambiar el nombre y la categoría. Nada se guarda hasta que toques <b>Guardar cambios</b>.</p>
