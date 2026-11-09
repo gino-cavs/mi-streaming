@@ -56,7 +56,10 @@ const TV = (() => {
         </div>
         <div class="hud-ctl" id="tvCtl">
           <button id="tvPrev" title="Canal anterior">⏮</button>
+          <button id="tvBack" title="Atrás 10 segundos">⏪</button>
           <button id="tvPlay" title="Pausa / seguir">⏸</button>
+          <button id="tvFwd" title="Adelante 10 segundos">⏩</button>
+          <button id="tvLive" class="tolive" title="Volver al vivo">● VIVO</button>
           <button id="tvNext" title="Canal siguiente">⏭</button>
           <button id="tvList" title="Lista de canales">☰</button>
           <button id="tvMute" title="Silenciar">🔊</button>
@@ -72,7 +75,7 @@ const TV = (() => {
     $('bottom').insertAdjacentHTML('beforeend', `<footer id="tvfoot">
         <div class="fclock"><div class="ftime" id="fTime"></div><div><div class="fdate" id="fDate"></div><div class="fwx" id="fWx"></div></div></div>
         <div class="fnow" id="fNow"></div>
-        <div class="fctl" id="fCtl"><button data-c="prev" title="Anterior">⏮</button><button data-c="play" title="Pausa / seguir">❚❚</button><button data-c="next" title="Siguiente">⏭</button><button data-c="mute" title="Silenciar">🔊</button>
+        <div class="fctl" id="fCtl"><button data-c="prev" title="Anterior">⏮</button><button data-c="back" title="Atrás 10 segundos">⏪</button><button data-c="play" title="Pausa / seguir">❚❚</button><button data-c="fwd" title="Adelante 10 segundos">⏩</button><button data-c="live" class="tolive" title="Volver al vivo">● VIVO</button><button data-c="next" title="Siguiente">⏭</button><button data-c="mute" title="Silenciar">🔊</button>
           <input type="range" data-c="vol" min="0" max="1" step="0.05" title="Volumen"><button data-c="vid" title="Mostrar u ocultar el video">🎬</button><button data-c="star" title="Guardar este momento">⭐</button><button data-c="tv" title="Pantalla TV">📺</button><button data-c="x" title="Cerrar lo que suena">✕</button></div>
       </footer>`);
     $('btnHide').insertAdjacentHTML('beforebegin', `<button id="tvFull" title="Pantalla completa">⛶</button>`);
@@ -87,6 +90,10 @@ const TV = (() => {
       else { if (a === 'x') Player.closeAll(); else Zap.step(a === 'next' ? 1 : -1); }
       setTimeout(tick, 200); };
     ['prev', 'next', 'x'].forEach(a => $('fCtl').querySelector(`[data-c=${a}]`).onclick = () => act(a));
+    const seek = d => { const k = AudioMgr.sink(AudioMgr.active); k?.seek?.(d); showUi(); setTimeout(tick, 250); };
+    const live = () => { AudioMgr.sink(AudioMgr.active)?.toLive?.(); setTimeout(tick, 400); };
+    $('tvBack').onclick = () => seek(-10); $('tvFwd').onclick = () => seek(10); $('tvLive').onclick = live;
+    $('fCtl').querySelector('[data-c=back]').onclick = () => seek(-10); $('fCtl').querySelector('[data-c=fwd]').onclick = () => seek(10); $('fCtl').querySelector('[data-c=live]').onclick = live;
     $('tvPrev').onclick = () => act('prev'); $('tvNext').onclick = () => act('next');
     $('tvList').onclick = () => Zap.listOpen(!Zap.open);
     $('fCtl').querySelector('[data-c=tv]').onclick = () => open(false);
@@ -108,6 +115,8 @@ const TV = (() => {
     document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && $('player').dataset.fs) { delete $('player').dataset.fs; } });
     $('player').addEventListener('pointermove', showUi);
     $('player').addEventListener('touchstart', showUi, { passive:true });
+    document.addEventListener('keydown', () => { if (document.body.classList.contains('tvlock')) showUi(); }, true);
+    $('tvCtl').addEventListener('focusin', showUi);
 
     $('tvPlay').onclick = () => { const s = AudioMgr.sink(AudioMgr.active); s && s.toggle && s.toggle(); setTimeout(tick, 150); };
     $('tvMute').onclick = () => {
@@ -251,6 +260,9 @@ const TV = (() => {
     if (s) {
       $('tvPlay').style.display = s.toggle ? '' : 'none';
       $('tvList').style.display = id === 'radio' || id === 'music' ? 'none' : '';
+      const sk = !!s.seek, bh = s.behind ? s.behind() : 0, fc0 = $('fCtl');
+      [$('tvBack'), $('tvFwd'), fc0.querySelector('[data-c=back]'), fc0.querySelector('[data-c=fwd]')].forEach(b => b.style.display = sk ? '' : 'none');
+      [$('tvLive'), fc0.querySelector('[data-c=live]')].forEach(b => { b.style.display = s.behind && s.live?.() ? '' : 'none'; b.classList.toggle('behind', bh > 25); b.textContent = bh > 25 ? `● VIVO −${bh >= 3600 ? Math.floor(bh / 3600) + 'h' : ''}${Math.floor(bh % 3600 / 60)}m` : '● VIVO'; });
       $('tvPlay').textContent = s.paused && s.paused() ? '▶' : '❚❚';
       const m = s.muted ? s.muted() : false;
       $('tvMute').textContent = m ? '🔇' : '🔊';

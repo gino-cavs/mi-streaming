@@ -1366,3 +1366,17 @@ html.dev-celu body.tvlock .hud-logo { right:calc(var(--edge, 18px) + 4px); }
 .slot .vw.ytclean > iframe { position:absolute; left:0; top:-64px; height:calc(100% + 128px) !important; width:100%; }
 .slot .vw.ytclean::after { content:''; position:absolute; inset:0; z-index:1; }
 #muYT { overflow:hidden; position:relative; }
+
+/* ===== Pantalla TV: el video se achica un poquito para que la barra de abajo (hora · día · clima) no lo tape;
+   los botones aparecen al mover el mouse / tocar / usar el control y se desvanecen solos ===== */
+body.tvlock #player.tvmode .stage { padding-bottom:46px; }
+html.dev-celu body.tvlock #player.tvmode .stage { padding-bottom:calc(46px + var(--edgeb, 10px)); }
+body.tvlock .tvart { bottom:46px; }
+body.tvlock .hud-ctl { opacity:0; pointer-events:none; transition:opacity .9s ease; }
+body.tvlock.tvui .hud-ctl, body.tvlock .hud-ctl:hover { opacity:1; pointer-events:auto; transition:opacity .25s ease; }
+body.tvlock .hud-ctl { bottom:58px; }
+body.tvlock #player.tvmode .pbar { transition:opacity .9s ease; }
+body.tvlock #player.tvmode.ui .pbar { transition:opacity .25s ease; }
+.tolive { font-size:12px !important; font-weight:700; color:#fff !important; background:#e11d48 !important; border-radius:6px !important; padding:3px 7px !important; letter-spacing:.5px; }
+.tolive.behind { background:#555 !important; }
+.tolive.behind:hover, .tolive.behind:focus-visible { background:#e11d48 !important; }

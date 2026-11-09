@@ -156,6 +156,10 @@ const Player = (() => {
           label:() => s.c.name, live:() => { const x = Canales.status[s.c.uid] || {}; return x.st === 'live' && !x.prem; }, prem:() => !!(Canales.status[s.c.uid] || {}).prem && (Canales.status[s.c.uid] || {}).st === 'live',
           paused:() => { try { return p.getPlayerState() !== 1; } catch { return false; } },
           toggle:() => { try { p.getPlayerState() === 1 ? p.pauseVideo() : p.playVideo(); } catch {} },
+          // ⏪ ⏩ (también en los vivos con DVR: YouTube deja volver atrás hasta unas horas) y volver al vivo
+          seek:d => { try { const t = p.getCurrentTime(), D = p.getDuration(); p.seekTo(Math.max(0, D ? Math.min(t + d, D - 1) : t + d), true); if (p.getPlayerState() === 2) p.playVideo(); } catch {} },
+          behind:() => { try { const x = Canales.status[s.c.uid] || {}; if (x.st !== 'live') return 0; return Math.max(0, p.getDuration() - p.getCurrentTime()); } catch { return 0; } },
+          toLive:() => { try { p.seekTo(p.getDuration() + 60, true); p.playVideo(); } catch {} },
           muted:() => { try { return p.isMuted(); } catch { return false; } },
           getVol:() => { try { return p.getVolume() / 100; } catch { return 1; } },
           setVol:v => { try { p.setVolume(Math.round(v * 100)); if (v > 0 && p.isMuted()) AudioMgr.focus(sid); } catch {} } });
