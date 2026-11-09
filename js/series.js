@@ -88,10 +88,15 @@ function make247(C) {
   /* ---------- 🎲 Capítulo al azar en tus servicios (solo en Series) ---------- */
   const SHOWS = [
     { id:'simpsons', n:'Los Simpson', where:'Disney+', ic:'🍩', url:'https://www.disneyplus.com/es-419/series/los-simpson/3ZoBZ52QHb4x', tvmaze:83 },
+    { id:'icarly', n:'iCarly', where:'Pluto TV (gratis)', ic:'💻', url:'https://pluto.tv/latam/on-demand', tvq:'iCarly' },
+    { id:'drakejosh', n:'Drake & Josh', where:'Pluto TV (gratis)', ic:'🎸', url:'https://pluto.tv/latam/on-demand', tvq:'Drake & Josh' },
+    { id:'zoey', n:'Zoey 101', where:'Pluto TV (gratis)', ic:'🏫', url:'https://pluto.tv/latam/on-demand', tvq:'Zoey 101' },
+    { id:'kenankel', n:'Kenan & Kel', where:'Pluto TV (gratis)', ic:'🍊', url:'https://pluto.tv/latam/on-demand', tvq:'Kenan & Kel' },
     { id:'simuladores', n:'Los Simuladores', where:'mitelefe', ic:'🕵️', seasons:[13, 11], ep:(s, e) => `https://www.mitelefe.com/los-simuladores/temporada-${s}/capitulo-${String(e).padStart(2, '0')}` }
   ];
   let picks = S.get('azarPicks', {});
   async function pickEp(sh) {
+    if (sh.tvq && !sh.tvmaze) { const id = S.get('tvmz_' + sh.id, null) || await fetch('https://api.tvmaze.com/singlesearch/shows?q=' + encodeURIComponent(sh.tvq)).then(r => r.json()).then(j => j.id).catch(() => null); if (!id) return toast('<b>No pude traer la lista de capítulos</b>', { cls:'info' }); S.set('tvmz_' + sh.id, id); sh.tvmaze = id; }
     if (sh.tvmaze) {
       let eps = S.get('eps' + sh.tvmaze, null);
       if (!eps || Date.now() - eps.at > 14 * 864e5) {
@@ -111,7 +116,10 @@ function make247(C) {
       <div class="aztx"><b>${esc(sh.n)}</b><small>en ${esc(sh.where)}</small>
         ${p ? `<span class="azep">Temporada ${p.s} · Capítulo ${p.e}${p.name ? ` · <i>${esc(p.name)}</i>` : ''}</span>` : '<span class="mut" style="font-size:13px">Tocá 🎲 para que te elija uno.</span>'}
         <div class="btns" style="margin-top:6px"><button data-az="${sh.id}">🎲 ${p ? 'Otro' : 'Elegir'}</button>${p ? `<a class="pri lnk btnl" href="${esc(p.url)}" target="_blank" rel="noopener">▶ Ver en ${esc(sh.where)} ↗</a>` : ''}</div>
-        ${p && sh.tvmaze ? `<small class="mut">Disney+ no deja abrir un capítulo directo: entrá a la serie y elegí T${p.s} E${p.e}.</small>` : ''}</div></div>`; }).join('')}</div>`;
+        ${p && (sh.tvmaze || sh.tvq) ? `<small class="mut">${esc(sh.where.replace(/ \(.*/, ''))} no deja abrir un capítulo directo: entrá a la serie y elegí T${p.s} E${p.e}.</small>` : ''}</div></div>`; }).join('')}</div>
+    <div class="nickpluto"><b>🧡 Nick de los 2000 en Pluto TV</b> <span class="mut">gratis y oficial: iCarly, Drake & Josh, Zoey 101, Kenan & Kel, Big Time Rush… a demanda y en canales 24/7.</span>
+      <div class="btns"><a class="lnk btnl" href="https://pluto.tv/latam/on-demand" target="_blank" rel="noopener">📚 A demanda ↗</a><a class="lnk btnl" href="https://pluto.tv/latam/live-tv" target="_blank" rel="noopener">📺 Canales en vivo ↗</a></div>
+      <small class="mut">En la tele: instalá la app gratis de Pluto TV en el Fire Stick y los links se abren ahí.</small></div>`;
 
   /* ---------- Pantalla ---------- */
   const fmt = s => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? `${h} h ${m} min` : `${m} min`; };

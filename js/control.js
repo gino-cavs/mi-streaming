@@ -30,6 +30,7 @@ const Control = (() => {
       case 'search': Buscar.open(); setTimeout(() => { const i = $('bQ'); if (i) { i.value = o.q; i.dispatchEvent(new Event('input')); } }, 50); break;
       case 'go': Nav.go(o.s); break;
       case 'sleep': Reloj.sleepIn(o.m); break;
+      case 'tanda': Tanda.play(); break;
       case 'off': try { Player.closeAll(); Radio.stop(); Musica.stop(); } catch {} break;
     }
     if (!['key', 'vol'].includes(o.c)) toast('📱 ' + ({ ch:'Canal', num:'Canal ' + o.n, play:'Canal', radio:'Radio', music:'Música', toggle:'Pausa / seguir', mute:'Silencio', tv:'Pantalla TV', search:'Buscar: ' + o.q, go:'Sección', sleep:'Apagado', off:'Apagar todo', back:'Atrás', menu:'Ajustes' }[o.c] || o.c), { cls:'info zapt', ms:1200 });
@@ -60,7 +61,7 @@ const Control = (() => {
       <details class="rmt-list"><summary>📺 Canales</summary>${db.chans.map(c => `<button data-o='${JSON.stringify({ c:'play', uid:c.uid })}'><i>${esc(Canales.numTxt(c))}</i> ${esc(c.name)}${Canales.status[c.uid]?.st === 'live' ? ' <b class="lv">●</b>' : ''}</button>`).join('')}</details>
       <details class="rmt-list"><summary>📻 Radios</summary>${db.radios.map((r, i) => `<button data-o='{"c":"radio","i":${i}}'>${esc(r.name)}</button>`).join('')}</details>
       <details class="rmt-list"><summary>🎵 Música</summary><button data-o='{"c":"music","id":"album"}'>💿 Álbum del día</button>${db.music.items.map(m => `<button data-o='${JSON.stringify({ c:'music', id:m.id })}'>${esc(m.name || m.ref)}</button>`).join('')}</details>
-      <div class="rmt-row"><button data-o='{"c":"sleep","m":30}'>🌙 30′</button><button data-o='{"c":"sleep","m":60}'>🌙 60′</button><button data-o='{"c":"go","s":"inicio"}'>🏠</button><button data-o='{"c":"go","s":"velez"}'>💙</button></div>`;
+      <div class="rmt-row"><button data-o='{"c":"sleep","m":30}'>🌙 30′</button><button data-o='{"c":"sleep","m":60}'>🌙 60′</button><button data-o='{"c":"tanda"}'>📼</button><button data-o='{"c":"go","s":"inicio"}'>🏠</button><button data-o='{"c":"go","s":"velez"}'>💙</button></div>`;
     d.showModal();
     d.onclick = e => { if (e.target.closest('[data-x]')) return d.close(); const b = e.target.closest('[data-o]'); if (b) send(JSON.parse(b.dataset.o.replace(/&#39;/g, "'"))); };
     $('rmNum').onsubmit = e => { e.preventDefault(); const n = $('rmN').value.trim(); if (n) send({ c:'num', n }); $('rmN').value = ''; };

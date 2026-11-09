@@ -145,6 +145,7 @@ const Player = (() => {
           if (e.data === 1 && last !== 1) AudioMgr.focus(sid);
           last = e.data; s.yst = e.data; s.ystAt = Date.now();
           if (e.data === 0 && !s.c.t247) s.dead = true; if (e.data === 1) s.dead = false;
+          if (e.data === 0 && s.c.onEnd) { let last = true; try { const pl = p.getPlaylist?.(); if (pl && p.getPlaylistIndex() < pl.length - 1) last = false; } catch {} if (last) { const f = s.c.onEnd; s.c.onEnd = null; setTimeout(f, 300); } }
           d.classList.toggle('paused', e.data === 2);
         }, onError:() => { s.dead = true; s.ystAt = Date.now(); } } });
         s.api = { p, destroy() {} };
