@@ -120,5 +120,5 @@ const RadioGrilla = (() => {
   }
   /** Qué programa va ahora en una radio tuya (o null). */
   function nowFor(r) { const g = data && effective(r); if (!g) return null; const n = new Date(); return shows(g, n, new Date(+n + 60e3)).find(x => x.s <= n && x.e > n) || null; }
-  return { render, load, match, nowFor };
+  return { render, load, match, nowFor, get data() { return data; } };
 })();

@@ -349,7 +349,27 @@ const Player = (() => {
   }
   setInterval(() => { if (!document.hidden || slots.some(Boolean)) follow(); }, 10e3);
 
+  /* ---------- ⏯ Seguir viendo: los videos largos (retro, resúmenes, Vélez…) recuerdan dónde quedaste ---------- */
+  let resumeSaved = 0;
+  function remember() {
+    let changed = false; db.resume = db.resume || {};
+    for (const s of slots) {
+      if (!s || s.e.kind !== 'youtube' || !s.c.ref.video || s.c.t247 || !s.api?.p) continue;
+      let t = 0, d = 0, title = ''; try { t = s.api.p.getCurrentTime(); d = s.api.p.getDuration(); title = s.api.p.getVideoData?.().title || ''; } catch {}
+      const v = s.c.ref.video;
+      if (!(d > 300) || t < 60) continue;                       // solo videos largos y ya empezados
+      if (t > d * 0.95) { if (db.resume[v]) { delete db.resume[v]; changed = true; } continue; }   // terminado
+      db.resume[v] = { t:Math.floor(t), d:Math.floor(d), n:s.c.name, title:title || db.resume[v]?.title || s.c.name, at:Date.now() }; changed = true;
+    }
+    if (!changed) return;
+    const keep = Object.entries(db.resume).sort((a, b) => b[1].at - a[1].at).slice(0, 24); db.resume = Object.fromEntries(keep);
+    if (Date.now() - resumeSaved > 120e3) { resumeSaved = Date.now(); save(); } else saveLocal();
+  }
+  setInterval(remember, 15e3);
+
   function play(c, opts = {}) {
+    const r = c.ref?.video && !c.t247 && opts.start == null && db.resume?.[c.ref.video];
+    if (r && r.t > 30) { opts = { ...opts, start:Math.max(0, r.t - 5) }; toast(`⏯ Seguís desde ${Math.floor(r.t / 60)}:${String(r.t % 60).padStart(2, '0')}`, { ms:2500 }); }
     const e = embedOf(c), st = Canales.status[c.uid] || {};
     const target = sel;
     if (opts.start && e.kind === 'youtube') e.v += '&start=' + Math.floor(opts.start);

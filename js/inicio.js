@@ -44,3 +44,13 @@ const Inicio = (() => {
   setInterval(() => { if (Nav.current === 'inicio' && !document.hidden && !document.activeElement?.closest?.('#v-inicio')) render(); }, 60e3);
   return { render, add };
 })();
+
+/* ⏯ Seguir viendo (lo guarda el reproductor) */
+Inicio.add({ id:'seguir', order:10, html() {
+  const l = Object.entries(db.resume || {}).sort((a, b) => b[1].at - a[1].at).slice(0, 10);
+  if (!l.length) return '';
+  return `<h2 class="sec">⏯ Seguir viendo</h2><div class="inrow">${l.map(([v, r]) => `<div class="incard sv"><button class="svp" data-sv="${v}"><span class="inimg" style="background-image:url('https://i.ytimg.com/vi/${v}/mqdefault.jpg')"><i class="svbar"><i style="width:${Math.round(r.t / r.d * 100)}%"></i></i></span><b>${esc(r.title)}</b><small>${esc(r.n)} · quedan ${Math.max(1, Math.round((r.d - r.t) / 60))} min</small></button><button class="svx" data-svx="${v}" title="Sacar de la lista">✕</button></div>`).join('')}</div>`; },
+  bind(el) {
+    el.querySelectorAll('[data-sv]').forEach(b => b.onclick = () => { const v = b.dataset.sv, r = db.resume[v]; Player.play({ uid:'sv_' + v, platform:'youtube', ref:{ video:v }, name:r?.n || 'Video' }); });
+    el.querySelectorAll('[data-svx]').forEach(b => b.onclick = () => { delete db.resume[b.dataset.svx]; save(); Inicio.render(); });
+  } });

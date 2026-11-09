@@ -1160,3 +1160,18 @@ body.playing, body.hudon { padding-bottom:calc(var(--hudb, 0px) + 72px); }
 .ring .btns { justify-content:center; } .ring .btns button { font-size:16px; padding:12px 18px; }
 .inchips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
 .inchips button { border-radius:20px; padding:6px 14px; }
+
+/* ===== ⏯ Seguir viendo · 🔎 Buscador ===== */
+.incard.sv { position:relative; padding:0; background:none; }
+.incard.sv .svp { display:flex; flex-direction:column; gap:3px; text-align:left; padding:8px; border-radius:12px; background:var(--panel); width:100%; }
+.svbar { position:absolute; left:0; right:0; bottom:0; height:4px; background:#ffffff33; } .svbar i { display:block; height:100%; background:var(--live); }
+.svx { position:absolute; top:12px; right:12px; padding:2px 7px; font-size:12px; background:#000a; border-radius:10px; }
+.bdlg { width:min(720px, 96vw); padding:0; }
+.bhead { display:flex; gap:8px; padding:12px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--panel); }
+.bhead input { flex:1; font-size:18px; padding:10px 14px; }
+.bres-list { padding:6px 12px 14px; max-height:70vh; overflow-y:auto; }
+.bres-list h4 { margin:12px 0 4px; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--mut); }
+.bres { display:flex; gap:10px; align-items:center; width:100%; text-align:left; padding:8px 10px; border-radius:8px; background:none; border:1px solid transparent; }
+.bres:hover, .bres:focus { background:#ffffff0d; border-color:var(--acc); }
+.bres .bic { font-size:18px; width:24px; text-align:center; }
+.bres b { display:block; font-weight:600; } .bres small { color:var(--mut); font-size:12px; }

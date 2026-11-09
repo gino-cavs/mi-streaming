@@ -80,5 +80,5 @@ const Guia = (() => {
     db.chans.push({ uid:uid(), platform:'youtube', ref:{ handle:'@' + g.h }, name:g.n, cat:db.cats[0] || '' });
     Canales.ensureNums(); save(); toast(`📺 ${esc(g.n)} agregado`, { ms:3000 }); $('btnRefresh')?.click(); Canales.render();
   }
-  return { render, load, match };
+  return { render, load, match, get data() { return data; } };
 })();
