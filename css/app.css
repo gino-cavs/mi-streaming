@@ -1431,3 +1431,9 @@ body.bkon #barpop { transform:translateY(110%); }
 .bp-time { display:flex; align-items:center; padding:0 14px; background:#081548; font-size:19px; }
 html.dev-celu #barpop { padding:0 var(--edge, 18px) var(--edgeb, 10px); height:calc(46px + var(--edgeb, 10px)); }
 @media (max-width:600px) { #barpop { height:36px; } .bp-lbl { font-size:12px; padding:0 8px; } .bp-txt { font-size:14px; gap:10px; padding:0 8px; } .bp-time { display:none; } }
+.hmrow { display:flex; gap:10px; flex-wrap:wrap; }
+.hmb { display:flex; align-items:center; gap:8px; padding:12px 16px; border-radius:14px; font-size:15px; font-weight:600; background:var(--panel2); }
+.hmb span { font-size:24px; }
+.hmb:hover, .hmb:focus-visible { outline:2px solid var(--acc); }
+.hmcfg { font-weight:400; color:var(--mut); } .hmcfg small { max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ringb { background:#ffffff10; border-radius:12px; padding:8px 14px; margin:8px 0; text-align:left; } .ringb p { margin:6px 0; font-size:16px; }

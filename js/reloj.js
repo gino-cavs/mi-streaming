@@ -58,29 +58,66 @@ const Reloj = (() => {
       <div class="alrow"><label>Hora<input type="time" id="alT" value="${a.time}"></label>
         <label>Radio<select id="alR">${db.radios.length ? db.radios.map(r => `<option value="${esc(r.url)}" ${r.url === a.radio ? 'selected' : ''}>${esc(r.name)}</option>`).join('') : '<option value="">(guardá radios en Radios)</option>'}</select></label></div>
       <div class="aldays">${[1, 2, 3, 4, 5, 6, 0].map(n => `<label class="chk"><input type="checkbox" data-d="${n}" ${a.days.includes(n) ? 'checked' : ''}> ${['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][n]}</label>`).join('')}</div>
+      <label class="chk"><input type="checkbox" id="alSmart" ${a.smart !== false ? 'checked' : ''}> 🧠 Contame el día al despertar (clima y si juega Vélez)</label>
       <label>Volumen final <input type="range" id="alV" min="0.2" max="1" step="0.05" value="${a.vol}"></label>
       <p class="mut" style="font-size:12px">Arranca bajito y sube en 2 minutos. Tiene que estar FUNVS abierto en este aparato (en la compu, la pestaña; en la tele, la app). En el celu, con la pantalla apagada Android puede dormir la app.</p>
       <div class="btns"><button id="alTest">▶ Probar</button><span class="sp"></span><button id="alX">Cancelar</button><button class="pri" id="alOk">Guardar</button></div>`;
     d.showModal();
-    const read = () => ({ on:$('alOn').checked, time:$('alT').value || '07:30', radio:$('alR').value, vol:+$('alV').value, days:[...d.querySelectorAll('[data-d]')].filter(c => c.checked).map(c => +c.dataset.d) });
+    const read = () => ({ on:$('alOn').checked, time:$('alT').value || '07:30', radio:$('alR').value, vol:+$('alV').value, smart:$('alSmart').checked, days:[...d.querySelectorAll('[data-d]')].filter(c => c.checked).map(c => +c.dataset.d) });
     $('alX').onclick = () => d.close();
     $('alTest').onclick = () => { d.close(); ring(read(), true); };
     $('alOk').onclick = () => { const v = read(); if (v.on && !v.radio) return toast('Elegí una radio', { cls:'info' }); S.set('alarm', v); d.close(); toast(v.on ? `⏰ Despertador a las ${v.time}` : '⏰ Despertador apagado', { ms:2500 }); paint(); };
   }
-  function ring(a, test) {
+  /* 🧠 Despertador inteligente: antes de la radio te cuenta el día (clima de Monte Grande y si juega Vélez).
+     Si llueve o hay tormenta, eso va primero. Si juega Vélez, te deja a mano la previa. */
+  const WXT = c => c === 0 ? 'despejado' : c <= 2 ? 'algo nublado' : c === 3 ? 'nublado' : c <= 48 ? 'con niebla' : c <= 57 ? 'con llovizna' : c <= 67 ? 'con lluvia' : c <= 77 ? 'con nieve' : c <= 82 ? 'con chaparrones' : 'con tormentas';
+  async function briefing() {
+    const out = { lines:[], speak:[] }, n = new Date();
+    try {
+      const q = new URLSearchParams({ latitude:'-34.8157', longitude:'-58.4687', daily:'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max', current:'temperature_2m', forecast_days:'1', timezone:'America/Argentina/Buenos_Aires' });
+      const j = await (await fetch('https://api.open-meteo.com/v1/forecast?' + q, { signal:AbortSignal.timeout(6000) })).json();
+      const c = j.daily.weather_code[0], p = j.daily.precipitation_probability_max[0] ?? 0, mx = Math.round(j.daily.temperature_2m_max[0]), mn = Math.round(j.daily.temperature_2m_min[0]), now = Math.round(j.current.temperature_2m);
+      const wet = c >= 95 ? '⛈️ Hoy hay tormentas: llevá paraguas y ojo al salir.' : (p >= 60 || (c >= 51 && c <= 82)) ? `☔ Hoy llueve (${p}%): llevá paraguas.` : '';
+      if (wet) { out.lines.push(wet); out.speak.push(wet.replace(/^\S+\s/, '').replace(/\s*\(\d+%\)/, '')); }
+      out.lines.push(`🌡️ Ahora ${now}°, máxima ${mx}° y mínima ${mn}°, ${WXT(c)}.`); out.speak.push(`Ahora hacen ${now} grados. Máxima de ${mx}, ${WXT(c)}.`);
+    } catch {}
+    try {
+      const m = Partido.match();
+      if (m && m.state !== 'post') {
+        const vel = [m.h, m.a].find(x => /v[eé]lez/i.test(x.team.displayName)), riv = [m.h, m.a].find(x => x !== vel);
+        const hr = new Date(m.date).toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
+        out.lines.push(`💙 Hoy juega Vélez contra ${riv?.team.shortDisplayName || riv?.team.displayName} a las ${hr}${vel === m.h ? ', de local' : ''}. ¡Vamos Fortín!`);
+        out.speak.push(`Y hoy juega Vélez contra ${riv?.team.displayName} a las ${hr}. Vamos Fortín.`); out.velez = true;
+      }
+    } catch {}
+    return out;
+  }
+  function say(parts, done) {
+    const t = parts.join(' ');
+    if (!t || !('speechSynthesis' in window)) return done();
+    try { const u = new SpeechSynthesisUtterance(t); u.lang = 'es-AR'; u.rate = 1; const v = speechSynthesis.getVoices().find(x => /^es/.test(x.lang)); if (v) u.voice = v;
+      u.onend = u.onerror = () => done(); speechSynthesis.cancel(); speechSynthesis.speak(u); setTimeout(done, 25000); } catch { done(); }
+  }
+  async function ring(a, test) {
     const r = db.radios.find(x => x.url === a.radio) || db.radios[0]; if (!r) return;
+    const b = a.smart !== false ? await briefing() : { lines:[], speak:[] };
     Radio.play(r);
     const s = AudioMgr.sink('radio'), t0 = Date.now();
     try { s.setVol(0.08); } catch {}
-    const up = setInterval(() => { const k = Math.min(1, (Date.now() - t0) / 120e3); try { s.setVol(0.08 + (a.vol - 0.08) * k); } catch {} if (k >= 1) clearInterval(up); }, 2000);
+    let talking = b.speak.length > 0, up = null;
+    const rise = () => { if (up) return; talking = false; const t1 = Date.now(); up = setInterval(() => { const k = Math.min(1, (Date.now() - t1) / 120e3); try { s.setVol(0.08 + (a.vol - 0.08) * k); } catch {} if (k >= 1) clearInterval(up); }, 2000); };
+    if (talking) { try { s.setVol(0.03); } catch {} setTimeout(() => !$('dlgRing')?.open ? rise() : say([`${new Date().getHours() < 12 ? 'Buen día' : 'Hola'}. Son las ${new Date().getHours()} y ${new Date().getMinutes()}.`, ...b.speak], rise), 1500); }
+    else rise();
     let d = $('dlgRing'); if (!d) { d = document.createElement('dialog'); d.id = 'dlgRing'; d.className = 'rdlg ring'; document.body.appendChild(d); }
     const now = new Date();
     d.innerHTML = `<div class="ringt">${now.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hourCycle:'h23' })}</div>
-      <h3>${test ? 'Así va a sonar' : now.getHours() < 12 ? '☀️ ¡Buen día!' : '⏰ Arriba'}</h3><p>📻 ${esc(r.name)}${RadioGrilla.nowFor(r) ? ' · ' + esc(RadioGrilla.nowFor(r).name) : ''}</p>
-      <div class="btns"><button id="rgSn">😴 10 minutos más</button><button class="pri" id="rgOk" autofocus>✓ Ya me levanté</button></div>`;
+      <h3>${test ? 'Así va a sonar' : now.getHours() < 12 ? '☀️ ¡Buen día!' : '⏰ Arriba'}</h3>${b.lines.length ? `<div class="ringb">${b.lines.map(l => `<p>${esc(l)}</p>`).join('')}</div>` : ''}<p>📻 ${esc(r.name)}${RadioGrilla.nowFor(r) ? ' · ' + esc(RadioGrilla.nowFor(r).name) : ''}</p>
+      <div class="btns">${b.velez ? '<button id="rgVel">💙 Ver la previa</button>' : ''}<button id="rgSn">😴 10 minutos más</button><button class="pri" id="rgOk" autofocus>✓ Ya me levanté</button></div>`;
     d.showModal(); $('rgOk').focus();
-    $('rgOk').onclick = () => { clearInterval(up); d.close(); };   // la radio sigue sonando
-    $('rgSn').onclick = () => { clearInterval(up); d.close(); Radio.stop(); snoozeAt = Date.now() + 10 * 60e3; toast('😴 Te despierto en 10 minutos', { ms:3000 }); };
+    const stopTalk = () => { try { speechSynthesis.cancel(); } catch {} };
+    $('rgOk').onclick = () => { stopTalk(); if (talking) rise(); d.close(); };   // la radio sigue sonando
+    if ($('rgVel')) $('rgVel').onclick = () => { stopTalk(); if (talking) rise(); d.close(); Nav.go('velez'); };
+    $('rgSn').onclick = () => { stopTalk(); clearInterval(up); d.close(); Radio.stop(); snoozeAt = Date.now() + 10 * 60e3; toast('😴 Te despierto en 10 minutos', { ms:3000 }); };
   }
   function alarmTick() {
     const a = alarm(), n = new Date();

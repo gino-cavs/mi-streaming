@@ -30,7 +30,7 @@ const REPO = (() => {
 
 /* ---------- Datos ---------- */
 const DEVICE = S.get('deviceId', null) || (() => { const d = 'd' + Math.random().toString(36).slice(2, 8); S.set('deviceId', d); return d; })();
-const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music', 'prode', 'moments', 'stats', 'rap', 'oauth', 'boxeo', 'series', 'juegos', 'diario', 'tg', 'servicios', 'nav', 'peliculas', 'retro', 'radEdit', 'radPedido', 'secUse', 'secUseSince', 'resume', 'recs', 'remote', 'flashSeen', 'radGeo', 'geo', 'estGeo', 'resWidgets', 'grillaIcal', 't420m'];
+const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music', 'prode', 'moments', 'stats', 'rap', 'oauth', 'boxeo', 'series', 'juegos', 'diario', 'tg', 'servicios', 'nav', 'peliculas', 'retro', 'radEdit', 'radPedido', 'secUse', 'secUseSince', 'resume', 'recs', 'remote', 'flashSeen', 'radGeo', 'geo', 'estGeo', 'resWidgets', 'grillaIcal', 't420m', 'humor'];
 const DEFAULTS = () => ({
   cats:['Fútbol', 'Streamers'], chans:[], key:'', refresh:5,
   radios:[], radEdit:{}, radPedido:0, radGeo:{}, geo:{}, estGeo:{},
@@ -241,7 +241,7 @@ function warn(t) { $('warns').innerHTML = `<div class="warn">${esc(t)}<button on
 function toast(html, { cls = '', ms = 9000, onclick, force } = {}) {
   if (!force && /goal|race/.test(cls) && DND.active()) { DND.add(html); return; }   // No molestar: se guarda para después
   // en la Pantalla TV los avisos salen en la barra de abajo (no tapan el video); el cartelito del zapping sigue igual
-  if (document.body.classList.contains('tvlock') && !/zapt/.test(cls) && window.Grafismo?.barPop) return Grafismo.barPop(/goal/.test(cls) ? '⚽ GOL' : 'FUNVS', html, { cls, ms:Math.min(ms, 12000), onclick });
+  if (document.body.classList.contains('tvlock') && !/zapt/.test(cls) && typeof Grafismo !== 'undefined') return Grafismo.barPop(/goal/.test(cls) ? '⚽ GOL' : 'FUNVS', html, { cls, ms:Math.min(ms, 12000), onclick });
   const d = document.createElement('div');
   d.className = 'toast ' + cls; d.innerHTML = html;
   d.onclick = () => { if (onclick) onclick(); d.remove(); };
