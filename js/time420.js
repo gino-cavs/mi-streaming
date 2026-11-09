@@ -106,15 +106,27 @@ const T420 = (() => {
     if (k === 'pensar') return { k, ic:'🌀', t:'Para pensar un rato', body:pick(PENSAR) };
     if (k === 'preferis') { const [a, b] = pick(PREFERIS); return { k, ic:'⚖️', t:'¿Qué preferís?', a, b }; }
     if (k === 'bien') return { k, ic:'🍃', t:'Recordatorio buena onda', body:pick(BIEN) };
-    return { k:'musica', ic:'🎶', t:'Tema al azar', body:'Pongo algo random de tu música o tus radios.' };
+    return { k:'musica', ic:'🎶', t:'Tema al azar', body:'' };
   }
-  function randomPlay() {
-    const opts = [...(db.music.items || []).map(it => ['m', it]), ...(db.radios || []).map(r => ['r', r])];
-    if (!opts.length) { toast('<b>No tenés música ni radios guardadas</b><small>Agregá algo en 🎵 Música o 📻 Radios y vuelvo a sortear.</small>', { cls:'info' }); return null; }
-    const [t, x] = pick(opts);
-    if (t === 'm') { S.set('musShuffle', true); Musica.play(x); } else Radio.play(x);
-    return x.name;
+  /* 🎶 Tema al azar: 3 por día, eclécticos (género al azar), oficiales de YouTube Music. Se ven de a uno: ⏭ para el siguiente. */
+  let temas = null;
+  const hoy = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
+  async function loadTemas() { if (temas?.date === hoy()) return temas; try { temas = await (await fetch(REPO.data + 'temas420.json?t=' + Math.floor(Date.now() / 1800e3))).json(); } catch { temas = null; } return temas; }
+  const seenT = () => { const x = db.t420m; return x?.date === hoy() ? x.n : 0; };
+  const temaItem = t => ({ id:'t420-' + t.id, kind:'list', ref:'t420-' + t.id, ids:[t.id], name:t.title, by:t.artist, count:1, thumb:t.thumb });
+  async function temaCard(el, next) {
+    const j = await loadTemas(), L = j?.date === hoy() ? j.temas || [] : [];
+    if (!L.length) { el.querySelector('.t4body').textContent = 'Los temas de hoy todavía se están eligiendo. Probá en un rato 🌱'; return; }
+    let n = seenT(); if (n === 0 || (next && n < L.length)) { n++; db.t420m = { date:hoy(), n }; save(); }
+    const t = L[n - 1], left = L.length - n;
+    el.querySelector('.t4body').outerHTML = `<div class="t4tema"><img src="${esc(t.thumb)}" alt="" loading="lazy"><div><span class="t4gen">${esc(t.genre)}</span><b>${esc(t.title)}</b><small>${esc(t.artist)} · ${esc(t.album)}${t.year ? ' (' + esc(t.year) + ')' : ''}</small>
+      <div class="btns"><button class="pri" data-tm="play">▶ Escuchar</button><a class="lnk btnl" href="https://music.youtube.com/watch?v=${esc(t.id)}" target="_blank" rel="noopener">🎵 YouTube Music ↗</a>
+      ${left > 0 ? `<button data-tm="next">⏭ Otro (${left} más hoy)</button>` : '<span class="mut" style="font-size:12px;align-self:center">Mañana hay 3 más 🍃</span>'}</div></div></div>`;
+    el.querySelector('[data-tm=play]').onclick = () => Musica.play(temaItem(t));
+    el.querySelector('[data-tm=next]')?.addEventListener('click', () => { el.innerHTML = `<div class="t4ic">🎶</div><div class="t4t">Tema al azar</div><div class="t4body"></div>`; temaCard(el, true); });
   }
+  // para el Modo viaje: el tema de hoy que toca, sonando
+  async function randomPlay() { const j = await loadTemas(), L = j?.date === hoy() ? j.temas || [] : []; if (!L.length) return null; const t = L[Math.max(0, seenT() - 1)]; Musica.play(temaItem(t)); return t.artist + ' – ' + t.title; }
 
   let tab = S.get('t4Tab', 'fun');
   function render() {
@@ -141,7 +153,7 @@ const T420 = (() => {
         (c.a ? `<div class="t4pref"><button>${esc(c.a)}</button><span>o</span><button>${esc(c.b)}</button></div>` : `<div class="t4body">${esc(c.body)}</div>`);
       el.classList.remove('in'); void el.offsetWidth; el.classList.add('in');
       if (c.a) el.querySelectorAll('.t4pref button').forEach(b => b.onclick = () => { el.querySelectorAll('.t4pref button').forEach(x => x.classList.toggle('on', x === b)); });
-      if (c.k === 'musica') { const n = randomPlay(); if (n) el.querySelector('.t4body').textContent = '▶ Sonando: ' + n; }
+      if (c.k === 'musica') temaCard(el, false);
     };
     $('t4Any').onclick = () => show(anything());
     $('t4Dato').onclick = () => show({ k:'dato', ic:'🧠', t:'¿Sabías que…?', body:pick(DATOS) });
@@ -187,7 +199,7 @@ const T420 = (() => {
     document.addEventListener('keydown', key);
     o.querySelector('[data-v=x]').onclick = close;
     o.querySelector('[data-v=next]').onclick = say;
-    o.querySelector('[data-v=music]').onclick = () => { const n = randomPlay(); if (n) { txt.textContent = '🎶 ' + n; } };
+    o.querySelector('[data-v=music]').onclick = async () => { const n = await randomPlay(); if (n) { txt.textContent = '🎶 ' + n; } };
     o.requestFullscreen && o.requestFullscreen().catch(() => {});
     viaje = { close };
   }
