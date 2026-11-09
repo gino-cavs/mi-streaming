@@ -15,7 +15,8 @@ const Radio = (() => {
     throw new Error('No pude conectarme con el buscador de radios.');
   }
   const toRadio = s => ({ id:s.stationuuid, name:s.name.trim(), url:s.url_resolved || s.url, logo:s.favicon || '',
-    tags:(s.tags || '').split(',').filter(Boolean).slice(0, 3).join(' · '), place:[s.state, s.country].filter(Boolean).join(', '), hls:!!s.hls });
+    tags:(s.tags || '').split(',').filter(Boolean).slice(0, 3).join(' · '), place:[s.state, s.country].filter(Boolean).join(', '), hls:!!s.hls,
+    ...(s.geo_lat != null && s.geo_long != null ? { geo:{ lat:+s.geo_lat, lng:+s.geo_long } } : {}) });
 
   function rcard(r, saved) {
     const playing = cur && cur.url === r.url;
@@ -30,7 +31,7 @@ const Radio = (() => {
     if (!v.dataset.built) {
       v.dataset.built = 1;
       v.innerHTML = `
-        <div class="secrow"><h2 class="sec">Mis radios</h2><div class="seg" id="rView"><button data-rv="lista">📻 Radios</button><button data-rv="grilla">🗓 Grilla</button></div></div><div id="rMine"></div>
+        <div class="secrow"><h2 class="sec">Mis radios</h2><div class="seg" id="rView"><button data-rv="lista">📻 Radios</button><button data-rv="grilla">🗓 Grilla</button><button id="rMap" title="Tus radios en un globo terráqueo">🌍 Mapa</button></div></div><div id="rMine"></div>
         <h2 class="sec">Buscar radios</h2>
         <form class="rsearch" id="rForm">
           <input id="rQ" placeholder="Nombre de la radio: Mitre, La 100, Rivadavia, Metro…">
@@ -42,6 +43,7 @@ const Radio = (() => {
         <p class="mut" style="font-size:12px;margin-top:10px">Las radios salen de radio-browser.info, una lista comunitaria y gratuita. Si alguna no suena, probá con otra versión de la misma radio.</p>`;
       $('rForm').onsubmit = e => { e.preventDefault(); search($('rQ').value.trim()); };
       $('rTop').onclick = () => search('');
+      $('rMap').onclick = e => { e.stopPropagation(); RadioMapa.open(); };
       $('rView').onclick = e => { const b = e.target.closest('[data-rv]'); if (b) { S.set('radView', b.dataset.rv); render(); } };
       v.addEventListener('click', e => {
         const add = e.target.closest('[data-add]'), del = e.target.closest('[data-del]');
