@@ -20,9 +20,15 @@ const Zap = (() => {
   }
   const playing = () => Player.slots.filter(Boolean).map(s => s.c.uid);
   function order() { const seen = new Set(), o = []; groups().forEach(([, l]) => l.forEach(c => { if (!seen.has(c.uid)) { seen.add(c.uid); o.push(c); } })); return o; }
+  // ▲▼ solo pasa por los que están al aire: los apagados (o que arrancan más tarde) se saltean solos.
+  // Los videos fijos y los que todavía no se chequearon cuentan como al aire.
+  const onAir = c => c.ref?.video || !['off', 'soon'].includes(st(c)) && !(st(c) === 'live' && Canales.status[c.uid]?.prem);
   function step(d) {
-    const o = order(); if (!o.length) return;
+    const all = order(); if (!all.length) return;
     const cur = Player.slots[Player.sel ?? 0] || Player.slots.find(Boolean);
+    const o = all.filter(c => onAir(c) || c.uid === cur?.c.uid);
+    if (o.length < 2 && cur) return toast('<b>No hay otro canal en vivo ahora</b>', { cls:'info zapt', ms:1800 });
+    if (!o.length) return;
     let i = cur ? o.findIndex(c => c.uid === cur.c.uid) : -1;
     i = (i + d + o.length) % o.length;
     Player.play(o[i]);
