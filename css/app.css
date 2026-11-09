@@ -1362,8 +1362,12 @@ html.dev-celu body.tvlock .hud-logo { right:calc(var(--edge, 18px) + 4px); }
 
 /* ===== 🧼 YouTube sin su barra ni su título: el iframe se estira y se recorta arriba y abajo (el video 16:9 queda entero),
    y una capa transparente evita que al pasar el mouse aparezcan sus carteles ===== */
-.slot .vw.ytclean { overflow:hidden; }
-.slot .vw.ytclean > iframe { position:absolute; left:0; top:-64px; height:calc(100% + 128px) !important; width:100%; }
+/* el iframe mide justo lo que ocupa el video 16:9 entrando entero en el recuadro, más 64px arriba y abajo que se recortan
+   con clip-path (ahí viven el título y la barra de YouTube). Así el video nunca queda cortado, sea cual sea la forma del recuadro. */
+.slot .vw.ytclean { overflow:hidden; container-type:size; }
+.slot .vw.ytclean > iframe { position:absolute; left:50%; top:50%; transform:translate(-50%, -50%);
+  width:min(100cqw, 100cqh * 16 / 9) !important; height:calc(min(100cqw, 100cqh * 16 / 9) * 9 / 16 + 128px) !important; clip-path:inset(65px 0); }
+@supports not (width:1cqw) { .slot .vw.ytclean > iframe { position:absolute; left:0; top:0; transform:none; width:100% !important; height:100% !important; clip-path:none; } }
 .slot .vw.ytclean::after { content:''; position:absolute; inset:0; z-index:1; }
 #muYT { overflow:hidden; position:relative; }
 
