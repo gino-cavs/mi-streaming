@@ -38,7 +38,7 @@ const Player = (() => {
 
   // v = video, ch = chat embebido oscuro, out = chat en ventana aparte
   // sin la barra ni el título de YouTube (se maneja todo con los botones de FUNVS). Se apaga en Ajustes.
-  const clean = () => S.get('ytClean', true) ? '&controls=0&rel=0&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0' : '&rel=0';
+  const clean = () => S.get('ytClean', true) ? '&controls=0&rel=0&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0' : '&rel=0&cc_load_policy=0';
   function embedOf(c) {
     const s = Canales.status[c.uid] || {};
     if (c.platform === 'twitch') return { kind:'twitch', id:c.ref.name,
@@ -145,6 +145,8 @@ const Player = (() => {
             const n = T247any.nextFor(s.c.t247);
             if (n) { s.e.id = n.v; try { p.loadVideoById({ videoId:n.v, startSeconds:n.off }); } catch {} paintActs(); }
           }
+          // 📼 fútbol retro / Paso a Paso: subtítulos siempre apagados (YouTube a veces los prende solo por la cuenta o los automáticos)
+          if (e.data === 1 && /^retro_/.test(s.c.uid)) { try { p.setOption('captions', 'track', {}); p.unloadModule('captions'); p.unloadModule('cc'); } catch {} }
           if (e.data === 1 && last !== 1) AudioMgr.focus(sid);
           last = e.data; s.yst = e.data; s.ystAt = Date.now();
           if (e.data === 0 && !s.c.t247) s.dead = true; if (e.data === 1) s.dead = false;
