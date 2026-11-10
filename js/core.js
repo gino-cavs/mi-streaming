@@ -243,18 +243,26 @@ function warn(t) { $('warns').innerHTML = `<div class="warn">${esc(t)}<button on
 const METEO_MODELS = ['ecmwf_ifs025', 'gfs_seamless', 'icon_seamless'];
 // ⛅ Íconos de clima precisos: el "código de tiempo" de un solo modelo a veces dice nublado con sol pleno.
 // Si hay lluvia/tormenta/niebla en la mayoría de los modelos, uso ese código; si no, lo saco de la nubosidad PROMEDIO.
-const CLOUD_OF = { current:'cloud_cover', hourly:'cloud_cover', daily:'cloud_cover_mean' };
-function wxCode(codes, cloud) {
+// La nubosidad "total" cuenta los cirros altos y finitos, que con sol pleno igual dan 60-80 %: por eso uso nubes bajas y
+// medias (las que tapan el sol) y los altos con poco peso, y la MEDIANA de los modelos (si uno delira, no manda).
+// Para el día entero: qué parte del día hubo sol (horas de sol / horas de luz).
+const CLOUD_OF = { current:['cloud_cover_low', 'cloud_cover_mid', 'cloud_cover_high'], hourly:['cloud_cover_low', 'cloud_cover_mid', 'cloud_cover_high'], daily:['sunshine_duration', 'daylight_duration'] };
+const median = a => { const n = a.filter(x => typeof x === 'number').sort((x, y) => x - y); return n.length ? (n.length % 2 ? n[n.length >> 1] : (n[n.length / 2 - 1] + n[n.length / 2]) / 2) : null; };
+function wxCode(codes, cover) {
   const c = codes.filter(x => x != null); if (!c.length) return null;
   const wet = c.filter(x => x >= 45), need = c.length >= 2 ? 2 : 1;
   if (wet.length >= need) { const f = {}; wet.forEach(x => f[x] = (f[x] || 0) + 1); return +Object.entries(f).sort((a, b) => b[1] - a[1] || a[0] - b[0])[0][0]; }
-  if (cloud == null) return Math.min(...c);
-  return cloud < 20 ? 0 : cloud < 45 ? 1 : cloud < 75 ? 2 : 3;
+  if (cover == null) return Math.min(...c);
+  return cover < 25 ? 0 : cover < 50 ? 1 : cover < 80 ? 2 : 3;
 }
+// "cuánto tapa" cada modelo (0-100)
+const coverOf = (sec, get) => sec === 'daily'
+  ? (() => { const s = get('sunshine_duration'), d = get('daylight_duration'); return s != null && d ? Math.max(0, Math.min(100, 100 - s / d * 100 * 1.15)) : null; })()
+  : (() => { const l = get('cloud_cover_low'), m = get('cloud_cover_mid'), h = get('cloud_cover_high'); return l == null && m == null ? null : Math.min(100, Math.max(l || 0, (m || 0) * .8) + (h || 0) * .15); })();
 async function meteo(q, opts = {}) {
   const base = 'https://api.open-meteo.com/v1/forecast?';
   const p = new URLSearchParams(q);
-  for (const sec of ['current', 'hourly', 'daily']) { const v = p.get(sec); if (v && /weather_code/.test(v) && !v.includes(CLOUD_OF[sec])) p.set(sec, v + ',' + CLOUD_OF[sec]); }
+  for (const sec of ['current', 'hourly', 'daily']) { const v = p.get(sec); if (v && /weather_code/.test(v)) p.set(sec, [...new Set([...v.split(','), ...CLOUD_OF[sec]])].join(',')); }
   const fix = (o, sec, want, models) => {
     for (const k of want) {
       const vals = models ? models.map(m => o[k + '_' + m]).filter(v => v != null && !(Array.isArray(v) && v.every(x => x == null))) : [o[k]];
@@ -265,9 +273,12 @@ async function meteo(q, opts = {}) {
       o[k] = Array.isArray(vals[0]) ? vals[0].map((_, i) => pick ? (vals.map(v => v[i]).find(x => x != null) ?? null) : avg(vals.map(v => v[i]))) : (pick ? vals[0] : avg(vals));
     }
     if (want.includes('weather_code')) {
-      const cv = o[CLOUD_OF[sec]], codes = models ? models.map(m => o['weather_code_' + m]).filter(v => v != null) : [o.weather_code];
-      if (!codes.length) return;
-      o.weather_code = Array.isArray(codes[0]) ? codes[0].map((_, i) => wxCode(codes.map(v => v?.[i]), Array.isArray(cv) ? cv[i] : null)) : wxCode(codes, cv);
+      const M = models || [null], raw = (k, m) => o[m ? k + '_' + m : k];
+      const codes = M.map(m => raw('weather_code', m)).filter(v => v != null); if (!codes.length) return;
+      const at = (v, i) => Array.isArray(v) ? v[i] : v;
+      const cov = i => median(M.map(m => coverOf(sec, k => at(raw(k, m), i))));
+      o.weather_code = Array.isArray(codes[0]) ? codes[0].map((_, i) => wxCode(codes.map(v => v?.[i]), cov(i))) : wxCode(codes, cov(0));
+      o._cover = Array.isArray(codes[0]) ? codes[0].map((_, i) => cov(i)) : cov(0);
     }
   };
   const run = (j, models) => { for (const L of Array.isArray(j) ? j : [j]) for (const sec of ['current', 'hourly', 'daily']) { const o = L[sec]; if (o) fix(o, sec, (p.get(sec) || '').split(',').filter(Boolean), models); } return j; };
