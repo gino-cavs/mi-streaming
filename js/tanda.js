@@ -9,7 +9,8 @@ const Tanda = (() => {
   let busy = false, lastT247 = 0;
   const cache = S.get('tandaCache', {});
   // tus playlists de tandas (se cargan en 24/7 → 📼 Tandas); la de siempre viene de arranque
-  const lists = () => { if (!Array.isArray(db.tandas)) db.tandas = [{ ref:PL, name:'Publicidades argentinas 2000-2011', on:true }]; return db.tandas; };
+  // la lista arranca vacía: las playlists las cargás vos (una vez se saca la que venía de arranque)
+  const lists = () => { if (!Array.isArray(db.tandas)) db.tandas = []; if (!db.series?.tandaDefOut) { db.tandas = db.tandas.filter(t => t.ref !== PL); db.series = db.series || {}; db.series.tandaDefOut = true; save(); } return db.tandas; };
   async function one(ref) {
     const c = cache[ref]; if (c && Date.now() - c.at < 7 * 864e5 && c.l.length) return c.l;
     if (!db.key) return c?.l || [];
@@ -28,7 +29,7 @@ const Tanda = (() => {
   const shuffle = a => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
   /** Tanda corta y vuelta a lo que había */
   async function play(n = 3 + Math.floor(Math.random() * 2), auto = false) {
-    const l = await load(); if (!l.length) return toast('<b>Para la tanda retro necesito tu clave de YouTube</b><small>Cargala en ⚙ Ajustes.</small>', { cls:'info' });
+    const l = await load(); if (!l.length) return toast(!lists().some(t => t.on !== false) ? '<b>📼 Todavía no hay tandas</b><small>Cargá tus playlists en 24/7 → Tandas.</small>' : '<b>Para la tanda retro necesito tu clave de YouTube</b><small>Cargala en ⚙ Ajustes.</small>', { cls:'info', onclick:() => Nav.go('tandas') });
     const s = Player.slots[Player.sel], pick = shuffle(l).slice(0, n);
     let prev = s?.c && s.c.uid !== 'tanda' ? s.c : null, at = null;
     // lo que estabas mirando queda en pausa: al volver sigue desde el mismo segundo (en los 24/7, el mismo capítulo)
@@ -59,7 +60,7 @@ const Tanda = (() => {
     v.innerHTML = `<div class="porhero"><div class="porlogo">📼</div><div><h2>Tandas retro</h2><p>Tus playlists de publicidades argentinas. De acá salen el botón 📼 Tanda retro y las tandas que cortan los canales 24/7 cada ~30 minutos.</p>
         <div class="btns"><button class="pri" id="tdPlay">▶ Ver una tanda</button><label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="tdAuto" style="width:auto" ${S.get('tandaAuto', true) ? 'checked' : ''}> Tandas automáticas en los 24/7</label></div></div></div>
       <h2 class="sec">Tus playlists de tandas</h2>
-      <div class="tdlist">${L.map((t, i) => `<div class="tdrow ${t.on === false ? 'off' : ''}"><label><input type="checkbox" data-on="${i}" ${t.on !== false ? 'checked' : ''} style="width:auto"></label>
+      <div class="tdlist">${L.length ? '' : '<div class="empty">Todavía no cargaste ninguna. Pegá abajo el link de una playlist de YouTube.</div>'}${L.map((t, i) => `<div class="tdrow ${t.on === false ? 'off' : ''}"><label><input type="checkbox" data-on="${i}" ${t.on !== false ? 'checked' : ''} style="width:auto"></label>
         <div><b>${esc(t.name)}</b><small>${cache[t.ref]?.l?.length ? cache[t.ref].l.length + ' publicidades' : 'todavía sin cargar'} · <a href="https://www.youtube.com/playlist?list=${esc(t.ref)}" target="_blank" rel="noopener">ver en YouTube ↗</a></small></div>
         <button data-ch="${i}" title="Sumarla como canal 24/7">📺 Como canal 24/7</button><button data-del="${i}" title="Quitar">✕</button></div>`).join('')}</div>
       <h2 class="sec">➕ Agregar una playlist</h2>
