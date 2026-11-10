@@ -1501,3 +1501,4 @@ dialog.setdlg { width:min(640px, 96vw); }
 .nvcard > div:last-child { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; } .nvcard small { color:var(--mut); }
 .nvop { display:grid; grid-template-columns:auto 1fr auto; column-gap:6px; align-items:start; font-size:13px; margin:3px 0; cursor:pointer; } .nvop small { grid-column:2; } .nvop a { color:var(--mut); }
 .nvok { color:#8fb0ff !important; } .nvno { font-style:italic; }
+.ordrow.flash { border-color:#4a7dff; background:#13244d; transition:background .6s; }

@@ -307,48 +307,64 @@ const Canales = (() => {
       `<div class="catrow"><input value="${esc(k)}" data-i="${i}"><button data-up="${i}" title="Subir">↑</button><button data-del="${i}" title="Borrar">✕</button></div>`).join('');
   }
   /* ---------- Ordenar y editar canales ---------- */
-  let work = [];
+  // Cada canal tiene SU número (como en la tele: puede haber huecos). Si ponés un número que ya usa otro canal,
+  // esos dos se intercambian y nadie más se mueve.
+  let work = [], flash = [];
   function openOrder() {
     ensureNums();
-    work = byNum(db.chans).map(c => ({ uid:c.uid, name:c.name, cat:c.cat, platform:c.platform, del:false }));
-    paintOrder(); $('dlgOrder').showModal();
+    work = byNum(db.chans).map(c => ({ uid:c.uid, name:c.name, cat:c.cat, platform:c.platform, num:+c.num, del:false }));
+    flash = []; paintOrder(); $('dlgOrder').showModal();
   }
   function paintOrder() {
     const PC = { youtube:'var(--yt)', twitch:'var(--tw)', kick:'var(--kick)' };
-    const live = work.filter(w => !w.del);
-    $('ordList').innerHTML = live.map((w, i) => `<div class="ordrow" draggable="true" data-i="${work.indexOf(w)}">
-        <span class="ordh" title="Arrastrá para mover">☰</span>
-        <input class="ordn" type="number" min="1" max="${live.length}" value="${i + 1}" title="Número de canal">
+    const live = work.filter(w => !w.del).sort((a, b) => a.num - b.num);
+    $('ordList').innerHTML = live.map(w => `<div class="ordrow ${flash.includes(w.uid) ? 'flash' : ''}" draggable="true" data-u="${esc(w.uid)}">
+        <span class="ordh" title="Arrastrá y soltalo encima de otro para intercambiarlos">☰</span>
+        <input class="ordn" type="number" min="1" max="999" value="${w.num}" title="Número de canal (Enter para aplicar)">
         <span class="dot" style="background:${PC[w.platform]}"></span>
         <input class="ordname" value="${esc(w.name)}">
         <select class="ordcat"><option value="">Sin categoría</option>${db.cats.map(k => `<option ${k === w.cat ? 'selected' : ''}>${esc(k)}</option>`).join('')}</select>
-        <button class="sm ordup" title="Subir">↑</button><button class="sm orddn" title="Bajar">↓</button><button class="sm orddel" title="Borrar">✕</button></div>`).join('')
+        <button class="sm ordup" title="Intercambiar con el de arriba">↑</button><button class="sm orddn" title="Intercambiar con el de abajo">↓</button><button class="sm orddel" title="Borrar">✕</button></div>`).join('')
       || '<p>No hay canales.</p>';
-    const move = (from, to) => { const vis = work.filter(w => !w.del); to = Math.max(0, Math.min(vis.length - 1, to)); const [x] = vis.splice(from, 1); vis.splice(to, 0, x); work = [...vis, ...work.filter(w => w.del)]; paintOrder(); };
+    const W = u => work.find(w => w.uid === u);
+    const swap = (a, b) => { if (!a || !b || a === b) return; [a.num, b.num] = [b.num, a.num]; flash = [a.uid, b.uid]; repaint(a.uid); };
+    const setNum = (w, n) => {
+      n = Math.max(1, Math.min(999, Math.round(n) || 0)); if (!n || n === w.num) return paintOrder();
+      const other = work.find(x => !x.del && x !== w && x.num === n);
+      if (other) { other.num = w.num; flash = [w.uid, other.uid]; } else flash = [w.uid];
+      w.num = n; repaint(w.uid);
+    };
+    // repinta y deja a la vista el canal que moviste
+    const repaint = u => { paintOrder(); const r = $('ordList').querySelector(`[data-u="${CSS.escape(u)}"]`); if (!r) return;
+      for (let el = r.parentElement; el && el !== document.body; el = el.parentElement) { if (el.scrollHeight > el.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(el).overflowY)) { const a = r.getBoundingClientRect(), b = el.getBoundingClientRect(); if (a.top < b.top) el.scrollTop -= b.top - a.top + 8; else if (a.bottom > b.bottom) el.scrollTop += a.bottom - b.bottom + 8; break; } } };
     $('ordList').querySelectorAll('.ordrow').forEach((row, i) => {
-      const w = work[+row.dataset.i];
+      const w = W(row.dataset.u), n = row.querySelector('.ordn');
       row.querySelector('.ordname').oninput = e => { w.name = e.target.value; };
       row.querySelector('.ordcat').onchange = e => { w.cat = e.target.value; };
-      row.querySelector('.ordn').onchange = e => move(i, (+e.target.value || 1) - 1);
-      row.querySelector('.ordup').onclick = () => move(i, i - 1);
-      row.querySelector('.orddn').onclick = () => move(i, i + 1);
-      row.querySelector('.orddel').onclick = () => { w.del = true; paintOrder(); };
-      row.ondragstart = e => { e.dataTransfer.setData('text/plain', i); row.classList.add('drag'); };
+      n.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); n.blur(); } };
+      n.onchange = () => setNum(w, +n.value);
+      row.querySelector('.ordup').onclick = () => swap(w, live[i - 1]);
+      row.querySelector('.orddn').onclick = () => swap(w, live[i + 1]);
+      row.querySelector('.orddel').onclick = () => { w.del = true; flash = []; paintOrder(); };
+      row.ondragstart = e => { e.dataTransfer.setData('text/plain', w.uid); row.classList.add('drag'); };
       row.ondragend = () => row.classList.remove('drag');
       row.ondragover = e => { e.preventDefault(); row.classList.add('over'); };
       row.ondragleave = () => row.classList.remove('over');
-      row.ondrop = e => { e.preventDefault(); move(+e.dataTransfer.getData('text/plain'), i); };
+      row.ondrop = e => { e.preventDefault(); swap(W(e.dataTransfer.getData('text/plain')), w); };
     });
+    const nums = live.map(w => w.num), gaps = nums.length && nums[nums.length - 1] !== nums.length;
     $('ordCount').textContent = work.some(w => w.del) ? `${work.filter(w => w.del).length} canal(es) se van a borrar al guardar.` : '';
+    $('ordCompact').style.display = gaps ? '' : 'none';
   }
   function saveOrder() {
     const keep = work.filter(w => !w.del);
-    keep.forEach((w, i) => { const c = db.chans.find(x => x.uid === w.uid); if (c) { c.num = i + 1; c.name = w.name.trim() || c.name; c.cat = w.cat; } });
+    keep.forEach(w => { const c = db.chans.find(x => x.uid === w.uid); if (c) { c.num = w.num; c.name = w.name.trim() || c.name; c.cat = w.cat; } });
     work.filter(w => w.del).forEach(w => delete status[w.uid]);
     db.chans = byNum(db.chans.filter(c => keep.some(w => w.uid === c.uid)));
     save(); $('dlgOrder').close(); render(); Zap.render();
     toast('<b>✅ Cambios guardados</b><small>El orden y los nombres se sincronizan con tus otros dispositivos.</small>', { cls:'info', ms:3500 });
   }
+
 
   /* 📺 Canales de noticias con grilla fija (C5N, A24, LN+, Crónica, Canal 26): se suman una sola vez si no los tenías */
   async function seedNoticias() {
@@ -385,11 +401,12 @@ const Canales = (() => {
     setTimeout(() => { try { seedVelez(); } catch {} }, 5000);
     if (ensureNums()) saveLocal();
     document.body.insertAdjacentHTML('beforeend', `<dialog id="dlgOrder" style="width:min(760px,96vw)"><h3>🔢 Ordenar y editar canales</h3>
-      <p>Arrastrá con ☰, usá ↑ ↓ o escribí el número de canal. También podés cambiar el nombre y la categoría. Nada se guarda hasta que toques <b>Guardar cambios</b>.</p>
+      <p>Cada canal tiene su número fijo, como en la tele. Escribí un número (y Enter): si ya lo usa otro canal, <b>se intercambian</b> y el resto no se mueve. ↑ ↓ y arrastrar con ☰ también intercambian. Nada se guarda hasta que toques <b>Guardar cambios</b>.</p>
       <div id="ordList" class="ordlist"></div><div class="msg err" id="ordCount"></div>
-      <div class="btns"><span class="sp"></span><button id="ordCancel">Cancelar</button><button class="pri" id="ordSave">Guardar cambios</button></div></dialog>`);
+      <div class="btns"><button id="ordCompact" title="Deja los números corridos 1, 2, 3… sin huecos, en el mismo orden">Quitar huecos</button><span class="sp"></span><button id="ordCancel">Cancelar</button><button class="pri" id="ordSave">Guardar cambios</button></div></dialog>`);
     $('ordCancel').onclick = () => $('dlgOrder').close();
     $('ordSave').onclick = saveOrder;
+    $('ordCompact').onclick = () => { work.filter(w => !w.del).sort((a, b) => a.num - b.num).forEach((w, i) => w.num = i + 1); flash = []; paintOrder(); };
     $('btnOrder').onclick = openOrder;
     bindGrid($('chanGrid'));
     $('tabs').onclick = e => { const b = e.target.closest('[data-t]'); if (b) { tab = b.dataset.t; S.set('hub2tab', tab); render(); } };
