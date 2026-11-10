@@ -185,5 +185,11 @@ const Motor = (() => {
     setTimeout(alerts, 3000);
     onChange(() => { if (Nav.current === 'motor') render(); });
   }
-  return { init, render, ticker, liveCount:() => liveSessions().length };
+  // la próxima sesión con hora (para el rincón de abajo a la derecha)
+  function upcoming() {
+    if (!data) return null;
+    return CATS.flatMap(([id, n]) => (data.cats[id]?.next?.sessions || []).filter(s => !s.dayOnly && sState(id, s) === 'pre' && (s.key || s.race)).map(s => ({ cat:n, name:s.name, t:Date.parse(s.start) })))
+      .sort((a, b) => a.t - b.t)[0] || null;
+  }
+  return { init, render, ticker, upcoming, liveCount:() => liveSessions().length };
 })();

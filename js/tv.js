@@ -54,6 +54,7 @@ const TV = (() => {
           <div class="hud-date" id="tvDate"></div>
           <div class="hud-wx" id="tvWx"></div>
         </div>
+        <div class="hud-br" id="hudBr"></div>
         <div class="hud-ctl" id="tvCtl">
           <button id="tvPrev" title="Canal anterior">⏮</button>
           <button id="tvBack" title="Atrás 10 segundos">⏪</button>
@@ -244,7 +245,11 @@ const TV = (() => {
     if (news !== document.body.classList.contains('tknews')) { document.body.classList.toggle('tknews', news); if (news) updateTicker(); }
     const id = AudioMgr.active, s = id && AudioMgr.sink(id);
     const name = s && s.label ? s.label() : '';
-    const tag = !s ? '' : s.radio ? 'RADIO' : s.music ? 'MÚSICA' : s.prem && s.prem() ? 'ESTRENO' : s.live && s.live() ? 'EN VIVO' : 'AHORA';
+    let tag = !s ? '' : s.radio ? 'RADIO' : s.music ? 'MÚSICA' : s.prem && s.prem() ? 'ESTRENO' : s.live && s.live() ? 'EN VIVO' : 'AHORA';
+    // ⏪ si atrasaste el vivo: DIFERIDO −m:ss (a la izquierda del canal), como en la tele
+    let behind = 0; try { behind = tag === 'EN VIVO' && s.behind ? s.behind() : 0; } catch {}
+    if (behind > 30) tag = 'DIFERIDO';
+    const dtxt = behind > 30 ? `−${Math.floor(behind / 3600) ? Math.floor(behind / 3600) + ':' + String(Math.floor(behind % 3600 / 60)).padStart(2, '0') : Math.floor(behind / 60)}:${String(Math.floor(behind % 60)).padStart(2, '0')}` : '';
     document.body.classList.toggle('npon', !!name);
     // que el cartel de arriba (con el título del vivo) no tape los botones de Canales / Pantallas
     // (y si los botones están escondidos, que llegue hasta el logo); la zona segura del video arranca justo debajo del grafismo
@@ -261,11 +266,12 @@ const TV = (() => {
     const key = tag + '|' + name + '|' + vtit;
     if (key !== lastNp && (!npBusy || key !== npKey)) { npBusy = false;          // cuando cambia lo que suena, el zócalo entra animado
       lastNp = key;
-      $('tvNp').innerHTML = name ? `<span class="hud-tag ${tag === 'EN VIVO' ? 'live' : ''}">${tag === 'EN VIVO' ? '● ' : ''}${tag}</span><span class="hud-name">${esc(name)}${vtit ? `<em>${esc(vtit)}</em>` : ''}</span>` : '';
+      $('tvNp').innerHTML = name ? `<span class="hud-tag ${tag === 'EN VIVO' ? 'live' : tag === 'DIFERIDO' ? 'dvr' : ''}">${tag === 'EN VIVO' ? '● ' : tag === 'DIFERIDO' ? '⏪ ' : ''}${tag}${tag === 'DIFERIDO' ? ' <b class="dt"></b>' : ''}</span><span class="hud-name">${esc(name)}${vtit ? `<em>${esc(vtit)}</em>` : ''}</span>` : '';
       $('npHead').innerHTML = $('tvNp').innerHTML;
       [$('tvNp'), $('npHead')].forEach(x => { x.classList.remove('in'); void x.offsetWidth; x.classList.add('in'); });
       refresh();
     }
+    if (dtxt) document.querySelectorAll('#tvNp .dt, #npHead .dt').forEach(x => { if (!npBusy) x.textContent = dtxt; });   // el tiempo se actualiza sin re-animar el cartel
     $('tvCtl').style.display = s ? '' : 'none'; $('fCtl').style.visibility = s ? '' : 'hidden';
     document.body.classList.toggle('playing', !!s);
     // qué suena, en la barra única (y si hay otra cosa cargada, un botón para pasar a esa)

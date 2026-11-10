@@ -73,7 +73,7 @@ const Zocalos = (() => {
   /* 😴 5) Es tarde y mañana es de oficina: aviso suave + apagado automático */
   let sleepAt = 0, sleepT = null;
   function setSleep(min) {
-    clearTimeout(sleepT); sleepAt = min ? Date.now() + min * 60e3 : 0;
+    clearTimeout(sleepT); sleepAt = min ? Date.now() + min * 60e3 : 0; setTimeout(rincon, 0);
     if (min) sleepT = setTimeout(apagar, min * 60e3);
     toast(min ? `<b>😴 Se apaga a las ${hm(new Date(sleepAt))}</b><small>En ${min} min. Z (o tocar acá) para cambiarlo.</small>` : '<b>😴 Apagado automático cancelado</b>', { cls:'info', ms:3500, onclick:cycle });
   }
@@ -107,7 +107,26 @@ const Zocalos = (() => {
     document.querySelectorAll('.hud-logo, #hLogo').forEach(el => { let c = el.querySelector('.vcrest');
       if (hoy && logo) { if (!c) { c = document.createElement('img'); c.className = 'vcrest'; c.alt = ''; el.prepend(c); } if (c.src !== logo) c.src = logo; } else c?.remove(); });
   }
+  /* ↘ Rincón de abajo a la derecha: la cuenta regresiva a lo próximo que te importa (si falta poco),
+       y si pusiste el apagado automático, eso manda */
+  const dur = ms => { const m = Math.max(0, Math.round(ms / 60e3)); return m >= 60 ? `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} h` : `${m} min`; };
+  function rincon() {
+    const el = $('hudBr'); if (!el) return;
+    const n = Date.now(), c = [];
+    if (sleepAt) c.push({ p:0, h:`😴 Se apaga en <b>${dur(sleepAt - n)}</b>`, cls:'sleep' });
+    else {
+      try { if (Dia.plan(new Date()) === 'oficina') { const sal = at(SALIDA), d = sal - n; if (d > -5 * 60e3 && d < 90 * 60e3) c.push({ p:1, t:+sal, h:d > 0 ? `🚆 Salís en <b>${dur(d)}</b> · Roca ${TREN}` : `🚆 <b>¡Salí!</b> Roca ${TREN}` }); } } catch {}
+      try { const m = Partido.match(); if (m && m.state === 'pre') { const d = Date.parse(m.date) - n, riv = norm(m.h.team.displayName).includes('velez') ? m.a.team : m.h.team;
+        if (d > 0 && d < 6 * 3600e3) c.push({ p:2, t:Date.parse(m.date), h:`💙 Vélez vs ${esc(riv.shortDisplayName || riv.displayName)} en <b>${dur(d)}</b>`, cls:'velez' }); } } catch {}
+      try { const x = Motor.upcoming(); if (x && x.t - n > 0 && x.t - n < 60 * 60e3) c.push({ p:3, t:x.t, h:`🏁 ${esc(x.cat)} · ${esc(x.name)} en <b>${dur(x.t - n)}</b>` }); } catch {}
+      try { for (const r of db.recs || []) { const t = Avisos.next(r); if (t && t - n > 0 && t - n < 30 * 60e3) c.push({ p:4, t:+t, h:`🔔 ${esc(r.name)} en <b>${dur(t - n)}</b>` }); } } catch {}
+    }
+    c.sort((a, b) => a.p - b.p || (a.t || 0) - (b.t || 0));
+    const x = c[0], html = x ? x.h : '';
+    if (el.dataset.h !== html) { el.dataset.h = html; el.innerHTML = html; el.className = 'hud-br' + (x?.cls ? ' ' + x.cls : '') + (html ? ' on' : ''); }
+  }
   function init() {
+    setInterval(rincon, 15e3); setTimeout(rincon, 3000);
     const tick = () => { try { velezDay(); } catch {} try { separadorFranja(); } catch {} if (document.hidden) return; try { tren(); } catch {} try { manana(); } catch {} try { partidos(); } catch {} try { tarde(); } catch {} lluvia(); };
     setTimeout(tick, 20e3); setInterval(tick, 60e3);
   }

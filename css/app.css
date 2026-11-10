@@ -1624,3 +1624,12 @@ body.gs-mini .ib-ch { background:transparent; border-right:1px solid #ffffff22; 
 body.gs-mini .ib-num { color:#fff; font-family:system-ui, sans-serif; font-weight:300; }
 body.gs-mini .zosd { color:#fff; font-family:system-ui, sans-serif; font-weight:200; text-shadow:0 2px 12px #000; }
 body.gs-mini .hud-time { background:transparent; font-weight:200; } body.gs-mini .hud-date { background:transparent; color:#fff; font-weight:400; } body.gs-mini .hud-wx { background:transparent; }
+/* ↘ rincón de abajo a la derecha (se esconde cuando aparecen los controles) */
+.hud-br { right:20px; bottom:56px; display:none; align-items:center; gap:6px; background:#0b0f1ee6; border-left:4px solid #2f6bff; padding:6px 14px; font-size:16px; box-shadow:0 4px 18px #0007; }
+.hud-br.on { display:flex; } body.tvlock.tvui .hud-br { opacity:0; }
+.hud-br b { font-weight:700; } .hud-br.sleep { border-left-color:#fff; } .hud-br.velez { background:#1238b5; border-left-color:#fff; }
+body:not(.tvlock) .hud-br { bottom:calc(var(--hudb, 0px) + 14px); right:14px; }
+.hud-tag.dvr { background:#fff; color:#0b1f5c; text-shadow:none; } .hud-tag .dt { font-variant-numeric:tabular-nums; margin-left:4px; }
+body.gs-vhs .hud-br { background:transparent; border:2px solid #fff; font-family:'VT323', 'Courier New', monospace; font-size:20px; }
+body.gs-mini .hud-br { background:rgba(0,0,0,.45); border-left:0; border-radius:12px; font-weight:300; }
+body.gs-depo .hud-br { font-style:italic; clip-path:polygon(12px 0, 100% 0, 100% 100%, 0 100%); padding-left:22px; border-left:0; background:linear-gradient(90deg, #1238b5, #0b1f5c); }
