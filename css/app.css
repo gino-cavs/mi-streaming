@@ -1493,3 +1493,11 @@ dialog.setdlg { width:min(640px, 96vw); }
 .tdrow { display:flex; align-items:center; gap:10px; background:var(--panel2); border-radius:12px; padding:8px 12px; }
 .tdrow > div { flex:1; display:flex; flex-direction:column; min-width:0; } .tdrow small { color:var(--mut); } .tdrow small a { color:inherit; }
 .tdrow.off { opacity:.5; }
+/* 📺 Novelas */
+.nvgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:10px; margin-bottom:14px; }
+.nvcard { display:flex; gap:10px; background:var(--panel2); border-radius:12px; padding:10px; align-items:flex-start; }
+.nvcard.off { opacity:.45; } .nvcard.ya { outline:1px solid #4a7dff; }
+.nvimg { flex:0 0 96px; height:54px; border-radius:8px; background:#0d1b3d center/cover; display:grid; place-items:center; font-size:22px; }
+.nvcard > div:last-child { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; } .nvcard small { color:var(--mut); }
+.nvop { display:grid; grid-template-columns:auto 1fr auto; column-gap:6px; align-items:start; font-size:13px; margin:3px 0; cursor:pointer; } .nvop small { grid-column:2; } .nvop a { color:var(--mut); }
+.nvok { color:#8fb0ff !important; } .nvno { font-style:italic; }
