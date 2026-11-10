@@ -74,14 +74,34 @@ const Zap = (() => {
       if (inList) { if (e.key === 'ArrowRight') { e.preventDefault(); listOpen(false); } return; }
       if (e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); step(-1); }
       if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); step(1); }
-      if (/^[0-9]$/.test(e.key)) {
-        digits = (digits + e.key).slice(-3); clearTimeout(dTimer);
-        toast(`<b style="font-size:26px">${digits}</b>`, { cls:'info zapt', ms:1300 });
-        dTimer = setTimeout(() => { const c = db.chans.find(x => +x.num === +digits); digits = ''; if (c) Player.play(c); }, 1200);
-      }
     });
+    // 🔢 número de canal con el teclado (en cualquier pantalla): 3 5 y Enter → canal 35. Esc cancela.
+    // En la tele (control remoto) también entra solo a los 2 segundos.
+    document.addEventListener('keydown', e => {
+      if (e.ctrlKey || e.altKey || e.metaKey || /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName) || document.querySelector('dialog[open]')) return;
+      const k = /^Numpad[0-9]$/.test(e.code || '') ? e.code.slice(-1) : e.key;   // teclado numérico aunque no tenga Bloq Num
+      if (/^[0-9]$/.test(k)) { e.preventDefault(); digits = (digits + k).slice(-3); show(); return; }
+      if (!digits) return;
+      if (e.key === 'Enter') { e.preventDefault(); e.stopImmediatePropagation(); go(); }
+      else if (e.key === 'Escape') { e.preventDefault(); digits = ''; clearTimeout(dTimer); $('zapNum')?.remove(); }
+      else if (e.key === 'Backspace') { e.preventDefault(); digits = digits.slice(0, -1); digits ? show() : $('zapNum')?.remove(); }
+    }, true);
     onChange(render);
     render();
+  }
+  const chOf = n => db.chans.find(x => +x.num === +n);
+  function show() {
+    clearTimeout(dTimer);
+    let el = $('zapNum'); if (!el) { el = document.createElement('div'); el.id = 'zapNum'; }
+    (document.fullscreenElement || document.webkitFullscreenElement || document.body).appendChild(el);
+    const c = chOf(digits);
+    el.innerHTML = `<b>${digits}</b><span>${c ? esc(c.name) : 'sin canal'}</span><small>${Lite.tv ? 'OK para ir' : 'Enter para ir · Esc cancela'}</small>`;
+    el.classList.toggle('none', !c);
+    dTimer = setTimeout(() => Lite.tv ? go() : (digits = '', el.remove()), Lite.tv ? 2000 : 6000);
+  }
+  function go() {
+    clearTimeout(dTimer); const c = chOf(digits), n = digits; digits = ''; $('zapNum')?.remove();
+    if (c) Player.play(c); else toast(`<b>No hay canal ${esc(n)}</b>`, { cls:'info', ms:1500 });
   }
   function listOpen(v) {
     open = v; render();
