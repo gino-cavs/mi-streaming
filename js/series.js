@@ -269,4 +269,4 @@ function make247(C) {
 const Series = make247({ key:'series', p:'', title:'Series', icon:'📼', uidp:'s247_', sub:'Canales 24/7: capítulos al azar sin parar, como un canal en vivo.', ej:'(por ejemplo, el de Policías en Acción)' });
 const Peliculas = make247({ key:'peliculas', p:'pe', title:'Películas', icon:'🎬', uidp:'p247_', sub:'Películas 24/7: películas al azar sin parar, como un canal de cine.', ej:'con películas completas' });
 // el reproductor pregunta por el siguiente video sin saber de qué sección es
-const T247any = { nextFor:id => (Object.values(T247).find(t => t.owns(id)) || Series).nextFor(id), randomFor:id => (Object.values(T247).find(t => t.owns(id)) || Series).randomFor(id) };
+const T247any = { now:id => (Object.values(T247).find(t => t.owns(id)) || Series).now(id), nextFor:id => (Object.values(T247).find(t => t.owns(id)) || Series).nextFor(id), randomFor:id => (Object.values(T247).find(t => t.owns(id)) || Series).randomFor(id) };

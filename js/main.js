@@ -105,6 +105,20 @@ function initSettings() {
   if (Device.mode === 'celu') { $('setEdgeRow').style.display = 'flex'; $('setEdge').value = Device.edge; $('setEdgeV').textContent = Device.edge + 'px';
     $('setEdge').oninput = e => { Device.setEdge(e.target.value); $('setEdgeV').textContent = e.target.value + 'px'; }; }
   $('setLite').onchange = e => { Lite.set(e.target.checked); toast(e.target.checked ? '⚡ Modo liviano prendido en este aparato' : 'Modo liviano apagado', { ms:2500 }); };
+  // 📐 zona segura: el video deja libre arriba (donde van el cartel y el logo FUNVS)
+  document.body.classList.toggle('safehud', S.get('safeHud', true));
+  $('setSafe').checked = S.get('safeHud', true);
+  $('setSafe').onchange = e => { S.set('safeHud', e.target.checked); document.body.classList.toggle('safehud', e.target.checked); };
+  // 🐶 fotos de Vaca: se achican a 200 px (pesan ~10 KB) y se sincronizan con tus aparatos
+  const petPaint = () => { const L = db.vacaFotos || [];
+    $('petList').innerHTML = `<span class="pett"><img src="img/vaca.jpg" alt=""><small>la de siempre</small></span>` + L.map((u, i) => `<span class="pett"><img src="${u}" alt=""><button data-pd="${i}" title="Quitar">✕</button></span>`).join('');
+    $('petList').querySelectorAll('[data-pd]').forEach(b => b.onclick = () => { db.vacaFotos.splice(+b.dataset.pd, 1); save(); petPaint(); }); };
+  const shrink = f => new Promise(r => { const im = new Image(); im.onload = () => { const z = 200, c = document.createElement('canvas'); c.width = c.height = z; const m = Math.min(im.width, im.height);
+    c.getContext('2d').drawImage(im, (im.width - m) / 2, (im.height - m) / 2, m, m, 0, 0, z, z); URL.revokeObjectURL(im.src); r(c.toDataURL('image/jpeg', .82)); }; im.onerror = () => r(null); im.src = URL.createObjectURL(f); });
+  $('petIn').onchange = async e => { db.vacaFotos = db.vacaFotos || [];
+    for (const f of [...e.target.files].slice(0, 30 - db.vacaFotos.length)) { const u = await shrink(f); if (u) db.vacaFotos.push(u); }
+    e.target.value = ''; save(); petPaint(); toast(`<b>🐶 ${db.vacaFotos.length + 1} fotos de Vaca</b><small>Van pasando en el logo.</small>`, { ms:3000 }); };
+  $('btnSettings').addEventListener('click', petPaint);
   $('btnSettings').onclick = () => {
     $('setHud').checked = TV.on; $('setZfx').checked = S.get('zapFx', { on:true }).on; $('setYtClean').checked = S.get('ytClean', true); $('setLite').checked = Lite.on; $('setZfxS').checked = !!S.get('zapFx', {}).sound;
     $('setKey').value = db.key;

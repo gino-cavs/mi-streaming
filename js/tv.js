@@ -246,7 +246,7 @@ const TV = (() => {
     const tag = !s ? '' : s.radio ? 'RADIO' : s.music ? 'MÚSICA' : s.prem && s.prem() ? 'ESTRENO' : s.live && s.live() ? 'EN VIVO' : 'AHORA';
     document.body.classList.toggle('npon', !!name);
     const key = tag + '|' + name;
-    if (key !== lastNp) {          // cuando cambia lo que suena, el zócalo entra animado
+    if (key !== lastNp && (!npBusy || key !== npKey)) { npBusy = false;          // cuando cambia lo que suena, el zócalo entra animado
       lastNp = key;
       $('tvNp').innerHTML = name ? `<span class="hud-tag ${tag === 'EN VIVO' ? 'live' : ''}">${tag === 'EN VIVO' ? '● ' : ''}${tag}</span><span class="hud-name">${esc(name)}</span>` : '';
       $('npHead').innerHTML = $('tvNp').innerHTML;
@@ -281,5 +281,39 @@ const TV = (() => {
     }
   }
   const setOn = v => { on = v; S.set('tvOn', on); apply(); };
-  return { build, open, close, refresh, setOn, get on() { return on; } };
+  /* 🔁 El cartel de arriba a la izquierda, de vez en cuando: AHORA (el programa) → A CONTINUACIÓN (el que sigue) → vuelve al canal */
+  let npBusy = false, npKey = '';
+  const hmm = d => d.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
+  function nowNextActive() {
+    const id = AudioMgr.active; if (!id) return null;
+    try {
+      if (id === 'radio' && Radio.current) { const n = RadioGrilla.nowNext(Radio.current); return n.now || n.next ? n : null; }
+      if (!id.startsWith('slot')) return null;
+      const c = Player.slots[+id.slice(4)]?.c; if (!c) return null;
+      if (c.t247) { const n = T247any.now(c.t247); return n ? { now:{ name:n.t }, next:n.next && { name:n.next.t, s:new Date(Date.now() + n.left * 1000) } } : null; }
+      const n = Guia.nowNext(c); return n.now || n.next ? n : null;
+    } catch { return null; }
+  }
+  async function npCycle() {
+    if (npBusy || document.hidden || !document.body.classList.contains('npon')) return;
+    const nn = nowNextActive(); if (!nn) return;
+    npBusy = true; npKey = lastNp; const my = npKey;
+    const put = (tag, name) => { [$('tvNp'), $('npHead')].forEach(x => { if (!x) return; x.innerHTML = `<span class="hud-tag nx">${tag}</span><span class="hud-name">${esc(name)}</span>`; x.classList.remove('in'); void x.offsetWidth; x.classList.add('in'); }); };
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    const alive = () => npBusy && npKey === my;   // si cambiás de canal en el medio, se corta
+    if (nn.now?.name) { put('AHORA', nn.now.name); await wait(7000); if (!alive()) return; }
+    if (nn.next?.name) { put(`A CONTINUACIÓN${nn.next.s ? ' · ' + hmm(nn.next.s) : ''}`, nn.next.name); await wait(7000); if (!alive()) return; }
+    npBusy = false; lastNp = ''; tick();   // vuelve a mostrar el canal
+  }
+  /* 🐶 Fotos de Vaca en el logo: van pasando (Ajustes → Fotos de Vaca) */
+  let petI = 0;
+  const pets = () => ['img/vaca.jpg', ...(db.vacaFotos || [])];
+  function petTick() {
+    const L = pets(); if (L.length < 2 || document.hidden) return;
+    petI = (petI + 1) % L.length;
+    document.querySelectorAll('img.pet').forEach(im => { im.classList.add('swap'); setTimeout(() => { im.src = L[petI]; im.onload = () => im.classList.remove('swap'); setTimeout(() => im.classList.remove('swap'), 900); }, 450); });
+  }
+  setInterval(petTick, 12000);
+  setInterval(npCycle, 50000);
+  return { build, open, close, refresh, setOn, pets, get on() { return on; } };
 })();
