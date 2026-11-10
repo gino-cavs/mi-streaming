@@ -105,6 +105,11 @@ function initSettings() {
   if (Device.mode === 'celu') { $('setEdgeRow').style.display = 'flex'; $('setEdge').value = Device.edge; $('setEdgeV').textContent = Device.edge + 'px';
     $('setEdge').oninput = e => { Device.setEdge(e.target.value); $('setEdgeV').textContent = e.target.value + 'px'; }; }
   $('setLite').onchange = e => { Lite.set(e.target.checked); toast(e.target.checked ? '⚡ Modo liviano prendido en este aparato' : 'Modo liviano apagado', { ms:2500 }); };
+  // 🎨 estilo del grafismo (se sincroniza)
+  const gs = () => { ['depo', 'vhs', 'mini'].forEach(k => document.body.classList.toggle('gs-' + k, db.grafStyle === k)); };
+  gs(); onChange(gs);
+  $('setGs').value = db.grafStyle || '';
+  $('setGs').onchange = e => { db.grafStyle = e.target.value; save(); gs(); try { Grafismo.barPop('🎨 ESTILO', `<b>${esc(e.target.selectedOptions[0].text)}</b> Así se ve el zócalo`, { ms:5000 }); } catch {} };
   // 📐 zona segura: el video deja libre arriba (donde van el cartel y el logo FUNVS)
   document.body.classList.toggle('safehud', S.get('safeHud', true));
   $('setSafe').checked = S.get('safeHud', true);

@@ -1553,3 +1553,74 @@ body.velezday .hud-logo i, body.velezday #hLogo i { background:#1238b5; }
 body.velezday .tk-lbl { background:#1238b5; color:#fff; }
 body.velezday .tk-lbl::after { content:' 💙 HOY JUEGA VÉLEZ'; font-size:.7em; letter-spacing:1px; }
 body.velezday .hud-tag:not(.live) { background:#1238b5; }
+
+/* =========================================================
+   🎨 Estilos del grafismo (Ajustes → Pantalla y video). El Clásico es el de siempre (sin clase).
+   Todos en azul, blanco y negro.
+   ========================================================= */
+/* ---- 🏟️ Deportivo: cortes en diagonal, letra en bastardilla, como las transmisiones de fútbol ---- */
+body.gs-depo .hud-np, body.gs-depo .hud-tag, body.gs-depo .hud-name, body.gs-depo .tk-lbl, body.gs-depo .bp-lbl, body.gs-depo #barpop, body.gs-depo .hud-ticker { font-style:italic; text-transform:uppercase; }
+body.gs-depo .hud-np { box-shadow:none; filter:drop-shadow(0 4px 10px #0009); }
+body.gs-depo .hud-tag { clip-path:polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%); padding-right:20px; background:#fff; color:#0b1f5c; }
+body.gs-depo .hud-tag.live { background:#fff; color:#1238b5; }
+body.gs-depo .hud-name { clip-path:polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%); margin-left:-8px; padding-left:22px; padding-right:24px; background:linear-gradient(90deg, #1238b5, #0b1f5c); border-bottom:0; }
+body.gs-depo .hud-logo { transform:skewX(-10deg); }
+body.gs-depo .hud-logo i { height:3px; background:#fff; }
+body.gs-depo .tk-lbl, body.gs-depo .bp-lbl { clip-path:polygon(0 0, 100% 0, calc(100% - 16px) 100%, 0 100%); padding-right:30px; background:#fff; }
+body.gs-depo .hud-ticker, body.gs-depo #barpop { background:linear-gradient(90deg, #0b1f5c, #000); border-top:3px solid #fff; }
+body.gs-depo .tk-time, body.gs-depo .bp-time { clip-path:polygon(16px 0, 100% 0, 100% 100%, 0 100%); padding-left:28px; background:#1238b5; font-style:italic; }
+body.gs-depo .tkc { transform:skewX(-10deg); border-radius:0; }
+body.gs-depo #infobar { border-radius:0; transform-origin:left; }
+body.gs-depo .ib-ch { clip-path:polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%); padding-right:32px; }
+body.gs-depo .ib-num { font-family:Oswald, system-ui, sans-serif; color:#fff; font-style:italic; }
+body.gs-depo .zosd { font-family:Oswald, system-ui, sans-serif; font-style:italic; color:#fff; text-shadow:3px 3px 0 #1238b5, 0 0 10px #000; }
+body.gs-depo .hud-time { font-style:italic; }
+
+/* ---- 📼 Retro VHS: letras de videocasetera, sin cajas, con brillo azul ---- */
+body.gs-vhs .hud-np, body.gs-vhs .hud-ticker, body.gs-vhs #barpop, body.gs-vhs #infobar, body.gs-vhs .hud-clock, body.gs-vhs .hud-logo { font-family:'VT323', 'Courier New', monospace; letter-spacing:1px; }
+body.gs-vhs .hud-np { box-shadow:none; }
+body.gs-vhs .hud-tag { background:transparent; color:#fff; border:2px solid #fff; text-shadow:0 0 8px #2f6bff, 0 0 2px #fff; font-size:16px; }
+body.gs-vhs .hud-tag.live { background:transparent; color:#fff; }
+body.gs-vhs .hud-tag.live::before { content:'▶ '; }
+body.gs-vhs .hud-name { background:transparent; border-bottom:0; text-shadow:2px 2px 0 #000, 0 0 10px #2f6bff; font-size:20px; }
+body.gs-vhs .hud-logo { box-shadow:none; }
+body.gs-vhs .hud-logo .f, body.gs-vhs .hud-logo .v { background:transparent; color:#fff; text-shadow:0 0 10px #2f6bff, 2px 2px 0 #000; }
+body.gs-vhs .hud-logo .v { color:#9fc0ff; }
+body.gs-vhs .hud-logo i { background:repeating-linear-gradient(90deg, #fff 0 6px, transparent 6px 10px); height:2px; }
+body.gs-vhs .hud-ticker, body.gs-vhs #barpop { background:#000; border-top:2px solid #2f6bff; font-size:22px; }
+body.gs-vhs .tk-lbl, body.gs-vhs .bp-lbl { background:#000; color:#fff; border-right:2px solid #2f6bff; }
+body.gs-vhs .tk-lbl::before, body.gs-vhs .bp-lbl::before { content:'['; } body.gs-vhs .tk-lbl::after, body.gs-vhs .bp-lbl::after { content:']'; }
+body.gs-vhs .tk-time, body.gs-vhs .bp-time { background:#000; color:#fff; border-left:2px solid #2f6bff; }
+body.gs-vhs .tkc { background:transparent; color:#9fc0ff; border:1px solid #9fc0ff; }
+body.gs-vhs .tk-run i { color:#fff; }
+body.gs-vhs #infobar { background:#000; border:2px solid #2f6bff; border-radius:0; }
+body.gs-vhs .ib-ch { background:#000; border-right:2px solid #2f6bff; }
+body.gs-vhs .ib-num { color:#fff; text-shadow:0 0 8px #2f6bff; }
+body.gs-vhs .ib-bar i { background:#fff; }
+body.gs-vhs .zosd { color:#fff; text-shadow:0 0 12px #2f6bff, 2px 2px 0 #000; }
+body.gs-vhs .hud-time { background:transparent; text-shadow:0 0 10px #2f6bff; } body.gs-vhs .hud-date { background:transparent; color:#fff; } body.gs-vhs .hud-wx { background:transparent; }
+body.gs-vhs .hud-clock { box-shadow:none; }
+
+/* ---- 🧊 Minimal: vidrio oscuro, letra fina, nada que grite ---- */
+body.gs-mini .hud-np, body.gs-mini .hud-logo, body.gs-mini .hud-clock { box-shadow:none; }
+body.gs-mini .hud-np { background:rgba(0,0,0,.45); border-radius:12px; overflow:hidden; }
+body.gs-mini .hud-tag { background:transparent; color:#9fc0ff; font-weight:500; font-size:11px; letter-spacing:2px; }
+body.gs-mini .hud-tag.live { background:transparent; color:#fff; } body.gs-mini .hud-tag.live::first-letter { color:#ff4d4d; }
+body.gs-mini .hud-name { background:transparent; border-bottom:0; font-weight:300; text-transform:none; letter-spacing:.3px; }
+body.gs-mini .hud-logo { opacity:.75; font-size:.8em; }
+body.gs-mini .hud-logo .f, body.gs-mini .hud-logo .v { background:transparent; color:#fff; font-weight:300; padding:3px 2px; }
+body.gs-mini .hud-logo .v { font-weight:700; }
+body.gs-mini .hud-logo i { display:none; }
+body.gs-mini .hud-logo .pet { width:30px; height:30px; margin:0 8px 0 0; border-width:1px; box-shadow:none; }
+body.gs-mini .hud-logo { align-items:center; }
+body.gs-mini .hud-ticker, body.gs-mini #barpop { background:rgba(0,0,0,.6); border-top:1px solid #ffffff33; font-weight:300; }
+body.gs-mini .tk-lbl, body.gs-mini .bp-lbl { background:transparent; color:#fff; font-weight:600; font-size:14px; letter-spacing:2px; border-right:1px solid #ffffff33; }
+body.gs-mini .tk-lbl b { color:#9fc0ff; }
+body.gs-mini .tk-time, body.gs-mini .bp-time { background:transparent; font-weight:300; border-left:1px solid #ffffff33; }
+body.gs-mini .tkc { background:transparent; color:#9fc0ff; padding:0; }
+body.gs-mini .tk-run i { color:#ffffff55; }
+body.gs-mini #infobar { background:rgba(0,0,0,.6); border-radius:16px; }
+body.gs-mini .ib-ch { background:transparent; border-right:1px solid #ffffff22; }
+body.gs-mini .ib-num { color:#fff; font-family:system-ui, sans-serif; font-weight:300; }
+body.gs-mini .zosd { color:#fff; font-family:system-ui, sans-serif; font-weight:200; text-shadow:0 2px 12px #000; }
+body.gs-mini .hud-time { background:transparent; font-weight:200; } body.gs-mini .hud-date { background:transparent; color:#fff; font-weight:400; } body.gs-mini .hud-wx { background:transparent; }
