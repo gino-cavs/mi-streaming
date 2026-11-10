@@ -228,8 +228,8 @@ const Canales = (() => {
   function sortChans(arr) {
     const rank = c => ({ live:0, soon:1, off:2, '?':3 }[status[c.uid]?.st || '?']);
     return arr.slice().sort((a, b) => rank(a) - rank(b)
-      || (rank(a) === 0 ? (status[b.uid].viewers || 0) - (status[a.uid].viewers || 0) : 0)
       || (rank(a) === 1 ? Date.parse(status[a.uid].when) - Date.parse(status[b.uid].when) : 0)
+      || (+a.num || 9999) - (+b.num || 9999)   // en vivo: por número de canal (como la grilla), no por cuánta gente mira
       || a.name.localeCompare(b.name));
   }
   function card(c) {
