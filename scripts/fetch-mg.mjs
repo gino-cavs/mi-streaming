@@ -53,6 +53,15 @@ const trenRoca = top ? { estado:mala.test(top.t) && !buena.test(top.t) ? 'mal' :
 const transito = fresh(uniq((await Promise.all(['"Camino de Cintura" corte', '"ruta 205" corte', 'autopista Ezeiza Cañuelas corte', '"Monte Grande" corte tránsito', 'Esteban Echeverría piquete'].map(q => gnews(q + ' when:1d')))).flat()), 24)
   .filter(i => /(corte|piquete|tr[aá]nsito|choque|accidente|demora|obra|desv[ií]o|manifestaci)/i.test(i.t)).sort((a, b) => Date.parse(b.d) - Date.parse(a.d)).slice(0, 8);
 
+// --- camino a la cancha de Vélez (Monte Grande → Liniers): Camino Negro, Riccheri, General Paz y cortes en Liniers (últimas 6 h) ---
+const ROUTES = [['Camino Negro', '"Camino Negro"'], ['Riccheri', '"autopista Riccheri" OR "Riccheri"'], ['General Paz', '"General Paz" tránsito OR corte OR choque'], ['Liniers', 'Liniers corte OR piquete OR tránsito']];
+const cancha = [];
+for (const [k, q] of ROUTES) {
+  const L = fresh(uniq(await gnews(q + ' when:1d')), 6).filter(i => /(corte|piquete|tr[aá]nsito|choque|accidente|demora|obra|desv[ií]o|manifestaci|congesti|embotell|cerrad)/i.test(i.t))
+    .sort((a, b) => Date.parse(b.d) - Date.parse(a.d)).slice(0, 2);
+  cancha.push({ k, items:L });
+}
+
 // --- cortes de luz de Edesur en Esteban Echeverría (ENRE) ---
 let luz = { ok:false };
 try {
@@ -83,5 +92,5 @@ if (!efem) {
   efem = { dias, at:new Date().toISOString() };
 }
 
-await writeFile(dir + '/mg.json', JSON.stringify({ updated:new Date().toISOString(), noticias, agenda, trenRoca, transito, luz, efem:efem.dias, efemAt:efem.at }));
+await writeFile(dir + '/mg.json', JSON.stringify({ updated:new Date().toISOString(), noticias, agenda, trenRoca, transito, cancha, luz, efem:efem.dias, efemAt:efem.at }));
 console.log(`MG News: ${noticias.length} noticias · agenda ${agenda.length} · Roca ${trenRoca.estado} · tránsito ${transito.length} · luz ${luz.ok ? (luz.programados.length + luz.media.length + luz.baja.length) + ' cortes' : 'sin datos'} · efemérides ${Object.keys(efem.dias).length} días`);

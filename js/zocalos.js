@@ -2,7 +2,7 @@
    🚆 tren de la mañana · 🌧 lluvia cerca · 🗓 cómo es mañana · ⚽ partidos que se juegan · 😴 es tarde + apagado automático */
 const Zocalos = (() => {
   const SALIDA = '04:35', TREN = '04:51';   // de casa a la estación de Monte Grande: 2,3 km
-  const MG = [-34.8157, -58.4687];
+  const MGc = [-34.8157, -58.4687];   // Monte Grande (ojo: MG es el módulo de MG News)
   const hm = d => d.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
   const at = (hhmm, d = new Date()) => { const [h, m] = hhmm.split(':').map(Number), x = new Date(d); x.setHours(h, m, 0, 0); return x; };
   const tv = () => document.body.classList.contains('tvlock');
@@ -30,7 +30,7 @@ const Zocalos = (() => {
   async function lluvia() {
     if (Date.now() - rainAt < 10 * 60e3) return; rainAt = Date.now();
     try {
-      const q = new URLSearchParams({ latitude:MG[0], longitude:MG[1], minutely_15:'precipitation', forecast_minutely_15:8, past_minutely_15:1, timezone:'America/Argentina/Buenos_Aires', models:METEO_MODELS.join(',') });
+      const q = new URLSearchParams({ latitude:MGc[0], longitude:MGc[1], minutely_15:'precipitation', forecast_minutely_15:8, past_minutely_15:1, timezone:'America/Argentina/Buenos_Aires', models:METEO_MODELS.join(',') });
       const j = await (await fetch('https://api.open-meteo.com/v1/forecast?' + q)).json(); const m = j.minutely_15; if (!m) return;
       const t = m.time.map(x => Date.parse(x + ':00-03:00')), now = Date.now();
       const first = mod => { const a = m['precipitation_' + mod]; if (!a) return null; const i = t.findIndex((x, k) => x > now - 15 * 60e3 && a[k] >= .2); return i < 0 ? null : t[i]; };
@@ -49,12 +49,13 @@ const Zocalos = (() => {
     const d = new Date(n); d.setDate(d.getDate() + 1);
     const p = Dia.plan(d); if (!p || !ok('manana', 45 * 60e3)) return;
     if (!wxTom || Date.now() - wxTom.at > 3 * 3600e3) try {
-      const j = await meteo({ latitude:MG[0], longitude:MG[1], daily:'temperature_2m_min,temperature_2m_max,weather_code,precipitation_probability_max', timezone:'America/Argentina/Buenos_Aires', forecast_days:2 });
+      const j = await meteo({ latitude:MGc[0], longitude:MGc[1], daily:'temperature_2m_min,temperature_2m_max,weather_code,precipitation_probability_max', timezone:'America/Argentina/Buenos_Aires', forecast_days:2 });
       const D = j.daily; wxTom = { at:Date.now(), min:Math.round(D.temperature_2m_min[1]), max:Math.round(D.temperature_2m_max[1]), pp:D.precipitation_probability_max?.[1], code:D.weather_code[1] };
     } catch {}
     const [ic, name] = Dia.OPC[p] || ['', p];
     const w = wxTom ? ` · ${wxTom.min}° / ${wxTom.max}°${wxTom.pp >= 40 ? ` · 🌧 ${Math.round(wxTom.pp)}%` : ''}` : '';
-    pop('🗓 MAÑANA', `${ic} <b>${esc(name)}</b>${p === 'oficina' ? ` · salís ${SALIDA} para el Roca de las ${TREN}` : ''}${w}`);
+    let fe = []; try { fe = Fechas.manana(); } catch {}
+    pop('🗓 MAÑANA', `${ic} <b>${esc(name)}</b>${p === 'oficina' ? ` · salís ${SALIDA} para el Roca de las ${TREN}` : ''}${w}${fe.length ? ` · ${fe.map(esc).join(' · ')}` : ''}`);
   }
 
   /* ⚽ 4) Partidos en juego: los que marcaste con 🔔 en Fulbito (o tus favoritos/todos, según cómo lo tengas ahí).
@@ -107,6 +108,32 @@ const Zocalos = (() => {
     document.querySelectorAll('.hud-logo, #hLogo').forEach(el => { let c = el.querySelector('.vcrest');
       if (hoy && logo) { if (!c) { c = document.createElement('img'); c.className = 'vcrest'; c.alt = ''; el.prepend(c); } if (c.src !== logo) c.src = logo; } else c?.remove(); });
   }
+  /* 🚗 Vélez de local: cómo está el camino a la cancha (Camino Negro, Riccheri, General Paz y cortes en Liniers).
+        Desde 4 h antes, cada 30 min. Sale de las noticias de las últimas horas (no es tráfico en tiempo real). */
+  function cancha() {
+    let m = null; try { m = Partido.match(); } catch {} if (!m || m.state !== 'pre') return;
+    if (!norm(m.h.team.displayName).includes('velez')) return;   // solo de local (en el Amalfitani)
+    const d = Date.parse(m.date) - Date.now(); if (d > 4 * 3600e3 || d < 0) return;
+    const C = (() => { try { return MG.data()?.cancha || []; } catch { return []; } })(); if (!C.length || !ok('cancha', 30 * 60e3)) return;
+    const parts = C.map(r => r.items.length ? `⚠️ <b>${esc(r.k)}</b>: ${esc(r.items[0].t.replace(/\s+-\s+[^-]+$/, '').slice(0, 90))}` : `✅ ${esc(r.k)}`);
+    pop('🚗 A LA CANCHA', parts.join(' &nbsp;·&nbsp; ') + ' <small>según las noticias de las últimas horas</small>', { important:true, ms:16000 });
+  }
+
+  /* 🧥 10) Clima al despertar: los días de oficina, la primera vez que FUNVS se usa a la mañana: cómo está para ir y para volver */
+  let wakeAt = S.get('wakeShown', '');
+  async function despertar() {
+    const n = new Date(), k = n.toDateString(); if (wakeAt === k || n.getHours() < 3 || n.getHours() >= 10 || Dia.plan(n) !== 'oficina' || !viendo()) return;
+    wakeAt = k; S.set('wakeShown', k);
+    try {
+      const j = await meteo({ latitude:MGc[0], longitude:MGc[1], hourly:'temperature_2m,apparent_temperature,precipitation_probability', timezone:'America/Argentina/Buenos_Aires', forecast_days:1 });
+      const H = j.hourly.time.map((t, i) => ({ h:+t.slice(11, 13), T:j.hourly.temperature_2m[i], F:j.hourly.apparent_temperature?.[i] ?? j.hourly.temperature_2m[i], p:j.hourly.precipitation_probability?.[i] ?? 0 }));
+      const ida = H.filter(x => x.h >= 4 && x.h <= 6), vuelta = H.filter(x => x.h >= 14 && x.h <= 16);
+      const fI = Math.round(Math.min(...ida.map(x => x.F))), tV = Math.round(Math.max(...vuelta.map(x => x.T))), pp = Math.max(...[...ida, ...vuelta].map(x => x.p));
+      const tips = [fI <= 10 ? '🧥 llevá campera' : fI <= 15 ? '🧶 algo de abrigo' : '', pp >= 50 ? '☂️ llevá paraguas' : pp >= 30 ? '🌂 por las dudas, paraguas' : '', tV - fI >= 10 ? '🧅 vestite en capas' : ''].filter(Boolean);
+      pop('🧥 PARA SALIR', `A las 4:35 se sienten <b>${fI}°</b> · a la vuelta <b>${tV}°</b>${pp >= 30 ? ` · lluvia ${pp}%` : ''}${tips.length ? ' · ' + tips.join(' · ') : ''}`, { important:true, ms:16000 });
+    } catch {}
+  }
+
   /* ↘ Rincón de abajo a la derecha: la cuenta regresiva a lo próximo que te importa (si falta poco),
        y si pusiste el apagado automático, eso manda */
   const dur = ms => { const m = Math.max(0, Math.round(ms / 60e3)); return m >= 60 ? `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} h` : `${m} min`; };
@@ -127,7 +154,7 @@ const Zocalos = (() => {
   }
   function init() {
     setInterval(rincon, 15e3); setTimeout(rincon, 3000);
-    const tick = () => { try { velezDay(); } catch {} try { separadorFranja(); } catch {} if (document.hidden) return; try { tren(); } catch {} try { manana(); } catch {} try { partidos(); } catch {} try { tarde(); } catch {} lluvia(); };
+    const tick = () => { try { cancha(); } catch {} try { despertar(); } catch {} try { velezDay(); } catch {} try { separadorFranja(); } catch {} if (document.hidden) return; try { tren(); } catch {} try { manana(); } catch {} try { partidos(); } catch {} try { tarde(); } catch {} lluvia(); };
     setTimeout(tick, 20e3); setInterval(tick, 60e3);
   }
   return { init, setSleep, cycle, get sleepAt() { return sleepAt; } };

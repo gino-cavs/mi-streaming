@@ -1633,3 +1633,19 @@ body:not(.tvlock) .hud-br { bottom:calc(var(--hudb, 0px) + 14px); right:14px; }
 body.gs-vhs .hud-br { background:transparent; border:2px solid #fff; font-family:'VT323', 'Courier New', monospace; font-size:20px; }
 body.gs-mini .hud-br { background:rgba(0,0,0,.45); border-left:0; border-radius:12px; font-weight:300; }
 body.gs-depo .hud-br { font-style:italic; clip-path:polygon(12px 0, 100% 0, 100% 100%, 0 100%); padding-left:22px; border-left:0; background:linear-gradient(90deg, #1238b5, #0b1f5c); }
+/* 🐶 Paseo de Vaca */
+.psnow { display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--panel2); border-radius:14px; padding:10px 14px; border-left:4px solid #2f6bff; }
+.psnow span { display:flex; flex-direction:column; gap:2px; } .psnow small { color:var(--mut); font-size:13px; }
+.pswx { display:flex; gap:12px; align-items:center; background:var(--panel2); border-radius:12px; padding:10px 12px; margin-bottom:8px; } .pswx.mal { border-left:4px solid #fff; background:#13244d; }
+.psic { font-size:30px; } .pswx small { color:var(--mut); }
+#dlgPaseo h4 { margin:12px 0 6px; } .pslist { display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; } .pslist label { display:flex; gap:6px; align-items:center; color:var(--txt); }
+.pscan { display:flex; flex-direction:column; gap:6px; max-height:38vh; overflow:auto; }
+.pscan button { display:flex; flex-direction:column; align-items:flex-start; text-align:left; gap:2px; padding:8px 12px; } .pscan button small { color:var(--mut); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+.pscan button.on { outline:2px solid #2f6bff; background:#13244d; }
+#psBar { position:fixed; left:50%; transform:translateX(-50%); bottom:calc(var(--botH, 60px) + 10px); z-index:125; display:flex; align-items:center; gap:12px; background:#1238b5; color:#fff; padding:8px 10px 8px 16px; border-radius:30px; box-shadow:0 6px 20px #0008; font-size:15px; }
+#psBar button { background:#fff; color:#0b1f5c; border:0; border-radius:20px; padding:6px 14px; font-weight:700; }
+.psstats { display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:8px; margin:10px 0; }
+.psstats div { background:var(--panel2); border-radius:12px; padding:10px; text-align:center; } .psstats b { display:block; font-size:24px; } .psstats small { color:var(--mut); }
+/* 🎂 Fechas */
+.fclist { display:flex; flex-direction:column; gap:6px; }
+.fcrow { display:flex; gap:6px; align-items:center; flex-wrap:wrap; } .fcrow input[data-k=n] { flex:1; min-width:140px; } .fcrow select { width:auto; }
