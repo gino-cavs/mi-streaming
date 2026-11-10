@@ -62,6 +62,13 @@ jobs:
         env:
           GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
           YT_KEY: ${{ secrets.YT_KEY }}
+      - name: Vivos escondidos de tus canales (24/7 que no aparecen entre los últimos videos)
+        continue-on-error: true
+        timeout-minutes: 3
+        run: node scripts/fetch-ytlive.mjs /tmp/datos "$GITHUB_REPOSITORY"
+        env:
+          GIST_ID: ${{ secrets.GIST_ID || vars.GIST_ID }}
+          YT_KEY: ${{ secrets.YT_KEY }}
       - name: Novelas argentinas (playlists oficiales, una vez por mes)
         continue-on-error: true
         timeout-minutes: 4

@@ -48,6 +48,11 @@ const Player = (() => {
       v:`https://player.kick.com/${c.ref.name}?autoplay=true`,
       ch:`https://kick.com/popout/${c.ref.name}/chat`, out:`https://kick.com/popout/${c.ref.name}/chat` };
     const isLive = s.st === 'live' || s.st === 'soon';
+    // canal que figura apagado: primero pruebo "el vivo del canal" de YouTube (por si tiene uno que FUNVS no vio);
+    // si en unos segundos no arranca, paso a su último video
+    if (!isLive && !c.ref.video && c.ref.channelId && !c._noTry)
+      return { kind:'youtube', id:null, tryLive:true, fallback:s.vid || null,
+        v:`https://www.youtube.com/embed/live_stream?channel=${c.ref.channelId}&autoplay=1&playsinline=1&enablejsapi=1${clean()}&origin=${encodeURIComponent(location.origin)}`, ch:null };
     const vid = isLive ? s.vid : (c.ref.video || s.vid);
     if (vid) return { kind:'youtube', id:vid,
       v:`https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1${clean()}&origin=${encodeURIComponent(location.origin)}${c.ref.more?.length && !isLive ? '&playlist=' + c.ref.more.join(',') : ''}`,
@@ -147,12 +152,20 @@ const Player = (() => {
           }
           // 📼 fútbol retro / Paso a Paso: subtítulos siempre apagados (YouTube a veces los prende solo por la cuenta o los automáticos)
           if (e.data === 1 && /^retro_/.test(s.c.uid)) { try { p.setOption('captions', 'track', {}); p.unloadModule('captions'); p.unloadModule('cc'); } catch {} }
+          if (e.data === 1 && s.e.tryLive) {   // ¡tenía vivo! lo aprendo para la grilla y el chat
+            s.e.tryLive = false; clearTimeout(s.tryT);
+            let id = null; try { id = p.getVideoData()?.video_id; } catch {}
+            if (id) { s.e.id = id; Canales.learn(s.c, id); s.e.ch = `https://www.youtube.com/live_chat?v=${id}&embed_domain=${HOST}&dark_theme=1`; s.e.out = `https://www.youtube.com/live_chat?v=${id}&dark_theme=1`; try { paintBar(i); } catch {} }
+          }
           if (e.data === 1 && last !== 1) AudioMgr.focus(sid);
           last = e.data; s.yst = e.data; s.ystAt = Date.now();
           if (e.data === 0 && !s.c.t247) s.dead = true; if (e.data === 1) s.dead = false;
           if (e.data === 0 && s.c.onEnd) { let last = true; try { const pl = p.getPlaylist?.(); if (pl && p.getPlaylistIndex() < pl.length - 1) last = false; } catch {} if (last) { const f = s.c.onEnd; s.c.onEnd = null; setTimeout(f, 300); } }
           d.classList.toggle('paused', e.data === 2);
-        }, onError:() => { s.dead = true; s.ystAt = Date.now(); } } });
+        }, onError:() => { if (s.e.tryLive) return noLive(); s.dead = true; s.ystAt = Date.now(); } } });
+        // sin vivo: al último video del canal (o queda el aviso de YouTube si no conozco ninguno)
+        const noLive = () => { if (!s.e.tryLive || s.seq !== my) return; clearTimeout(s.tryT); s.c._noTry = true; const fb = s.e.fallback; s.e = embedOf(s.c); delete s.c._noTry; if (fb || s.e.id) { s.e.tryLive = false; mountVideo(i); try { paintBar(i); } catch {} } };
+        if (s.e.tryLive) s.tryT = setTimeout(noLive, 9000);
         s.api = { p, destroy() {} };
         AudioMgr.register(sid, { mute() { try { p.mute(); } catch {} setMutedUI(true); }, unmute() { try { p.unMute(); } catch {} setMutedUI(false); },
           label:() => s.c.name, live:() => { const x = Canales.status[s.c.uid] || {}; return x.st === 'live' && !x.prem; }, prem:() => !!(Canales.status[s.c.uid] || {}).prem && (Canales.status[s.c.uid] || {}).st === 'live',

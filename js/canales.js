@@ -86,22 +86,39 @@ const Canales = (() => {
     try { const j = await (await fetch(REPO.data + 'ytfeeds.json?t=' + Math.floor(Date.now() / 300e3))).json(); j._at = Date.now(); feeds = j; } catch { feeds = feeds || { ch:{} }; }
     return feeds;
   }
+  // 🔴 vivos 24/7 empezados hace mucho (no salen entre los últimos 50 videos): los encuentra el robot de GitHub
+  // (ytlive.json) o los aprende FUNVS cuando los ponés; después se revisan casi gratis
+  let livesF = null;
+  const learned = S.get('hub2lives', {});
+  async function loadLives() {
+    if (livesF && Date.now() - livesF._at < 10 * 60e3) return livesF;
+    try { const j = await (await fetch(REPO.data + 'ytlive.json?t=' + Math.floor(Date.now() / 300e3))).json(); j._at = Date.now(); livesF = j; } catch { livesF = livesF || { ch:{} }; }
+    return livesF;
+  }
+  const livesOf = c => [...(livesF?.ch?.[c.ref.channelId]?.lives || []), ...(learned[c.ref.channelId] || [])];
+  function learn(c, vid) {
+    if (!c?.ref?.channelId || !vid) return;
+    const l = learned[c.ref.channelId] = [vid, ...(learned[c.ref.channelId] || []).filter(x => x !== vid)].slice(0, 5); S.set('hub2lives', learned);
+    status[c.uid] = { ...(status[c.uid] || {}), st:'live', prem:false, vid }; hot[c.uid] = Date.now(); S.set('hub2status', status);
+    render(); Zap.render();
+  }
   async function refreshYT() {
     const list = db.chans.filter(c => c.platform === 'youtube');
     if (!list.length) return;
     if (!db.key) { list.forEach(c => status[c.uid] = { st:'?' }); return; }
     cycle++;
+    await loadLives();
     const F = await loadFeeds(), feedOk = F?.at && Date.now() - Date.parse(F.at) < 90 * 60e3;
     const want = {};
     for (const c of list) {
       try {
         if (c.ref.video) { want[c.uid] = [c.ref.video]; continue; }
         const st0 = status[c.uid] || {}, isHot = st0.st === 'live' || st0.st === 'soon' || Date.now() - (hot[c.uid] || 0) < 864e5 || !st0.st || st0.st === '?';
-        const full = cycle % 4 === 1, known = [st0.vid].filter(Boolean);
+        const full = cycle % 4 === 1, known = [...new Set([st0.vid, ...livesOf(c)].filter(Boolean))];
         const fd = feedOk && c.ref.channelId && F.ch?.[c.ref.channelId];
         // con feed: alcanza con mirar esos videos (casi gratis: 1 unidad cada 50 videos de TODOS los canales)
         if (fd && !(full && isHot)) { want[c.uid] = [...new Set([...known, ...fd])]; continue; }
-        if (!isHot && !full) continue;   // sin feed y frío: queda como estaba hasta su vuelta
+        if (!isHot && !full) { if (known.length) want[c.uid] = known; continue; }   // frío: igual miro sus vivos conocidos (casi gratis)   // sin feed y frío: queda como estaba hasta su vuelta
         await resolveYT(c);
         const j = await yt('playlistItems', { part:'contentDetails', playlistId:c.ref.uploads, maxResults:50 });
         // canales que suben muchos clips (A24, C5N…): el vivo puede quedar más atrás de los últimos 15 → miro hasta 50
@@ -143,7 +160,7 @@ const Canales = (() => {
           when: live ? pick.liveStreamingDetails?.actualStartTime : pick.liveStreamingDetails.scheduledStartTime,
           viewers: live ? +pick.liveStreamingDetails?.concurrentViewers || null : null, past };
       } else {
-        const last = vs[0];
+        const last = vs.filter(v => !v.liveStreamingDetails || v.liveStreamingDetails.actualEndTime || v.snippet.liveBroadcastContent === 'none').sort((a, b) => Date.parse(b.snippet.publishedAt) - Date.parse(a.snippet.publishedAt))[0];   // el más nuevo (no el último vivo que conocía)
         status[u] = { st:'off', vid:last?.id, title: last ? 'Último: ' + last.snippet.title : '', past };
       }
     }
@@ -154,7 +171,8 @@ const Canales = (() => {
     await resolveYT(c);
     const j = await yt('playlistItems', { part:'contentDetails', playlistId:c.ref.uploads, maxResults:50 });
     const its = j.items || [], heavy = its.length > 6 && Date.now() - Date.parse(its[5].contentDetails.videoPublishedAt || 0) < 864e5;
-    const ids = its.slice(0, heavy ? 50 : 6).map(i => i.contentDetails.videoId); if (!ids.length) return status[c.uid] || {};
+    await loadLives().catch(() => {});
+    const ids = [...new Set([...livesOf(c), ...its.slice(0, heavy ? 50 : 6).map(i => i.contentDetails.videoId)])].slice(0, 50); if (!ids.length) return status[c.uid] || {};
     const v = await yt('videos', { part:'snippet,liveStreamingDetails', id:ids.join(',') });
     const live = (v.items || []).find(x => x.snippet.liveBroadcastContent === 'live');
     if (live) status[c.uid] = { ...(status[c.uid] || {}), st:'live', vid:live.id, title:live.snippet.title, when:live.liveStreamingDetails?.actualStartTime };
@@ -447,5 +465,5 @@ const Canales = (() => {
     $('newCat').onkeydown = e => { if (e.key === 'Enter') $('addCat').click(); };
     onChange(render);
   }
-  return { quota, quotaTotal, qDay, checkOne, byNum, numTxt, ensureNums, isLive, init, render, refresh, card, bindGrid, sortChans, status, liveCount, yt, get lastUpd() { return lastUpd; } };
+  return { quota, quotaTotal, qDay, checkOne, learn, byNum, numTxt, ensureNums, isLive, init, render, refresh, card, bindGrid, sortChans, status, liveCount, yt, get lastUpd() { return lastUpd; } };
 })();
