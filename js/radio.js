@@ -130,5 +130,7 @@ const Radio = (() => {
     onChange(() => { if ($('v-radios').dataset.built) render(); });
   }
   function skip(d) { if (!db.radios.length) return; const i = db.radios.findIndex(x => x.url === cur?.url); play(db.radios[(i + d + db.radios.length) % db.radios.length]); }
-  return { init, render, play, stop, skip, get current() { return cur; } };
+  // buscar una radio por nombre (para el Modo porteño y otros atajos)
+  async function find(q, country = 'Argentina') { const l = await rb(`stations/search?name=${encodeURIComponent(q)}&country=${encodeURIComponent(country)}&hidebroken=true&order=clickcount&reverse=true&limit=10`); return (l || []).map(toRadio); }
+  return { init, render, play, stop, skip, find, get current() { return cur; } };
 })();

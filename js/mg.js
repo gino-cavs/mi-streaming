@@ -19,7 +19,7 @@ const Franja = (() => {
     tarde:['dia', 'vivo', 'futbol', 'seguir', 'mg', 'humor'],
     noche:['dia', 'humor', 'seguir', 'vivo', 'tanda', 'mg'],
   };
-  const SUG = { madrugada:'dormir', manana:'info', mediodia:'info', tarde:'reir', noche:'cansado' };
+  const SUG = { madrugada:'dormir', manana:'info', mediodia:'info', tarde:'reir', noche:'porteno' };
   function order(id, base) { const l = ORDEN[now().id] || [], i = l.indexOf(id); return i >= 0 ? i : 100 + base; }
   let cur = null;
   function tick() { const f = now(); if (f.id !== cur) { document.body.classList.remove('f-' + cur); cur = f.id; document.body.classList.add('f-' + cur); try { if (Nav.current === 'inicio') Inicio.render(); } catch {} } }

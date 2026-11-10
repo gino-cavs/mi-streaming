@@ -93,6 +93,7 @@ function initSettings() {
   $('setYtClean').onchange = e => { S.set('ytClean', e.target.checked); toast('🧼 Se aplica al próximo video que pongas', { ms:2500 }); };
   $('setZfx').onchange = e => { S.set('zapFx', { ...zf(), on:e.target.checked }); if (e.target.checked && Player.slots[Player.sel]) Player.zapFx(Player.sel, Player.slots[Player.sel].c); };
   $('setZfxS').onchange = e => S.set('zapFx', { ...zf(), sound:e.target.checked });
+  $('setAutoFs').checked = S.get('autoFs', true); $('setAutoFs').onchange = e => S.set('autoFs', e.target.checked);
   $('setMute').value = (db.news?.mute ?? MUTE_DEF).join(', ');
   $('setMute').onchange = e => { db.news.mute = e.target.value.split(',').map(x => x.trim()).filter(Boolean); save(); toast('🙈 Listo: lo nuevo ya sale filtrado', { ms:2500 }); Noticias.load(true).then(() => Nav.current === 'noticias' && Noticias.render()).catch(() => {}); };
   $('setIcal').value = db.grillaIcal || '';
@@ -162,7 +163,11 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------- Arranque ---------- */
 if (location.protocol === 'file:') warn('Estás abriendo el archivo desde la compu: Twitch y algunos datos solo andan con la página publicada (GitHub Pages).');
-Player.build(); TV.build(); Reloj.init(); Dia.init(); Franja.init(); MG.init(); Buscar.init(); Partido.init(); Grafismo.init(); Tanda.init(); Zap.init(); Calidad.init(); Canales.init(); Radio.init(); Fulbito.init(); Noticias.init(); Velez.init(); Calendario.init(); Motor.init(); Musica.init(); Prode.init(); Momentos.init(); Stats.init(); Rap.init(); T420.init(); Likes.init(); Boxeo.init(); Series.init(); Peliculas.init(); Juegos.init(); Ver.init(); Diario.init(); Resumenes.init(); Clasicos.init(); Actualidad.init();
+Player.build(); TV.build(); Reloj.init(); Dia.init();
+  // 🖥️ compu: pantalla completa (como F11) con el primer clic o tecla — el navegador no deja hacerlo solo sin que toques algo
+  if (Device.mode === 'pc' && S.get('autoFs', true)) { const fs = () => { document.removeEventListener('pointerdown', fs, true); document.removeEventListener('keydown', fs, true);
+    if (!document.fullscreenElement && S.get('autoFs', true)) document.documentElement.requestFullscreen?.().catch(() => {}); };
+    document.addEventListener('pointerdown', fs, true); document.addEventListener('keydown', fs, true); } Franja.init(); MG.init(); Buscar.init(); Partido.init(); Grafismo.init(); Tanda.init(); Zap.init(); Calidad.init(); Canales.init(); Radio.init(); Fulbito.init(); Noticias.init(); Velez.init(); Calendario.init(); Motor.init(); Musica.init(); Prode.init(); Momentos.init(); Stats.init(); Rap.init(); T420.init(); Likes.init(); Boxeo.init(); Series.init(); Peliculas.init(); Juegos.init(); Ver.init(); Diario.init(); Resumenes.init(); Clasicos.init(); Actualidad.init();
 $('btnGuia').onclick = () => { S.set('canView', S.get('canView', 'cards') === 'guia' ? 'cards' : 'guia'); Canales.render(); };
 setInterval(() => { if (Nav.current === 'canales' && S.get('canView', 'cards') === 'guia' && !document.hidden) Canales.render(); }, 60e3);
 $('btnLikeSetup').onclick = () => { $('dlgSet').close(); Likes.openSetup(); };

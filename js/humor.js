@@ -3,6 +3,7 @@
    😂 Reírme (stand-up y "try not to laugh"; tus comediantes, de arranque Matt Rife) · 😴 Cansado (chill largo)
    💻 Para laburar (lo-fi en vivo) · 📰 Ponerme al día (un canal de noticias en vivo de los tuyos)
    🌙 Dormir (lluvia con pantalla negra: Pantalla TV sin carteles, todo a oscuras).
+   🎻 Modo porteño: La 2x4 sonando y, sin sonido, caminatas nocturnas por Almagro, San Telmo y Boedo.
    ▲▼ / ⏭ pasan a otro video del mismo humor. Lo que se busca en YouTube se guarda (48 h lo de reírse, 7 días el resto) para cuidar la cuota.
    ========================================================= */
 const Humor = (() => {
@@ -11,6 +12,7 @@ const Humor = (() => {
     cansado:{ ic:'😴', n:'Estoy cansado', q:[['chill ambient music mix', 'long'], ['lofi rain sleep music', 'long']] },
     laburar:{ ic:'💻', n:'Fondo para laburar', q:[['lofi hip hop radio', 'live'], ['jazz cafe music live', 'live'], ['deep focus music', 'long']] },
     info:   { ic:'📰', n:'Ponerme al día', news:true },
+    porteno:{ ic:'🎻', n:'Modo porteño', q:[['Buenos Aires night walk Almagro', 'long'], ['San Telmo night walk Buenos Aires 4K', 'long'], ['Buenos Aires tango street night walk', 'long'], ['Boedo Almagro caminata noche', 'long'], ['milonga Buenos Aires de noche', 'medium']], radio:['2x4', 'La 2x4', 'Radio de la Ciudad 2x4'], tv:true },
     dormir: { ic:'🌙', n:'Dormir', q:[['sonido de lluvia pantalla negra', 'long'], ['rain sounds black screen 10 hours', 'long'], ['lluvia para dormir pantalla negra', 'long']], dark:true },
   };
   const comedians = () => (db.humor ||= { comedians:['MattRife'] }).comedians;
@@ -54,6 +56,17 @@ const Humor = (() => {
     cur = id;
     Player.play({ uid:'humor-' + id, name:`${M.ic} ${v.t}`, platform:'youtube', ref:{ video:v.id }, cat:M.n, humor:id });
     if (M.dark) { if (!document.body.classList.contains('tvlock')) TV.open(); document.body.classList.add('oscuro'); return; }   // 🌙 sin carteles ni brillo
+    if (M.radio) {   // 🎻 la imagen de la noche porteña, el sonido de La 2x4
+      if (!document.body.classList.contains('tvlock')) TV.open();
+      let r = db.radios.find(x => /2\s*x\s*4/i.test(x.name));
+      if (!r) for (const q of M.radio) { try { r = (await Radio.find(q)).find(x => /2\s*x\s*4/i.test(x.name)); } catch {} if (r) break; }
+      if (r && Radio.current?.url !== r.url) Radio.play(r);
+      const hold = () => { try { AudioMgr.focus('radio'); } catch {} };   // el video sin sonido; suena la radio
+      [1200, 3000, 6000].forEach(t => setTimeout(hold, t));
+      Grafismo.notify(`<b>🎻 Modo porteño</b><span>${r ? esc(r.name) + ' · ' : ''}${esc(v.t)}</span>`, { ms:9000, lbl:'🎻 BUENOS AIRES' });
+      if (!r) toast('<b>No encontré La 2x4</b><small>Guardala en Radios y la pongo sola.</small>', { cls:'info' });
+      return;
+    }
     document.body.classList.remove('oscuro');
     toast(`<b>${M.ic} ${esc(v.t)}</b><small>${esc(v.by)} · ▲▼ para otro</small>`, { cls:'info zapt', ms:4000 });
   }
