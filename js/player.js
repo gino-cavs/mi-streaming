@@ -130,7 +130,7 @@ const Player = (() => {
         const p = new Twitch.Player(div.id, { channel:s.e.id, parent:[HOST], width:'100%', height:'100%', autoplay:true, muted:false });
         s.api = { destroy() { div.innerHTML = ''; } , p };
         p.addEventListener(Twitch.Player.READY, () => { try { p.setVolume(S.get('vol', 1)); } catch {} if (s.audio) setAudioQuality(s, true); else Calidad.applyTwitch(p); });
-        p.addEventListener(Twitch.Player.PLAY, () => { snowOff(s, my); if (!s.mutedByApp) AudioMgr.focus(sid); });
+        p.addEventListener(Twitch.Player.PLAY, () => { snowOff(s, my); try { p.setVolume(S.get('vol', 1)); } catch {} if (!s.mutedByApp) AudioMgr.focus(sid); });
         AudioMgr.register(sid, { mute() { p.setMuted(true); setMutedUI(true); }, unmute() { p.setMuted(false); setMutedUI(false); },
           label:() => s.c.name, live:() => { const x = Canales.status[s.c.uid] || {}; return x.st === 'live' && !x.prem; }, prem:() => !!(Canales.status[s.c.uid] || {}).prem && (Canales.status[s.c.uid] || {}).st === 'live',
           paused:() => p.isPaused(), toggle:() => p.isPaused() ? p.play() : p.pause(),
@@ -143,11 +143,15 @@ const Player = (() => {
       let last = null;
       YT_API().then(() => {
         if (s.seq !== my) return;
-        const p = new YT.Player(f, { events:{ onStateChange:e => {
+        // 🔊 el volumen se mantiene al cambiar de canal: lo pongo apenas el reproductor está listo y lo vuelvo a fijar
+        // los primeros segundos (YouTube a veces lo resetea solo al arrancar el vivo o al cambiar de calidad)
+        const wantVol = () => Math.round(S.get('vol', 1) * 100);
+        const pinVol = () => { let n = 0; const t = setInterval(() => { if (s.seq !== my || ++n > 16) return clearInterval(t); try { if (Math.abs(p.getVolume() - wantVol()) > 2) p.setVolume(wantVol()); } catch {} }, 500); };
+        const p = new YT.Player(f, { events:{ onReady:() => { try { p.setVolume(wantVol()); } catch {} pinVol(); }, onStateChange:e => {
           // solo cuenta como "empezó a sonar" si veníamos de pausa/inicio (no al terminar de cargar)
           if (e.data === 1 || e.data === 2) snowOff(s, my);
           if (e.data === 3) return;
-          if (e.data === 1 && last === null) { Calidad.applyYouTube(p); try { p.setVolume(Math.round(S.get('vol', 1) * 100)); } catch {} }   // YouTube recuerda el último volumen (ej. el del despertador): siempre arranca con el tuyo
+          if (e.data === 1 && last === null) { Calidad.applyYouTube(p); try { p.setVolume(wantVol()); } catch {} pinVol(); }   // YouTube recuerda el último volumen (ej. el del despertador): siempre arranca con el tuyo
           if (e.data === 0 && s.c.t247) {          // canal 24/7: termina un video y sigue la grilla
             const n = T247any.nextFor(s.c.t247);
             if (n) { s.e.id = n.v; try { p.loadVideoById({ videoId:n.v, startSeconds:n.off }); } catch {} paintActs(); }

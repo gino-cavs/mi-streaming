@@ -105,8 +105,6 @@ function initSettings() {
   if (Device.mode === 'celu') { $('setEdgeRow').style.display = 'flex'; $('setEdge').value = Device.edge; $('setEdgeV').textContent = Device.edge + 'px';
     $('setEdge').oninput = e => { Device.setEdge(e.target.value); $('setEdgeV').textContent = e.target.value + 'px'; }; }
   $('setLite').onchange = e => { Lite.set(e.target.checked); toast(e.target.checked ? '⚡ Modo liviano prendido en este aparato' : 'Modo liviano apagado', { ms:2500 }); };
-  $('setZoc').value = (db.futbol?.zoc || []).join(', ');
-  $('setZoc').onchange = e => { db.futbol.zoc = e.target.value.split(',').map(x => x.trim()).filter(Boolean); save(); toast('⚽ Listo', { ms:1500 }); };
   // 📐 zona segura: el video deja libre arriba (donde van el cartel y el logo FUNVS)
   document.body.classList.toggle('safehud', S.get('safeHud', true));
   $('setSafe').checked = S.get('safeHud', true);

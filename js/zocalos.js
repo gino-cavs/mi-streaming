@@ -57,17 +57,15 @@ const Zocalos = (() => {
     pop('🗓 MAÑANA', `${ic} <b>${esc(name)}</b>${p === 'oficina' ? ` · salís ${SALIDA} para el Roca de las ${TREN}` : ''}${w}`);
   }
 
-  /* ⚽ 4) Partidos que se están jugando (de tus ligas; nunca Vélez, que lo ves en la tele aunque tenga delay; ni Boca ni River) */
+  /* ⚽ 4) Partidos en juego: los que marcaste con 🔔 en Fulbito (o tus favoritos/todos, según cómo lo tengas ahí).
+        Si no elegiste ninguno, los de tus ligas menos Vélez, Boca y River. */
   const NUNCA = ['velez', 'boca', 'river'];
-  const nn = s => norm(s || '');
   function partidos() {
     if (!viendo() || !tv()) return;
-    let L = []; try { L = Object.values(Fulbito.today()).flatMap(x => x.events); } catch { return; }
-    const pick = (db.futbol?.zoc || []).map(nn);
-    const ok2 = m => { const ts = [m.h.team, m.a.team].flatMap(t => [nn(t.displayName), nn(t.shortDisplayName)]);
-      if (ts.some(x => NUNCA.some(b => x.includes(b)))) return false;
-      return !pick.length || ts.some(x => pick.some(p => x.includes(p) || p.includes(x))); };
-    const live = L.filter(m => m.state === 'in' && ok2(m)).slice(0, 4); if (!live.length || !ok('partidos', 4 * 60e3)) return;
+    let L = []; try { L = Object.values(Fulbito.today()).flatMap(x => x.events).filter(m => m.state === 'in'); } catch { return; }
+    let live = L.filter(m => Fulbito.wants(m));
+    if (!live.length && db.futbol?.scope !== 'none') live = L.filter(m => ![m.h.team, m.a.team].some(t => NUNCA.some(b => norm(t.displayName).includes(b))));
+    live = live.slice(0, 4); if (!live.length || !ok('partidos', 4 * 60e3)) return;
     const n = t => esc(t.team.shortDisplayName || t.team.displayName);
     pop('⚽ PARTIDOS', live.map(m => `${n(m.h)} <b>${m.hs}-${m.as}</b> ${n(m.a)} <small>${esc(m.st)}</small>`).join(' &nbsp;·&nbsp; '), { ms:12000, onclick:() => Nav.go('fulbito') });
   }
@@ -93,8 +91,24 @@ const Zocalos = (() => {
     pop('😴 ES TARDE', `A las ${SALIDA} salís para el tren (faltan ${Math.floor(hasta / 3600e3)} h ${mins(hasta % 3600e3)} min). <b>¿Apago en 30 min?</b> <small>Tocá acá o Z</small>`, { important:true, ms:14000, onclick:() => { sIdx = 1; setSleep(30); } });
   }
 
+  /* 🎬 Separador de franja: al pasar a mañana, mediodía, tarde, noche o madrugada, la cortina FUNVS con el nombre */
+  let franja = null;
+  function separadorFranja() {
+    const f = Franja.now(); if (franja === null) { franja = f.id; return; }
+    if (f.id === franja) return; franja = f.id;
+    if (tv() && AudioMgr.active) Grafismo.separator(`${f.ic} ${f.n.toUpperCase()}`);
+  }
+  /* 💙 Día de partido de Vélez: el grafismo pasa a la versión especial (con el escudo) todo el día */
+  function velezDay() {
+    let m = null; try { m = Partido.match(); } catch {}
+    const hoy = m && new Date(m.date).toDateString() === new Date().toDateString();
+    document.body.classList.toggle('velezday', !!hoy);
+    const logo = hoy ? (norm(m.h.team.displayName).includes('velez') ? m.h.team.logo : m.a.team.logo) : '';
+    document.querySelectorAll('.hud-logo, #hLogo').forEach(el => { let c = el.querySelector('.vcrest');
+      if (hoy && logo) { if (!c) { c = document.createElement('img'); c.className = 'vcrest'; c.alt = ''; el.prepend(c); } if (c.src !== logo) c.src = logo; } else c?.remove(); });
+  }
   function init() {
-    const tick = () => { if (document.hidden) return; try { tren(); } catch {} try { manana(); } catch {} try { partidos(); } catch {} try { tarde(); } catch {} lluvia(); };
+    const tick = () => { try { velezDay(); } catch {} try { separadorFranja(); } catch {} if (document.hidden) return; try { tren(); } catch {} try { manana(); } catch {} try { partidos(); } catch {} try { tarde(); } catch {} lluvia(); };
     setTimeout(tick, 20e3); setInterval(tick, 60e3);
   }
   return { init, setSleep, cycle, get sleepAt() { return sleepAt; } };

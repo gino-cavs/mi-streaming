@@ -80,7 +80,7 @@ const Noticias = (() => {
     $('nOk').onclick = () => {
       const t = [...$('nT').querySelectorAll('.on')].map(b => b.dataset.t);
       if (!t.length) { toast('<b>Elegí al menos un tema</b>', { cls:'info', ms:4000 }); return; }
-      db.news = { topics:t, sources:[...$('nS').querySelectorAll('input:checked')].map(i => i.value), setup:true };
+      db.news = { ...db.news, topics:t, sources:[...$('nS').querySelectorAll('input:checked')].map(i => i.value), setup:true };   // sin perder los temas silenciados
       editing = false; filter = 'all'; save(); render();
     };
   }
@@ -92,6 +92,26 @@ const Noticias = (() => {
     return (data.items || []).filter(i => (i.tp || []).length && (!db.news.sources.length || db.news.sources.includes(i.s)) && (i.tp || []).some(t => T.includes(t) || t === 'velez'))
       .slice(0, n).map(i => i.t + (i.s ? ' (' + i.s + ')' : ''));
   }
+  /* 📰 FUNVS al minuto estilo ESPN: cada titular con su categoría, mezclando temas (uno de cada uno, por turnos),
+     máximo 3 por medio y como mucho 1 de Boca/River (si no los silenciaste del todo) */
+  const CAT = { velez:['💙', 'VÉLEZ'], exvelez:['💙', 'EX VÉLEZ'], futbol:['⚽', 'FÚTBOL'], deportes:['🏆', 'DEPORTES'], portada:['📰', 'PORTADA'], argentina:['🇦🇷', 'PAÍS'],
+    economia:['💼', 'ECONOMÍA'], mundo:['🌍', 'MUNDO'], espectaculos:['🎬', 'ESPECTÁCULOS'], tecnologia:['💻', 'TECNO'], ciencia:['🔬', 'CIENCIA'], salud:['🩺', 'SALUD'] };
+  const catOf = i => { const t = (i.tp || []).find(x => CAT[x]) || (i.tp || []).find(x => /^motor|^piloto/.test(x)) || (i.tp || []).find(x => /^box/.test(x));
+    return CAT[t] || (/^motor|^piloto/.test(t || '') ? ['🏁', 'MOTOR'] : /^box/.test(t || '') ? ['🥊', 'BOXEO'] : ['📰', 'NOTICIAS']); };
+  function tickerItems(n) {
+    if (!data) return [];
+    const T = db.news.topics.length ? db.news.topics : ['portada'];
+    const pool = (data.items || []).filter(i => (i.tp || []).length && (!db.news.sources.length || db.news.sources.includes(i.s)) && (i.tp || []).some(t => T.includes(t) || t === 'velez'));
+    const by = {}; pool.forEach(i => { const k = catOf(i)[1]; (by[k] = by[k] || []).push(i); });
+    const out = [], perSrc = {}; let br = 0; const keys = Object.keys(by);
+    for (let round = 0; out.length < n && keys.some(k => by[k].length); round++) for (const k of keys) {
+      while (by[k].length) { const i = by[k].shift(), bR = /\b(boca|river)\b/i.test(norm(i.t));
+        if ((perSrc[i.s] || 0) >= 3 || (bR && br >= 1)) continue;
+        perSrc[i.s] = (perSrc[i.s] || 0) + 1; if (bR) br++; out.push(i); break; }
+      if (out.length >= n) break;
+    }
+    return out.map(i => { const [ic, lb] = catOf(i); return `<b class="tkc">${ic} ${lb}</b> ${esc(i.t)}${i.s ? ` <small>${esc(i.s)}</small>` : ''}`; });
+  }
   function init() { onChange(() => { if (Nav.current === 'noticias') render(); }); }
-  return { init, render, load, byTopic, list, headlines, get loaded() { return !!data; } };
+  return { init, render, load, byTopic, list, headlines, tickerItems, get loaded() { return !!data; } };
 })();

@@ -220,8 +220,9 @@ const TV = (() => {
   async function updateTicker() {
     if (!$('player').classList.contains('tvmode')) return;
     if (!Noticias.loaded) { try { await Noticias.load(); } catch {} }
-    const items = [...Fulbito.ticker(), ...Motor.ticker(), ...Noticias.headlines(18)];
-    const txt = items.length ? items.map(esc).join('<i>◆</i>') : 'FUNVS · Tu centro de entretenimiento';
+    const cat = (ic, lb, t) => `<b class="tkc">${ic} ${lb}</b> ${esc(t.replace(/^\S+\s/, ''))}`;
+    const items = [...Fulbito.ticker().map(t => cat('⚽', 'FÚTBOL', t)), ...Motor.ticker().map(t => cat('🏁', 'MOTOR', t)), ...Noticias.tickerItems(18)];
+    const txt = items.length ? items.join('<i>◆</i>') : 'FUNVS · Tu centro de entretenimiento';
     if (txt === tickerText) return;
     tickerText = txt;
     const run = $('tvRun');
@@ -245,6 +246,9 @@ const TV = (() => {
     const name = s && s.label ? s.label() : '';
     const tag = !s ? '' : s.radio ? 'RADIO' : s.music ? 'MÚSICA' : s.prem && s.prem() ? 'ESTRENO' : s.live && s.live() ? 'EN VIVO' : 'AHORA';
     document.body.classList.toggle('npon', !!name);
+    // que el cartel de arriba (con el título del vivo) no tape los botones de Canales / Pantallas
+    { const np = $('tvNp'), pb = document.querySelector('#player.tvmode .pbar'), r = pb && pb.offsetWidth ? pb.getBoundingClientRect() : null;
+      np.style.maxWidth = r && r.top < 120 ? Math.max(160, r.left - np.getBoundingClientRect().left - 16) + 'px' : ''; }
     // al lado del canal, el título del vivo de YouTube
     const sc = id?.startsWith?.('slot') ? Player.slots[+id.slice(4)]?.c : null, stc = sc && Canales.status[sc.uid];
     const vtit = tag === 'EN VIVO' && stc?.title && norm(stc.title) !== norm(name) ? stc.title : '';

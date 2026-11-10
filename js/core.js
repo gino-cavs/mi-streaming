@@ -241,25 +241,44 @@ function warn(t) { $('warns').innerHTML = `<div class="warn">${esc(t)}<button on
 /* ⛅ Clima: Open-Meteo combinando tres modelos (ECMWF europeo, GFS de EE.UU. e ICON alemán) y promediándolos.
    El promedio de varios modelos suele acertar más que uno solo. Si algo falla, cae al pronóstico normal de Open-Meteo. */
 const METEO_MODELS = ['ecmwf_ifs025', 'gfs_seamless', 'icon_seamless'];
+// ⛅ Íconos de clima precisos: el "código de tiempo" de un solo modelo a veces dice nublado con sol pleno.
+// Si hay lluvia/tormenta/niebla en la mayoría de los modelos, uso ese código; si no, lo saco de la nubosidad PROMEDIO.
+const CLOUD_OF = { current:'cloud_cover', hourly:'cloud_cover', daily:'cloud_cover_mean' };
+function wxCode(codes, cloud) {
+  const c = codes.filter(x => x != null); if (!c.length) return null;
+  const wet = c.filter(x => x >= 45), need = c.length >= 2 ? 2 : 1;
+  if (wet.length >= need) { const f = {}; wet.forEach(x => f[x] = (f[x] || 0) + 1); return +Object.entries(f).sort((a, b) => b[1] - a[1] || a[0] - b[0])[0][0]; }
+  if (cloud == null) return Math.min(...c);
+  return cloud < 20 ? 0 : cloud < 45 ? 1 : cloud < 75 ? 2 : 3;
+}
 async function meteo(q, opts = {}) {
   const base = 'https://api.open-meteo.com/v1/forecast?';
   const p = new URLSearchParams(q);
+  for (const sec of ['current', 'hourly', 'daily']) { const v = p.get(sec); if (v && /weather_code/.test(v) && !v.includes(CLOUD_OF[sec])) p.set(sec, v + ',' + CLOUD_OF[sec]); }
+  const fix = (o, sec, want, models) => {
+    for (const k of want) {
+      const vals = models ? models.map(m => o[k + '_' + m]).filter(v => v != null && !(Array.isArray(v) && v.every(x => x == null))) : [o[k]];
+      if (!vals.length || vals[0] == null) continue;
+      if (/weather_code/.test(k)) continue;
+      const pick = /sunrise|sunset/.test(k);
+      const avg = arr => { const n = arr.filter(x => typeof x === 'number'); return n.length ? Math.round(n.reduce((a, x) => a + x, 0) / n.length * 10) / 10 : (arr.find(x => x != null) ?? null); };
+      o[k] = Array.isArray(vals[0]) ? vals[0].map((_, i) => pick ? (vals.map(v => v[i]).find(x => x != null) ?? null) : avg(vals.map(v => v[i]))) : (pick ? vals[0] : avg(vals));
+    }
+    if (want.includes('weather_code')) {
+      const cv = o[CLOUD_OF[sec]], codes = models ? models.map(m => o['weather_code_' + m]).filter(v => v != null) : [o.weather_code];
+      if (!codes.length) return;
+      o.weather_code = Array.isArray(codes[0]) ? codes[0].map((_, i) => wxCode(codes.map(v => v?.[i]), Array.isArray(cv) ? cv[i] : null)) : wxCode(codes, cv);
+    }
+  };
+  const run = (j, models) => { for (const L of Array.isArray(j) ? j : [j]) for (const sec of ['current', 'hourly', 'daily']) { const o = L[sec]; if (o) fix(o, sec, (p.get(sec) || '').split(',').filter(Boolean), models); } return j; };
   try {
     p.set('models', METEO_MODELS.join(','));
     const j = await (await fetch(base + p, opts)).json(); if (j.error) throw 0;
-    for (const sec of ['current', 'hourly', 'daily']) {
-      const want = (p.get(sec) || '').split(',').filter(Boolean), o = j[sec]; if (!o) continue;
-      for (const k of want) {
-        const vals = METEO_MODELS.map(m => o[k + '_' + m]).filter(v => v != null && !(Array.isArray(v) && v.every(x => x == null)));
-        if (!vals.length) continue;
-        const pick = /weather_code|sunrise|sunset/.test(k);
-        const avg = arr => { const n = arr.filter(x => typeof x === 'number'); return n.length ? Math.round(n.reduce((a, x) => a + x, 0) / n.length * 10) / 10 : (arr.find(x => x != null) ?? null); };
-        o[k] = Array.isArray(vals[0]) ? vals[0].map((_, i) => pick ? (vals.map(v => v[i]).find(x => x != null) ?? null) : avg(vals.map(v => v[i]))) : (pick ? vals[0] : avg(vals));
-      }
-    }
-    if (!j.current?.temperature_2m && p.get('current')) throw 0;
-    j._models = METEO_MODELS; return j;
-  } catch { p.delete('models'); return (await fetch(base + p, opts)).json(); }
+    run(j, METEO_MODELS);
+    const first = Array.isArray(j) ? j[0] : j;
+    if (first.current && first.current.temperature_2m == null && p.get('current')) throw 0;
+    if (!Array.isArray(j)) j._models = METEO_MODELS; return j;
+  } catch { p.delete('models'); return run(await (await fetch(base + p, opts)).json(), null); }
 }
 /* 🙈 Temas silenciados en las noticias (FUNVS al minuto, Noticias, Último momento, Actualidad). Se editan en ⚙ Ajustes. */
 const MUTE_DEF = ['boca', 'river', 'xeneize', 'millonario', 'millonarios', 'riquelme', 'bombonera'];

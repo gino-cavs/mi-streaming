@@ -66,8 +66,11 @@ const Grafismo = (() => {
   let sepAt = 0;
   function separator(sub) {
     if (Date.now() - sepAt < 20e3) return; sepAt = Date.now();
-    const o = document.createElement('div'); o.className = 'sep';
-    o.innerHTML = `<div class="sep-logo"><img src="img/vaca.jpg" alt=""><span class="f">FUN</span><span class="v">VS</span></div><i class="sep-line"></i>${sub ? `<div class="sep-sub">${esc(sub)}</div>` : ''}`;
+    // cortina según la hora: de día cielo con nubes, de noche azul con estrellas; el día que juega Vélez, la V
+    const h = new Date().getHours(), dia = h >= 7 && h < 20, vd = document.body.classList.contains('velezday');
+    const o = document.createElement('div'); o.className = 'sep ' + (vd ? 'sep-velez' : dia ? 'sep-dia' : 'sep-noche');
+    const pet = (() => { try { const L = TV.pets(); return L[Math.floor(Math.random() * L.length)]; } catch { return 'img/vaca.jpg'; } })();
+    o.innerHTML = `${dia && !vd ? '<i class="nube n1"></i><i class="nube n2"></i><i class="nube n3"></i>' : ''}${vd ? '<i class="sep-v">V</i>' : ''}<div class="sep-logo"><img src="${pet}" alt=""><span class="f">FUN</span><span class="v">VS</span></div><i class="sep-line"></i>${sub ? `<div class="sep-sub">${esc(sub)}</div>` : ''}`;
     document.body.appendChild(o); setTimeout(() => o.classList.add('out'), sub ? 2600 : 1900); setTimeout(() => o.remove(), sub ? 3200 : 2500);
   }
 

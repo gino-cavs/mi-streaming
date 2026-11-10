@@ -101,7 +101,7 @@ const Partido = (() => {
     el.hidden = !show; if (!show) return;
     const lg = t => t.logo ? `<img src="${esc(t.logo)}" alt="">` : '';
     const cd = () => { const s = Math.max(0, Math.round((Date.parse(m.date) - Date.now()) / 1e3)); return `faltan ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
-    el.innerHTML = `${lg(m.h.team)}<b>${esc(short(m.h.team))}</b><span class="hs-n">vs</span><b>${esc(short(m.a.team))}</b>${lg(m.a.team)}<i>${m.state === 'pre' ? cd() : 'EN JUEGO'}</i>`;
+    el.innerHTML = `${lg(m.h.team)}<b>${esc(short(m.h.team))}</b><span class="hs-n">${m.state === 'pre' || !Fulbito.wants(m) ? 'vs' : m.hs + ' - ' + m.as}</span><b>${esc(short(m.a.team))}</b>${lg(m.a.team)}<i>${m.state === 'pre' ? cd() : Fulbito.wants(m) ? esc(m.st) : 'EN JUEGO'}</i>`;
     // Mientras tanto: los otros partidos de la fecha
     const mt = $('hudMt'); if (!mt) return;
     let others = []; try { others = (Fulbito.today()[m.lg]?.events || []).filter(x => x.id !== m.id && x.state !== 'pre'); } catch {}

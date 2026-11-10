@@ -87,6 +87,8 @@ const Fulbito = (() => {
       const p = prev[m.id]; if (!p) return;
       if (m.hs > p.hs) goalAlert(m, 'h');
       if (m.as > p.as) goalAlert(m, 'a');
+      if (wants(m) && p.state === 'pre' && m.state === 'in') stateAlert(m, '▶ ARRANCÓ', `${nm2(m.h)} vs ${nm2(m.a)}`);
+      if (wants(m) && p.state === 'in' && m.state === 'post') stateAlert(m, '🏁 FINAL', `${nm2(m.h)} ${m.hs} - ${m.as} ${nm2(m.a)}`);
     });
     prev = scores; today = next; lastPoll = new Date();
     if (day === 0) view = today;
@@ -98,13 +100,16 @@ const Fulbito = (() => {
     const soon = all.some(m => m.state === 'pre' && Date.parse(m.date) - Date.now() < 20 * 60e3 && Date.parse(m.date) - Date.now() > -3 * 3600e3);
     timer = setTimeout(poll, all.some(m => m.state === 'in') ? 30e3 : soon ? 60e3 : 5 * 60e3);
   }
+  // 🔔 avisos SOLO de lo que elegís vos: partidos marcados con 🔔 (por defecto), tus favoritos, todos o ninguno.
+  //    Si no lo elegiste, tampoco aparece su resultado en el grafismo (para no spoilear lo que ves con delay)
+  const bell = () => (db.futbol.bell = db.futbol.bell || {});
+  const wants = m => { const sc = db.futbol.scope; if (m.id === 'test') return true;
+    return sc === 'all' || (sc === 'teams' && (isFav(m.h.team) || isFav(m.a.team))) || !!bell()[m.id]; };
   const esVelez = m => [m.h.team, m.a.team].some(t => norm(t.displayName).includes('velez'));
   function goalAlert(m, side) {
-    if (esVelez(m)) return;   // nunca avisar goles de Vélez: lo ve por la tele (aunque tenga delay) y no hay que spoilear
+    if (!wants(m)) return;
     const team = side === 'h' ? m.h.team : m.a.team;
     { const g0 = [...(m.goals || [])].reverse().find(x => x.team === team.id); try { if (m.id !== 'test') Partido.onGoal(m, team, g0 ? `${g0.who} ${g0.min}` : ''); } catch {} }
-    if (db.futbol.scope === 'none') return;
-    if (db.futbol.scope !== 'all' && !isFav(m.h.team) && !isFav(m.a.team)) return;
     const g = [...m.goals].reverse().find(x => x.team === team.id);
     const who = g ? `${g.who}${g.pen ? ' (penal)' : ''}${g.og ? ' (en contra)' : ''} ${g.min}` : '';
     const line = `${m.h.team.shortDisplayName || m.h.team.displayName} ${m.hs} - ${m.as} ${m.a.team.shortDisplayName || m.a.team.displayName}`;
@@ -117,6 +122,11 @@ const Fulbito = (() => {
     }
   }
 
+  const nm2 = t => t.team.shortDisplayName || t.team.displayName;
+  function stateAlert(m, lbl, line) {
+    Grafismo.notify(`<b>${lbl}</b> ${esc(line)}`, { lbl:lbl.split(' ')[0] + ' PARTIDO', cls:'goal', ms:12000, onclick:() => Nav.go('fulbito') });
+    if (local.notif && !DND.active() && document.hidden && 'Notification' in window && Notification.permission === 'granted') try { new Notification(lbl.replace(/^\S+ /, '') + ': ' + line, { tag:'st' + m.id + m.state }); } catch {}
+  }
   /* ---------- Pantalla ---------- */
   // escudo de cualquier equipo: el de ESPN; si no viene, el del CDN de ESPN por id; si tampoco, uno armado con sus colores e iniciales
   function crest(t) {
@@ -135,7 +145,8 @@ const Fulbito = (() => {
     const ch = m.state !== 'post' ? channelsFor(m) : [];
     const nm = t => t.team.shortDisplayName || t.team.displayName;
     const tv = m.state !== 'post' ? Ver.chips(ch, `${nm(m.h)} vs ${nm(m.a)}`) : '';
-    return `<div class="match ${m.state === 'in' ? 'live' : m.state}">${opt.lg ? `<div class="lgtag">${opt.lgLogo ? `<img src="${esc(opt.lgLogo)}" alt="">` : '🏆'}${esc(opt.lg)}</div>` : ''}<div class="st">${m.state === 'in' ? '● ' : ''}${esc(m.st)}</div>${tm(m.h, 'h')}<div class="sc">${sc}</div>${tm(m.a, 'a')}${gl}${tv}</div>`;
+    const bl = m.state !== 'post' && db.futbol.scope === 'bell' ? `<button class="bell ${bell()[m.id] ? 'on' : ''}" data-bell="${esc(m.id)}" title="Avisarme arranque, goles y final">${bell()[m.id] ? '🔔' : '🔕'}</button>` : '';
+    return `<div class="match ${m.state === 'in' ? 'live' : m.state}">${opt.lg ? `<div class="lgtag">${opt.lgLogo ? `<img src="${esc(opt.lgLogo)}" alt="">` : '🏆'}${esc(opt.lg)}</div>` : ''}<div class="st">${m.state === 'in' ? '● ' : ''}${esc(m.st)}${bl}</div>${tm(m.h, 'h')}<div class="sc">${sc}</div>${tm(m.a, 'a')}${gl}${tv}</div>`;
   }
   function sortM(arr) { const r = m => ({ in:0, pre:1, post:2 }[m.state] ?? 3); return arr.slice().sort((a, b) => r(a) - r(b) || Date.parse(a.date) - Date.parse(b.date)); }
 
@@ -207,14 +218,15 @@ const Fulbito = (() => {
         <span class="sp" style="flex:1"></span><span class="upd" id="fUpd"></span><button id="fRes" title="Reserva (Torneo Proyección)">🌱 Reserva</button><button id="fMap" title="Los estadios de tus ligas en un globo">🌍 Estadios</button><button id="fRef">⟳</button>
       </div>
       <details class="cfg" id="fCfg" ${db.futbol.leagues.length ? '' : 'open'}>
-        <summary>⚙ Elegir ligas y avisos de gol</summary>
+        <summary>⚙ Elegir ligas y avisos (🔔)</summary>
         <div class="box">
           <h2 class="sec">Ligas que querés ver</h2><div class="chips" id="fLigas"></div>
           <h2 class="sec">📺 Tus servicios para ver los partidos</h2><div id="fServ"></div>
           <h2 class="sec">Equipos favoritos</h2><div class="chips" id="fTeams"></div>
           <form id="fTeamForm" class="rsearch" style="margin-bottom:6px"><input id="fTeamIn" placeholder="Agregar equipo (ej: Argentina, Barcelona)"><button>Agregar</button></form>
           <h2 class="sec">Avisos de gol</h2>
-          <label><input type="radio" name="fScope" value="teams"> Solo partidos de mis equipos favoritos</label>
+          <label><input type="radio" name="fScope" value="bell"> Solo los partidos que marco con 🔔 (arranque, goles y final)</label>
+          <label><input type="radio" name="fScope" value="teams"> Partidos de mis equipos favoritos</label>
           <label><input type="radio" name="fScope" value="all"> Todos los partidos de mis ligas</label>
           <label><input type="radio" name="fScope" value="none"> Ninguno</label>
           <label style="margin-top:8px"><input type="checkbox" id="fSound"> Con sonido (en este dispositivo)</label>
@@ -250,13 +262,17 @@ const Fulbito = (() => {
     $('fTeams').onclick = e => { const b = e.target.closest('[data-unfav]'); if (b) { db.futbol.teams = db.futbol.teams.filter(t => t !== b.dataset.unfav); save(); render(); } };
     $('fTeamForm').onsubmit = e => { e.preventDefault(); const t = $('fTeamIn').value.trim(); if (t && !db.futbol.teams.some(x => norm(x) === norm(t))) { db.futbol.teams.push(t); save(); } $('fTeamIn').value = ''; render(); };
     $('fList').onclick = e => {
+      const bb = e.target.closest('[data-bell]');
+      if (bb) { const B = bell(), id = bb.dataset.bell; if (B[id]) delete B[id]; else B[id] = Date.now();
+        for (const k in B) if (Date.now() - B[k] > 4 * 864e5) delete B[k];   // limpio los viejos
+        save(); render(); toast(B[id] ? '🔔 Te aviso el arranque, los goles y el final' : '🔕 Sin avisos de ese partido', { ms:2200 }); return; }
       const b = e.target.closest('[data-fav]'); if (!b) return;
       const name = b.dataset.fav, fake = { displayName:name, shortDisplayName:'' };
       if (isFav(fake)) db.futbol.teams = db.futbol.teams.filter(f => { const a = norm(f), x = norm(name); return !(x.includes(a) || a.includes(x)); });
       else db.futbol.teams.push(name);
       save(); render();
     };
-    v.querySelectorAll('[name=fScope]').forEach(r => r.onchange = () => { db.futbol.scope = r.value; save(); });
+    v.querySelectorAll('[name=fScope]').forEach(r => r.onchange = () => { db.futbol.scope = r.value; save(); render(); });
     $('fSound').onchange = e => { local.sound = e.target.checked; saveLocalPrefs(); if (local.sound) beep(); };
     $('fNotif').onchange = async e => {
       local.notif = e.target.checked; saveLocalPrefs();
@@ -278,13 +294,14 @@ const Fulbito = (() => {
 
   // renglones para la barra que corre abajo en la Pantalla TV
   const ticker = () => Object.values(today).flatMap(L => L.events)
-    .filter(m => !(esVelez(m) && m.state !== 'pre'))   // de Vélez solo el horario, nunca el resultado (sin spoilers)
+    .filter(m => !(esVelez(m) && m.state !== 'pre' && !wants(m)))   // Vélez: el resultado solo si lo elegiste (sin spoilers)
     .filter(m => isFav(m.h.team) || isFav(m.a.team) || (m.state === 'in' && !muted(m.h.team.displayName) && !muted(m.a.team.displayName)))
     .map(m => { const n = t => t.team.shortDisplayName || t.team.displayName;
       const ch = m.state !== 'post' ? channelsFor(m) : [];
       return `⚽ ${n(m.h)} ${m.state === 'pre' ? 'vs' : m.hs + '-' + m.as} ${n(m.a)} ${m.state === 'in' ? '(' + m.st + ')' : m.state === 'pre' ? '· ' + m.st : '(final)'}${ch.length ? ' · 📺 ' + ch[0] : ''}`; });
-  function init() { onChange(() => { if ($('v-fulbito').dataset.built) render(); }); poll().catch(() => {}); loadGuide(); setInterval(loadGuide, 20 * 60e3); }
-  return { today:() => today, channelsFor, soundOn:() => local.sound, init, render, poll, matchRow, todayFor, liveCount, board, simplify, evs, ticker };
+  function init() { if (!db.futbol.bellMig) { db.futbol.bellMig = 1; db.futbol.scope = 'bell'; saveLocal(); }   // ahora los avisos son solo de lo que marcás
+    onChange(() => { if ($('v-fulbito').dataset.built) render(); }); poll().catch(() => {}); loadGuide(); setInterval(loadGuide, 20 * 60e3); }
+  return { wants, today:() => today, channelsFor, soundOn:() => local.sound, init, render, poll, matchRow, todayFor, liveCount, board, simplify, evs, ticker };
 })();
 
 const Reserva = (() => {
