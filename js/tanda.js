@@ -46,7 +46,7 @@ const Tanda = (() => {
     seed();
     Inicio.add({ id:'tanda', order:6, html:() => `<div class="inchips"><button data-tanda>📼 Tanda retro</button></div>`, bind(el) { el.querySelector('[data-tanda]').onclick = () => play(); } });
     $('tvCtl')?.insertAdjacentHTML('beforeend', '<button id="tvTanda" title="Tanda retro">📼</button>'); $('tvTanda') && ($('tvTanda').onclick = () => play());
-    $('setLite')?.closest('label')?.insertAdjacentHTML('afterend', `<label style="display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="setTanda" style="width:auto" ${S.get('tandaAuto', true) ? 'checked' : ''}> 📼 Tanda retro cada ~30 minutos en los canales 24/7</label>`);
+    $('setZfxS')?.closest('label')?.insertAdjacentHTML('afterend', `<label style="display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="setTanda" style="width:auto" ${S.get('tandaAuto', true) ? 'checked' : ''}> 📼 Tanda retro cada ~30 minutos en los canales 24/7</label>`);
     $('setTanda') && ($('setTanda').onchange = e => S.set('tandaAuto', e.target.checked));
   }
   return { init, play, load };

@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=VT323&display=swap">
-<link rel="stylesheet" href="css/app.css?v=101">
+<link rel="stylesheet" href="css/app.css?v=102">
 </head>
 <body>
 <header>
@@ -116,9 +116,42 @@
 </dialog>
 
 <!-- Ajustes -->
-<dialog id="dlgSet">
-  <h3>Ajustes</h3>
-  <label>Clave de YouTube (para saber quién está en vivo o programado)</label>
+<dialog id="dlgSet" class="setdlg">
+  <h3>⚙ Ajustes</h3>
+  <details class="sgrp" open><summary><span>📟</span><b>Este aparato</b><small>modo, pantalla completa, calidad · solo acá</small></summary><div class="sgbody">
+  <label>Este aparato es</label>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><select id="setDevice" style="flex:1"></select></div>
+  <div id="setEdgeRow" style="display:none;align-items:center;gap:8px;color:var(--txt)">Margen por los bordes redondos <input type="range" id="setEdge" min="0" max="48" step="2" style="flex:1"> <b id="setEdgeV"></b></div>
+  <label style="display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="setAutoFs" style="width:auto"> 🖥️ En la compu: pantalla completa (F11) al primer clic</label>
+  <label style="display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="setLite" style="width:auto"> ⚡ Modo liviano (Fire Stick): sin animaciones, video hasta 720p y nada de fondo mientras mirás. Solo en este aparato.</label>
+  <label>Calidad de video</label>
+  <div style="display:flex;gap:8px"><select id="setQuality" style="flex:1"></select><button type="button" id="qMeasure">Medir conexión</button></div>
+  <p id="qInfo" style="margin-top:4px"></p>
+  <p style="margin-top:2px">En Twitch se aplica la calidad elegida. YouTube y Kick ajustan la calidad solos según tu conexión.</p>
+  </div></details>
+  <details class="sgrp"><summary><span>📺</span><b>Pantalla y video</b><small>YouTube sin barra, efecto de tele, grafismo</small></summary><div class="sgbody">
+  <label style="display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="setYtClean" style="width:auto"> 🧼 Ocultar la barra y el título de YouTube (se maneja con los botones de FUNVS)</label>
+  <label style="display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="setZfx" style="width:auto"> 📺 Efecto de tele vieja al cambiar de canal</label>
+  <label style="display:flex;gap:6px;align-items:center;color:var(--txt);margin-left:24px"><input type="checkbox" id="setZfxS" style="width:auto"> con ruido de estática</label>
+  <label style="display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="setHud" style="width:auto"> Mostrar el grafismo FUNVS en las esquinas de la página</label>
+  </div></details>
+  <details class="sgrp"><summary><span>📰</span><b>Noticias y guía</b><small>temas silenciados, grilla desde tu calendario</small></summary><div class="sgbody">
+  <label>🙈 No mostrarme noticias de <small class="mut">(palabras separadas por coma: FUNVS al minuto, Noticias, Último momento)</small></label>
+  <input id="setMute" placeholder="boca, river…" autocomplete="off">
+  <label>🗓 Grilla desde tu calendario <small class="mut">(link iCal secreto · eventos "Canal | Programa")</small></label>
+  <div style="display:flex;gap:8px"><input id="setIcal" type="password" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" style="flex:1" autocomplete="off"><button id="setIcalHelp" type="button">¿Cómo?</button></div>
+  </div></details>
+  <details class="sgrp"><summary><span>🔔</span><b>Avisos</b><small>Telegram, no molestar</small></summary><div class="sgbody">
+  <div class="btns" style="margin-top:8px"><button type="button" id="btnTg">📲 Avisos por Telegram</button></div>
+  <label>🔕 No molestar (en este aparato)</label>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <label style="margin:0;display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="dndSched" style="width:auto"> Activarlo solo de</label>
+    <input type="time" id="dndFrom" style="width:auto"> a <input type="time" id="dndTo" style="width:auto">
+  </div>
+  <p style="margin-top:4px">Con No molestar no salen avisos de goles ni de carreras: se guardan y te los muestro cuando lo desactivás (botón 🔔/🔕 de arriba).</p>
+  </div></details>
+  <details class="sgrp"><summary><span>▶️</span><b>YouTube y cuota</b><small>clave, Me gusta, cada cuánto revisa, cuánto gastaste</small></summary><div class="sgbody">
+  <label>Clave de YouTube <small class="mut">(para saber quién está en vivo o programado)</small></label>
   <input id="setKey" placeholder="AIza..." autocomplete="off">
   <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--mut);font-size:13px">¿Cómo la saco?</summary>
   <ol>
@@ -127,37 +160,16 @@
     <li>En "Credenciales" → "Crear credenciales" → "Clave de API". Copiala y pegala acá.</li>
     <li>Recomendado: en la clave, "Restricciones de aplicaciones" → "Sitios web", y poné la dirección de esta página terminada en <b>/*</b>.</li>
   </ol></details>
-  <div class="btns" style="margin-top:8px"><button type="button" id="btnLikeSetup">👍 Conectar YouTube para dar Me gusta</button><button type="button" id="btnTg">📲 Avisos por Telegram</button></div>
-  <label>Actualizar estados de los canales cada</label>
+  <div class="btns" style="margin-top:8px"><button type="button" id="btnLikeSetup">👍 Conectar YouTube para dar Me gusta</button></div>
+  <label>Revisar quién está en vivo cada</label>
   <select id="setRef">
     <option value="3">3 minutos</option><option value="5">5 minutos</option>
     <option value="10">10 minutos</option><option value="15">15 minutos</option>
   </select>
   <div id="setQuota" class="quota"></div>
-  <label style="display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="setHud" style="width:auto"> Mostrar el grafismo FUNVS en las esquinas de la página</label>
-  <label style="display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="setAutoFs" style="width:auto"> 🖥️ En la compu: pantalla completa (F11) al primer clic</label>
-  <label>🙈 No mostrarme noticias de <small class="mut">(palabras separadas por coma: FUNVS al minuto, Noticias, Último momento)</small></label>
-  <input id="setMute" placeholder="boca, river…" autocomplete="off">
-  <label>🗓 Grilla desde tu calendario <small class="mut">(link iCal secreto · eventos "Canal | Programa")</small></label>
-  <div style="display:flex;gap:8px"><input id="setIcal" type="password" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" style="flex:1" autocomplete="off"><button id="setIcalHelp" type="button">¿Cómo?</button></div>
-  <label>📟 Este aparato es (queda guardado solo acá)</label>
-  <div style="display:flex;gap:8px;flex-wrap:wrap"><select id="setDevice" style="flex:1"></select></div>
-  <div id="setEdgeRow" style="display:none;align-items:center;gap:8px;color:var(--txt)">Margen por los bordes redondos <input type="range" id="setEdge" min="0" max="48" step="2" style="flex:1"> <b id="setEdgeV"></b></div>
-  <label style="display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="setLite" style="width:auto"> ⚡ Modo liviano (Fire Stick): sin animaciones, video hasta 720p y nada de fondo mientras mirás. Solo en este aparato.</label>
-  <label style="display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="setYtClean" style="width:auto"> 🧼 Ocultar la barra y el título de YouTube (se maneja con los botones de FUNVS)</label>
-  <label style="display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="setZfx" style="width:auto"> 📺 Efecto de tele vieja al cambiar de canal</label>
-  <label style="display:flex;gap:6px;align-items:center;color:var(--txt);margin-left:24px"><input type="checkbox" id="setZfxS" style="width:auto"> con ruido de estática</label>
-  <label>Calidad de video (en este dispositivo)</label>
-  <div style="display:flex;gap:8px"><select id="setQuality" style="flex:1"></select><button type="button" id="qMeasure">Medir conexión</button></div>
-  <p id="qInfo" style="margin-top:4px"></p>
-  <p style="margin-top:2px">En Twitch se aplica la calidad elegida. YouTube y Kick ajustan la calidad solos según tu conexión.</p>
-  <label>No molestar (en este dispositivo)</label>
-  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-    <label style="margin:0;display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" id="dndSched" style="width:auto"> Activarlo solo de</label>
-    <input type="time" id="dndFrom" style="width:auto"> a <input type="time" id="dndTo" style="width:auto">
-  </div>
-  <p style="margin-top:4px">Con No molestar no salen avisos de goles ni de carreras: se guardan y te los muestro cuando lo desactivás (botón 🔔/🔕 de arriba).</p>
-  <label>Sincronizar entre dispositivos (token de GitHub)</label>
+  </div></details>
+  <details class="sgrp"><summary><span>🔄</span><b>Sincronización</b><small>que todos tus aparatos tengan lo mismo</small></summary><div class="sgbody">
+  <label>Token de GitHub <small class="mut">(compu, tele y celu con lo mismo)</small></label>
   <input id="setTok" placeholder="ghp_..." autocomplete="off">
   <div class="msg" id="syncState"></div>
   <p style="margin-top:4px">Código de sincronización: <b id="syncCode" style="color:var(--txt);user-select:all"></b></p>
@@ -173,58 +185,59 @@
     <textarea id="setSync" style="margin-top:8px"></textarea>
     <div class="btns" style="margin-top:6px"><button id="btnCopy">Copiar</button><button id="btnImport">Importar lo pegado</button></div>
   </details>
+  </div></details>
   <div class="msg" id="setMsg"></div>
   <div class="btns"><span class="sp"></span><button data-close>Cancelar</button><button class="pri" id="setSave">Guardar</button></div>
 </dialog>
 
-<script src="js/lite.js?v=101"></script>
-<script src="js/core.js?v=101"></script>
-<script src="js/player.js?v=101"></script>
-<script src="js/guia.js?v=101"></script>
-<script src="js/canales.js?v=101"></script>
-<script src="js/radiogrilla.js?v=101"></script>
-<script src="js/radio.js?v=101"></script>
-<script src="js/mapa.js?v=101"></script>
-<script src="js/clasicos.js?v=101"></script>
-<script src="js/retro.js?v=101"></script>
-<script src="js/fulbito.js?v=101"></script>
-<script src="js/actualidad.js?v=101"></script>
-<script src="js/noticias.js?v=101"></script>
-<script src="js/velez.js?v=101"></script>
-<script src="js/calendario.js?v=101"></script>
-<script src="js/motor.js?v=101"></script>
-<script src="js/musica.js?v=101"></script>
-<script src="js/prode.js?v=101"></script>
-<script src="js/momentos.js?v=101"></script>
-<script src="js/stats.js?v=101"></script>
-<script src="js/tv.js?v=101"></script>
-<script src="js/zapping.js?v=101"></script>
-<script src="js/calidad.js?v=101"></script>
-<script src="js/rap.js?v=101"></script>
-<script src="js/diario420.js?v=101"></script>
-<script src="js/time420.js?v=101"></script>
-<script src="js/likes.js?v=101"></script>
-<script src="js/boxeo.js?v=101"></script>
-<script src="js/series.js?v=101"></script>
-<script src="js/f1live.js?v=101"></script>
-<script src="js/resumenes.js?v=101"></script>
-<script src="js/telegram.js?v=101"></script>
-<script src="js/ver.js?v=101"></script>
-<script src="js/juegos.js?v=101"></script>
-<script src="js/inicio.js?v=101"></script>
-<script src="js/humor.js?v=101"></script>
-<script src="js/dia.js?v=101"></script>
-<script src="js/mg.js?v=101"></script>
-<script src="js/reloj.js?v=101"></script>
-<script src="js/buscar.js?v=101"></script>
-<script src="js/avisos.js?v=101"></script>
-<script src="js/partido.js?v=101"></script>
-<script src="js/infobar.js?v=101"></script>
-<script src="js/grafismo.js?v=101"></script>
-<script src="js/control.js?v=101"></script>
-<script src="js/tanda.js?v=101"></script>
-<script src="js/flash420.js?v=101"></script>
-<script src="js/main.js?v=101"></script>
-<script src="js/app.js?v=101"></script>
+<script src="js/lite.js?v=102"></script>
+<script src="js/core.js?v=102"></script>
+<script src="js/player.js?v=102"></script>
+<script src="js/guia.js?v=102"></script>
+<script src="js/canales.js?v=102"></script>
+<script src="js/radiogrilla.js?v=102"></script>
+<script src="js/radio.js?v=102"></script>
+<script src="js/mapa.js?v=102"></script>
+<script src="js/clasicos.js?v=102"></script>
+<script src="js/retro.js?v=102"></script>
+<script src="js/fulbito.js?v=102"></script>
+<script src="js/actualidad.js?v=102"></script>
+<script src="js/noticias.js?v=102"></script>
+<script src="js/velez.js?v=102"></script>
+<script src="js/calendario.js?v=102"></script>
+<script src="js/motor.js?v=102"></script>
+<script src="js/musica.js?v=102"></script>
+<script src="js/prode.js?v=102"></script>
+<script src="js/momentos.js?v=102"></script>
+<script src="js/stats.js?v=102"></script>
+<script src="js/tv.js?v=102"></script>
+<script src="js/zapping.js?v=102"></script>
+<script src="js/calidad.js?v=102"></script>
+<script src="js/rap.js?v=102"></script>
+<script src="js/diario420.js?v=102"></script>
+<script src="js/time420.js?v=102"></script>
+<script src="js/likes.js?v=102"></script>
+<script src="js/boxeo.js?v=102"></script>
+<script src="js/series.js?v=102"></script>
+<script src="js/f1live.js?v=102"></script>
+<script src="js/resumenes.js?v=102"></script>
+<script src="js/telegram.js?v=102"></script>
+<script src="js/ver.js?v=102"></script>
+<script src="js/juegos.js?v=102"></script>
+<script src="js/inicio.js?v=102"></script>
+<script src="js/humor.js?v=102"></script>
+<script src="js/dia.js?v=102"></script>
+<script src="js/mg.js?v=102"></script>
+<script src="js/reloj.js?v=102"></script>
+<script src="js/buscar.js?v=102"></script>
+<script src="js/avisos.js?v=102"></script>
+<script src="js/partido.js?v=102"></script>
+<script src="js/infobar.js?v=102"></script>
+<script src="js/grafismo.js?v=102"></script>
+<script src="js/control.js?v=102"></script>
+<script src="js/tanda.js?v=102"></script>
+<script src="js/flash420.js?v=102"></script>
+<script src="js/main.js?v=102"></script>
+<script src="js/app.js?v=102"></script>
 </body>
 </html>
