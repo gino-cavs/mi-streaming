@@ -1506,3 +1506,9 @@ dialog.setdlg { width:min(640px, 96vw); }
 #zapNum { position:fixed; top:24px; right:28px; z-index:2147483000; background:rgba(0,0,0,.82); border:2px solid #4a7dff; border-radius:14px; padding:10px 18px; display:flex; flex-direction:column; align-items:flex-end; color:#fff; pointer-events:none; }
 #zapNum b { font-size:46px; line-height:1; font-variant-numeric:tabular-nums; } #zapNum span { font-size:16px; font-weight:600; } #zapNum small { color:#aab; font-size:12px; }
 #zapNum.none { border-color:#666; } #zapNum.none span { color:#999; }
+/* 📺 nieve de tele mientras carga el canal */
+.slot .vw > .snow { position:absolute; inset:0; z-index:3; background:#111; pointer-events:none; transition:opacity .3s; }
+.snow canvas { width:100%; height:100%; image-rendering:pixelated; display:block; filter:contrast(1.1); }
+.snow.out { opacity:0; }
+.snosd { position:absolute; top:6%; right:5%; text-align:right; color:#7CFC7C; text-shadow:2px 2px 0 #000, 0 0 8px rgba(0,0,0,.8); font-family:'Courier New', monospace; font-weight:700; }
+.snosd b { display:block; font-size:clamp(28px, 9cqh, 72px); line-height:1; } .snosd span { font-size:clamp(12px, 3.2cqh, 22px); }

@@ -119,6 +119,7 @@ const Player = (() => {
     s.seq = my; s.api = null; s.mutedByApp = false;
     d.classList.remove('mutedbyapp');
     vw.innerHTML = '';
+    snow(vw, s, my);
     const sid = 'slot' + i;
     const setMutedUI = m => { s.mutedByApp = m; d.classList.toggle('mutedbyapp', m); };
 
@@ -129,7 +130,7 @@ const Player = (() => {
         const p = new Twitch.Player(div.id, { channel:s.e.id, parent:[HOST], width:'100%', height:'100%', autoplay:true, muted:false });
         s.api = { destroy() { div.innerHTML = ''; } , p };
         p.addEventListener(Twitch.Player.READY, () => { try { p.setVolume(S.get('vol', 1)); } catch {} if (s.audio) setAudioQuality(s, true); else Calidad.applyTwitch(p); });
-        p.addEventListener(Twitch.Player.PLAY, () => { if (!s.mutedByApp) AudioMgr.focus(sid); });
+        p.addEventListener(Twitch.Player.PLAY, () => { snowOff(s, my); if (!s.mutedByApp) AudioMgr.focus(sid); });
         AudioMgr.register(sid, { mute() { p.setMuted(true); setMutedUI(true); }, unmute() { p.setMuted(false); setMutedUI(false); },
           label:() => s.c.name, live:() => { const x = Canales.status[s.c.uid] || {}; return x.st === 'live' && !x.prem; }, prem:() => !!(Canales.status[s.c.uid] || {}).prem && (Canales.status[s.c.uid] || {}).st === 'live',
           paused:() => p.isPaused(), toggle:() => p.isPaused() ? p.play() : p.pause(),
@@ -144,6 +145,7 @@ const Player = (() => {
         if (s.seq !== my) return;
         const p = new YT.Player(f, { events:{ onStateChange:e => {
           // solo cuenta como "empezó a sonar" si veníamos de pausa/inicio (no al terminar de cargar)
+          if (e.data === 1 || e.data === 2) snowOff(s, my);
           if (e.data === 3) return;
           if (e.data === 1 && last === null) { Calidad.applyYouTube(p); try { p.setVolume(Math.round(S.get('vol', 1) * 100)); } catch {} }   // YouTube recuerda el último volumen (ej. el del despertador): siempre arranca con el tuyo
           if (e.data === 0 && s.c.t247) {          // canal 24/7: termina un video y sigue la grilla
@@ -183,6 +185,7 @@ const Player = (() => {
       // Kick no tiene controles para otras páginas: para silenciar hay que recargar el reproductor
       const f = document.createElement('iframe');
       f.src = s.e.v; f.allow = 'autoplay; fullscreen'; f.allowFullscreen = true; vw.appendChild(f);
+      f.onload = () => setTimeout(() => snowOff(s, my), 1800);   // Kick no avisa cuándo arranca
       AudioMgr.register(sid, {
         mute() { if (!s.mutedByApp) { f.src = s.e.v + '&muted=true'; setMutedUI(true); } },
         unmute() { if (s.mutedByApp) { f.src = s.e.v + '&muted=false'; setMutedUI(false); } }
@@ -190,6 +193,34 @@ const Player = (() => {
       });
       setTimeout(() => AudioMgr.focus(sid), 0);
     }
+  }
+  /* 📺 Mientras carga un canal: "nieve" de tele vieja con el número y el nombre, en vez de pantalla negra */
+  function snow(vw, s, my) {
+    if (s.e.kind === 'none' || s.audio) return;
+    const el = document.createElement('div'); el.className = 'snow';
+    const num = s.c.num ? String(s.c.num).padStart(2, '0') : '';
+    el.innerHTML = `<canvas width="256" height="144"></canvas><div class="snosd">${num ? `<b>${num}</b>` : ''}<span>${esc(s.c.name || '')}</span></div>`;
+    vw.appendChild(el);
+    const cv = el.firstChild, cx = cv.getContext('2d'), img = cx.createImageData(256, 144), px = new Uint32Array(img.data.buffer);
+    let last = 0;
+    const draw = t => {
+      if (!el.isConnected || el.classList.contains('out')) return;
+      if (t - last > 45) {   // ~22 cuadros por segundo: alcanza y no carga la Fire Stick
+        last = t;
+        for (let k = 0; k < px.length; k++) { const v = Math.random() * 255 | 0; px[k] = 0xff000000 | v << 16 | v << 8 | v; }
+        const band = (t / 5) % 170 - 12;   // la franja que baja, como en las teles de tubo
+        for (let y = Math.max(0, band | 0); y < Math.min(144, band + 9); y++) for (let x = 0; x < 256; x++) px[y * 256 + x] = 0xffbdbdbd;
+        cx.putImageData(img, 0, 0);
+      }
+      requestAnimationFrame(draw);
+    };
+    requestAnimationFrame(draw);
+    s.snowT = setTimeout(() => snowOff(s, my), 15000);   // por las dudas: nunca más de 15 s
+  }
+  function snowOff(s, my) {
+    if (s.seq !== my) return; clearTimeout(s.snowT);
+    const el = els[slots.indexOf(s)]?.querySelector('.snow'); if (!el || el.classList.contains('out')) return;
+    el.classList.add('out'); setTimeout(() => el.remove(), 350);
   }
   function setAudioQuality(s, on) {
     const p = s.api && s.api.p; if (!p || !p.setQuality) return;
