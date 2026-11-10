@@ -1506,9 +1506,11 @@ dialog.setdlg { width:min(640px, 96vw); }
 #zapNum { position:fixed; top:24px; right:28px; z-index:2147483000; background:rgba(0,0,0,.82); border:2px solid #4a7dff; border-radius:14px; padding:10px 18px; display:flex; flex-direction:column; align-items:flex-end; color:#fff; pointer-events:none; }
 #zapNum b { font-size:46px; line-height:1; font-variant-numeric:tabular-nums; } #zapNum span { font-size:16px; font-weight:600; } #zapNum small { color:#aab; font-size:12px; }
 #zapNum.none { border-color:#666; } #zapNum.none span { color:#999; }
-/* 📺 nieve de tele mientras carga el canal */
-.slot .vw > .snow { position:absolute; inset:0; z-index:3; background:#111; pointer-events:none; transition:opacity .3s; }
-.snow canvas { width:100%; height:100%; image-rendering:pixelated; display:block; filter:contrast(1.1); }
-.snow.out { opacity:0; }
-.snosd { position:absolute; top:6%; right:5%; text-align:right; color:#7CFC7C; text-shadow:2px 2px 0 #000, 0 0 8px rgba(0,0,0,.8); font-family:'Courier New', monospace; font-weight:700; }
-.snosd b { display:block; font-size:clamp(28px, 9cqh, 72px); line-height:1; } .snosd span { font-size:clamp(12px, 3.2cqh, 22px); }
+/* ⌨️ teclado como control remoto */
+#kbOsd { position:fixed; top:24px; left:50%; transform:translateX(-50%); z-index:2147483000; background:rgba(0,0,0,.8); color:#fff; font-size:22px; font-weight:700; padding:8px 18px; border-radius:12px; border:1px solid #4a7dff; opacity:0; transition:opacity .25s; pointer-events:none; }
+#kbOsd.on { opacity:1; }
+#kbHelp { position:fixed; inset:0; z-index:2147483001; background:rgba(0,0,0,.7); display:grid; place-items:center; }
+#kbHelp > div { background:#0b1530; border:1px solid #4a7dff; border-radius:16px; padding:18px 22px; max-width:560px; width:92vw; color:#fff; }
+#kbHelp h3 { margin:0 0 12px; } #kbHelp small { display:block; margin-top:12px; color:#aab; }
+.kbgrid { display:grid; grid-template-columns:auto 1fr; gap:7px 14px; align-items:center; }
+.kbgrid kbd { justify-self:end; background:#fff; color:#000; border-radius:6px; padding:2px 8px; font:700 13px system-ui; box-shadow:0 2px 0 #4a7dff; white-space:nowrap; }

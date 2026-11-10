@@ -119,7 +119,7 @@ const Player = (() => {
     s.seq = my; s.api = null; s.mutedByApp = false;
     d.classList.remove('mutedbyapp');
     vw.innerHTML = '';
-    snow(vw, s, my);
+    s.loading = true; clearTimeout(s.snowT); s.snowT = setTimeout(() => snowOff(s, my), 15000);   // la nieve del cambio de canal sigue hasta que se ve (máx. 15 s)
     const sid = 'slot' + i;
     const setMutedUI = m => { s.mutedByApp = m; d.classList.toggle('mutedbyapp', m); };
 
@@ -194,33 +194,8 @@ const Player = (() => {
       setTimeout(() => AudioMgr.focus(sid), 0);
     }
   }
-  /* 📺 Mientras carga un canal: "nieve" de tele vieja con el número y el nombre, en vez de pantalla negra */
-  function snow(vw, s, my) {
-    if (s.e.kind === 'none' || s.audio) return;
-    const el = document.createElement('div'); el.className = 'snow';
-    const num = s.c.num ? String(s.c.num).padStart(2, '0') : '';
-    el.innerHTML = `<canvas width="256" height="144"></canvas><div class="snosd">${num ? `<b>${num}</b>` : ''}<span>${esc(s.c.name || '')}</span></div>`;
-    vw.appendChild(el);
-    const cv = el.firstChild, cx = cv.getContext('2d'), img = cx.createImageData(256, 144), px = new Uint32Array(img.data.buffer);
-    let last = 0;
-    const draw = t => {
-      if (!el.isConnected || el.classList.contains('out')) return;
-      if (t - last > 45) {   // ~22 cuadros por segundo: alcanza y no carga la Fire Stick
-        last = t;
-        for (let k = 0; k < px.length; k++) { const v = Math.random() * 255 | 0; px[k] = 0xff000000 | v << 16 | v << 8 | v; }
-        const band = (t / 5) % 170 - 12;   // la franja que baja, como en las teles de tubo
-        for (let y = Math.max(0, band | 0); y < Math.min(144, band + 9); y++) for (let x = 0; x < 256; x++) px[y * 256 + x] = 0xffbdbdbd;
-        cx.putImageData(img, 0, 0);
-      }
-      requestAnimationFrame(draw);
-    };
-    requestAnimationFrame(draw);
-    s.snowT = setTimeout(() => snowOff(s, my), 15000);   // por las dudas: nunca más de 15 s
-  }
   function snowOff(s, my) {
-    if (s.seq !== my) return; clearTimeout(s.snowT);
-    const el = els[slots.indexOf(s)]?.querySelector('.snow'); if (!el || el.classList.contains('out')) return;
-    el.classList.add('out'); setTimeout(() => el.remove(), 350);
+    if (s.seq !== my) return; clearTimeout(s.snowT); s.loading = false;
   }
   function setAudioQuality(s, on) {
     const p = s.api && s.api.p; if (!p || !p.setQuality) return;
@@ -362,18 +337,21 @@ const Player = (() => {
     const fx = document.createElement('div'); fx.className = 'zfx'; fx.style.cssText = box;
     const cv = document.createElement('canvas'); cv.width = 160; cv.height = 90; fx.appendChild(cv); d.appendChild(fx);
     const ctx = cv.getContext('2d'), img = ctx.createImageData(160, 90), t0 = performance.now() - (Lite.on ? 9999 : 0);   // liviano: sin nieve, solo el número
+    let last = 0;
     const snow = now => {
       if (!fx.isConnected) return;
-      for (let k = 0; k < img.data.length; k += 4) { const v = Math.random() * 255 | 0; img.data[k] = img.data[k + 1] = img.data[k + 2] = v; img.data[k + 3] = 255; }
-      ctx.putImageData(img, 0, 0);
-      if (now - t0 < 650) requestAnimationFrame(snow); else { fx.classList.add('out'); setTimeout(() => fx.remove(), 300); }
+      if (now - last > 40) { last = now; for (let k = 0; k < img.data.length; k += 4) { const v = Math.random() * 255 | 0; img.data[k] = img.data[k + 1] = img.data[k + 2] = v; img.data[k + 3] = 255; } ctx.putImageData(img, 0, 0); }
+      // sigue nevando mientras el canal carga (así no queda en negro), y como mínimo el efecto corto de siempre
+      if (now - t0 < 650 || (slots[i]?.loading && now - t0 < 15650)) requestAnimationFrame(snow); else { fx.classList.add('out'); setTimeout(() => fx.remove(), 300); }
     };
     requestAnimationFrame(snow);
     if (p.sound) zapSound();
     const num = c && db.chans.includes(c) ? Canales.numTxt(c) : '';
     const osd = document.createElement('div'); osd.className = 'zosd'; if (vw) osd.style.right = (d.offsetWidth - vw.offsetLeft - vw.offsetWidth) + vw.offsetWidth * 0.05 + 'px';
     osd.innerHTML = `${num ? `<b>${esc(num)}</b>` : ''}<span>${esc((c?.name || '').toUpperCase())}</span>`;
-    d.appendChild(osd); setTimeout(() => osd.classList.add('out'), 2600); setTimeout(() => osd.remove(), 3200);
+    d.appendChild(osd);
+    const osdOut = () => { if (!osd.isConnected) return; if (slots[i]?.loading) return setTimeout(osdOut, 400); osd.classList.add('out'); setTimeout(() => osd.remove(), 600); };
+    setTimeout(osdOut, 2600);   // el número queda mientras carga
   }
   /* ---------- 📡 Seguir el vivo ----------
      A veces YouTube corta el vivo y el canal arranca otro con un video nuevo: el reproductor se quedaba en el viejo.
@@ -421,12 +399,14 @@ const Player = (() => {
   }
   setInterval(remember, 15e3);
 
+  let prevC = null;
   function play(c, opts = {}) {
     if (!c?.humor || c.humor !== 'dormir') document.body.classList.remove('oscuro');
     const r = c.ref?.video && !c.t247 && !c.noResume && opts.start == null && db.resume?.[c.ref.video];
     if (r && r.t > 30) { opts = { ...opts, start:Math.max(0, r.t - 5) }; toast(`⏯ Seguís desde ${Math.floor(r.t / 60)}:${String(r.t % 60).padStart(2, '0')}`, { ms:2500 }); }
     const e = embedOf(c), st = Canales.status[c.uid] || {};
     const target = sel;
+    if (slots[sel]?.c && slots[sel].c.uid !== c.uid && !slots[sel].c.humor) prevC = slots[sel].c;   // para "volver al anterior" (⌫ en el teclado)
     if (opts.start && e.kind === 'youtube') e.v += '&start=' + Math.floor(opts.start);
     clear(sel);
     const liveish = st.st === 'live' || st.st === 'soon' || (c.platform !== 'youtube' && st.st !== 'off');
@@ -444,5 +424,5 @@ const Player = (() => {
   }
   function closeAll() { for (let i = 0; i < 4; i++) clear(i); if (!$('player').classList.contains('tvmode')) $('player').classList.remove('show'); TV.refresh(); }
 
-  return { zapFx, paintActs, build, play, closeAll, embedOf, get layout() { return layout; }, get slots() { return slots; }, get sel() { return sel; } };
+  return { zapFx, paintActs, build, play, closeAll, embedOf, action, setChat, get prev() { return prevC; }, get layout() { return layout; }, get slots() { return slots; }, get sel() { return sel; } };
 })();
