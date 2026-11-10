@@ -1,14 +1,5 @@
-import { writeFile, mkdir } from 'node:fs/promises'; import { execSync } from 'node:child_process';
+import { writeFile, mkdir } from 'node:fs/promises';
 await mkdir('out', { recursive:true });
-const out = {};
-for (const u of ['https://ssl.smn.gob.ar/dpd/zipopendata.php?dato=pron5d', 'https://ssl.smn.gob.ar/dpd/zipopendata.php?dato=tiepre', 'https://ssl.smn.gob.ar/dpd/descarga_opendata.php?file=observaciones/tiepre20261109.txt', 'https://ws.smn.gob.ar/map_items/forecast/1', 'https://ws1.smn.gob.ar/v1/forecast/location/4864', 'https://www.smn.gob.ar/alertas']) {
-  try { const r = await fetch(u, { headers:{ 'User-Agent':'Mozilla/5.0' }, signal:AbortSignal.timeout(25000) }); const b = Buffer.from(await r.arrayBuffer());
-    out[u] = r.status + ' ' + r.headers.get('content-type') + ' ' + b.length;
-    if (u.includes('pron5d') && r.ok) { await writeFile('/tmp/p.zip', b); out.pron = execSync('cd /tmp && unzip -o -q p.zip -d p5 && ls p5 && grep -n -i -A12 "EZEIZA" p5/* | head -40').toString(); }
-    else out[u] += '\n' + b.toString('utf8').slice(0, 600);
-  } catch (e) { out[u] = 'ERR ' + e; }
-}
-// la 2x4 en radio-browser
-const rb = await (await fetch('https://de1.api.radio-browser.info/json/stations/search?name=2x4&country=Argentina&hidebroken=true&order=clickcount&reverse=true&limit=10')).json().catch(() => []);
-out.radios = rb.map(s => [s.name, s.url_resolved, s.codec, s.bitrate, s.lastcheckok, s.clickcount, s.hls].join(' | '));
-await writeFile('out/res.json', JSON.stringify(out, null, 1));
+const u = 'https://api.open-meteo.com/v1/forecast?latitude=-34.8157&longitude=-58.4687&timezone=America/Argentina/Buenos_Aires&forecast_days=2&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m&hourly=temperature_2m,weather_code,precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,uv_index_max&models=ecmwf_ifs025,gfs_seamless,icon_seamless';
+const j = await (await fetch(u)).json();
+await writeFile('out/res.json', JSON.stringify({ err:j.error && j.reason, current:j.current, dailyKeys:Object.keys(j.daily || {}), d:Object.fromEntries(Object.entries(j.daily || {}).map(([k, v]) => [k, v.slice(0, 2)])), hourlyKeys:Object.keys(j.hourly || {}), h:Object.fromEntries(Object.entries(j.hourly || {}).map(([k, v]) => [k, v.slice(0, 3)])) }, null, 1));
