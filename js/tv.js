@@ -247,8 +247,14 @@ const TV = (() => {
     const tag = !s ? '' : s.radio ? 'RADIO' : s.music ? 'MÚSICA' : s.prem && s.prem() ? 'ESTRENO' : s.live && s.live() ? 'EN VIVO' : 'AHORA';
     document.body.classList.toggle('npon', !!name);
     // que el cartel de arriba (con el título del vivo) no tape los botones de Canales / Pantallas
-    { const np = $('tvNp'), pb = document.querySelector('#player.tvmode .pbar'), r = pb && pb.offsetWidth ? pb.getBoundingClientRect() : null;
-      np.style.maxWidth = r && r.top < 120 ? Math.max(160, r.left - np.getBoundingClientRect().left - 16) + 'px' : ''; }
+    // (y si los botones están escondidos, que llegue hasta el logo); la zona segura del video arranca justo debajo del grafismo
+    if ($('player').classList.contains('tvmode')) {
+      const np = $('tvNp'), lg = document.querySelector('#hud .hud-logo'), pb = document.querySelector('#player.tvmode .pbar'), r = pb && pb.offsetWidth && +getComputedStyle(pb).opacity > .1 ? pb.getBoundingClientRect() : null;   // botones a la vista
+      const L = np.getBoundingClientRect().left, edge = r && r.top < 120 && r.width ? r.left : lg ? lg.getBoundingClientRect().left : innerWidth;
+      np.style.maxWidth = Math.max(160, edge - L - 20) + 'px';
+      const bot = Math.max(np.offsetHeight ? np.getBoundingClientRect().bottom : 0, lg ? lg.getBoundingClientRect().bottom + 4 : 0);
+      if (bot) document.documentElement.style.setProperty('--safet', Math.ceil(bot + 6) + 'px');
+    }
     // al lado del canal, el título del vivo de YouTube
     const sc = id?.startsWith?.('slot') ? Player.slots[+id.slice(4)]?.c : null, stc = sc && Canales.status[sc.uid];
     const vtit = tag === 'EN VIVO' && stc?.title && norm(stc.title) !== norm(name) ? stc.title : '';

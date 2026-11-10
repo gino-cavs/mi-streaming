@@ -167,8 +167,11 @@ function startTimer() {
   clearInterval(refTimer);
   // si el día viene gastador, se espacia solo: más de 6.000 → cada 15 min; más de 8.500 → cada 45 min (para no quedarte sin vivos)
   let lastRef = Date.now();
-  refTimer = setInterval(() => { if (document.hidden) return; const t = Canales.quotaTotal(), every = Math.max(db.refresh, t > 8500 ? 45 : t > 6000 ? 15 : 0) * 60e3;
-    if (Date.now() - lastRef >= every - 5e3) { lastRef = Date.now(); Canales.refresh(); } }, db.refresh * 60e3);
+  // en la Fire Stick (liviano) mientras mirás algo también se actualiza, pero cada 15 min como mínimo: así el zapping
+  // no saltea canales que arrancaron después ni la grilla queda vieja
+  const f = () => { if (document.hidden) return; const t = Canales.quotaTotal(), every = Math.max(db.refresh, t > 8500 ? 45 : t > 6000 ? 15 : 0, Lite.on && Lite.busy() ? 15 : 0) * 60e3;
+    if (Date.now() - lastRef >= every - 5e3) { lastRef = Date.now(); Canales.refresh(); } };
+  f.keep = true; refTimer = setInterval(f, db.refresh * 60e3);
 }
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { if (pushTimer) push(); return; }

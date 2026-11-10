@@ -75,7 +75,7 @@ const Reloj = (() => {
     const out = { lines:[], speak:[] }, n = new Date();
     try {
       const q = new URLSearchParams({ latitude:'-34.8157', longitude:'-58.4687', daily:'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max', current:'temperature_2m', forecast_days:'1', timezone:'America/Argentina/Buenos_Aires' });
-      const j = await meteo(q, { signal:AbortSignal.timeout(8000) });
+      const ac = new AbortController(); setTimeout(() => ac.abort(), 8000); const j = await meteo(q, { signal:ac.signal });   // AbortSignal.timeout no existe en WebView viejos
       const c = j.daily.weather_code[0], p = j.daily.precipitation_probability_max[0] ?? 0, mx = Math.round(j.daily.temperature_2m_max[0]), mn = Math.round(j.daily.temperature_2m_min[0]), now = Math.round(j.current.temperature_2m);
       const wet = c >= 95 ? '⛈️ Hoy hay tormentas: llevá paraguas y ojo al salir.' : (p >= 60 || (c >= 51 && c <= 82)) ? `☔ Hoy llueve (${p}%): llevá paraguas.` : '';
       if (wet) { out.lines.push(wet); out.speak.push(wet.replace(/^\S+\s/, '').replace(/\s*\(\d+%\)/, '')); }

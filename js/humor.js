@@ -13,7 +13,7 @@ const Humor = (() => {
     info:   { ic:'📰', n:'Ponerme al día', news:true },
     dormir: { ic:'🌙', n:'Dormir', q:[['sonido de lluvia pantalla negra', 'long'], ['rain sounds black screen 10 hours', 'long'], ['lluvia para dormir pantalla negra', 'long']], dark:true },
   };
-  const comedians = () => (db.humor ||= { comedians:['MattRife'] }).comedians;
+  const comedians = () => (db.humor = db.humor || { comedians:['MattRife'] }).comedians;   // sin ||= (WebView viejos de la Fire Stick)
   const pools = S.get('humorPool', {}), seen = new Set(S.get('humorSeen', []));
   const isoMin = d => { const m = String(d || '').match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/); return m ? (+m[1] || 0) * 60 + (+m[2] || 0) + (+m[3] || 0) / 60 : 0; };
   let cur = null;   // humor que está sonando

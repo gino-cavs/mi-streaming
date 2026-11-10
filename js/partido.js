@@ -134,7 +134,7 @@ const Partido = (() => {
     const orig = Velez.render;
     Velez.render = (...a) => { orig(...a); const v = $('v-velez'); if (v && !v.querySelector('.pvfort')) v.insertAdjacentHTML('afterbegin', '<div class="pvfort"><button class="pri" id="pvFort">🔥 Motivación fortinera</button><span class="mut">videos de la hinchada para la previa</span></div>'); $('pvFort') && ($('pvFort').onclick = motivacion); };
     setInterval(() => { paintHud(); efemTv(); const m = match(); if (m?.state === 'pre' && Date.parse(m.date) - Date.now() < 3 * 3600e3) loadPrevia(m);
-      if (Nav.current === 'inicio' && m && m.state !== 'post' && !document.activeElement?.closest?.('#v-inicio')) Inicio.render(); }, 6e3);
+      if (Nav.current === 'inicio' && !document.body.classList.contains('tvlock') && !document.hidden && m && m.state !== 'post' && !document.activeElement?.closest?.('#v-inicio')) Inicio.render(); }, 6e3);   // no redibujar Ahora si está tapado por la Pantalla TV
     setInterval(() => { const el = $('pvCd'), m = match(); if (el && m?.state === 'pre') el.textContent = left(m.date, true); }, 1000);
     loadEfem();
     paintHud();

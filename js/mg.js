@@ -108,9 +108,11 @@ const MG = (() => {
       <p class="mut" style="font-size:11px;margin-top:10px">Fuentes: Google Noticias, Municipio de Esteban Echeverría, ENRE, Open-Meteo, Wikipedia.</p>`;
   }
 
+  let mgTry = 0;
   /* 📍 en Ahora: lo justo */
   Inicio.add({ id:'mg', order:40, html() {
-    if (!data) { load().then(() => { if (Nav.current === 'inicio') Inicio.render(); }); return ''; }
+    // ojo: si mg.json no carga (sin conexión), NO volver a dibujar Ahora en seguida (eso hacía un bucle infinito que comía el procesador)
+    if (!data) { if (Date.now() - mgTry > 60e3) { mgTry = Date.now(); load().then(d => { if (d && Nav.current === 'inicio') Inicio.render(); }); } return ''; }
     const r = data.trenRoca, rFresh = r?.d && Date.now() - Date.parse(r.d) < 6 * 3600e3 && r.estado === 'mal';
     const L = data.noticias.slice(0, 3), cortes = data.luz?.ok ? [...(data.luz.media || []), ...(data.luz.baja || []), ...(data.luz.programados || [])] : [];
     return `<h2 class="sec">📍 MG News <button class="lnk" data-go="mg" style="font-size:12px;margin-left:8px">ver todo →</button></h2>

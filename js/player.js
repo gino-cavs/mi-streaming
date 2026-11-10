@@ -339,12 +339,14 @@ const Player = (() => {
     const vw = d.querySelector('.vw'), box = vw ? `left:${vw.offsetLeft}px;top:${vw.offsetTop}px;width:${vw.offsetWidth}px;height:${vw.offsetHeight}px` : 'inset:0';
     d.querySelectorAll('.zfx, .zosd').forEach(x => x.remove());
     const fx = document.createElement('div'); fx.className = 'zfx'; fx.style.cssText = box;
-    const cv = document.createElement('canvas'); cv.width = 160; cv.height = 90; fx.appendChild(cv); d.appendChild(fx);
-    const ctx = cv.getContext('2d'), img = ctx.createImageData(160, 90), t0 = performance.now() - (Lite.on ? 9999 : 0);   // liviano: sin nieve, solo el número
+    // liviano (Fire Stick): nieve más gruesa y a menos cuadros, que casi no gasta; así tampoco queda en negro mientras carga
+    const W = Lite.on ? 96 : 160, H = Lite.on ? 54 : 90, FPS = Lite.on ? 80 : 40;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H; fx.appendChild(cv); d.appendChild(fx);
+    const ctx = cv.getContext('2d'), img = ctx.createImageData(W, H), px = new Uint32Array(img.data.buffer), t0 = performance.now();
     let last = 0;
     const snow = now => {
       if (!fx.isConnected) return;
-      if (now - last > 40) { last = now; for (let k = 0; k < img.data.length; k += 4) { const v = Math.random() * 255 | 0; img.data[k] = img.data[k + 1] = img.data[k + 2] = v; img.data[k + 3] = 255; } ctx.putImageData(img, 0, 0); }
+      if (now - last > FPS) { last = now; for (let k = 0; k < px.length; k++) { const v = Math.random() * 255 | 0; px[k] = 0xff000000 | v << 16 | v << 8 | v; } ctx.putImageData(img, 0, 0); }
       // sigue nevando mientras el canal carga (así no queda en negro), y como mínimo el efecto corto de siempre
       if (now - t0 < 650 || (slots[i]?.loading && now - t0 < 15650)) requestAnimationFrame(snow); else { fx.classList.add('out'); setTimeout(() => fx.remove(), 300); }
     };
