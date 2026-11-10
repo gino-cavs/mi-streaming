@@ -98,7 +98,9 @@ const Fulbito = (() => {
     const soon = all.some(m => m.state === 'pre' && Date.parse(m.date) - Date.now() < 20 * 60e3 && Date.parse(m.date) - Date.now() > -3 * 3600e3);
     timer = setTimeout(poll, all.some(m => m.state === 'in') ? 30e3 : soon ? 60e3 : 5 * 60e3);
   }
+  const esVelez = m => [m.h.team, m.a.team].some(t => norm(t.displayName).includes('velez'));
   function goalAlert(m, side) {
+    if (esVelez(m)) return;   // nunca avisar goles de Vélez: lo ve por la tele (aunque tenga delay) y no hay que spoilear
     const team = side === 'h' ? m.h.team : m.a.team;
     { const g0 = [...(m.goals || [])].reverse().find(x => x.team === team.id); try { if (m.id !== 'test') Partido.onGoal(m, team, g0 ? `${g0.who} ${g0.min}` : ''); } catch {} }
     if (db.futbol.scope === 'none') return;
@@ -276,6 +278,7 @@ const Fulbito = (() => {
 
   // renglones para la barra que corre abajo en la Pantalla TV
   const ticker = () => Object.values(today).flatMap(L => L.events)
+    .filter(m => !(esVelez(m) && m.state !== 'pre'))   // de Vélez solo el horario, nunca el resultado (sin spoilers)
     .filter(m => isFav(m.h.team) || isFav(m.a.team) || (m.state === 'in' && !muted(m.h.team.displayName) && !muted(m.a.team.displayName)))
     .map(m => { const n = t => t.team.shortDisplayName || t.team.displayName;
       const ch = m.state !== 'post' ? channelsFor(m) : [];

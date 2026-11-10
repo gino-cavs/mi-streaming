@@ -52,7 +52,7 @@ const Partido = (() => {
   const cumpleTxt = (c, y) => `${esc(c.t)} cumple ${y - c.y}${c.v ? ` (jugó en Vélez ${esc(c.v)})` : ''}`;
   let efShown = S.get('efShown', '');
   function efemTv() {   // en la Pantalla TV, una vez por día, como zócalo
-    const e = efemHoy(), k = new Date().toDateString(); if (!e || efShown === k || !document.body.classList.contains('tvlock') || new Date().getHours() < 11) return;
+    const e = efemHoy(), k = new Date().toDateString(); if (!e || efShown === k || document.hidden || new Date().getHours() < 13) return;   // siempre a las 13
     efShown = k; S.set('efShown', k);
     Grafismo.notify(`<b>💙 Un día como hoy</b>${e.hito ? `<span>${esc(e.hito.y)}: ${esc(e.hito.t.slice(0, 160))}</span>` : ''}${e.cumples.length ? `<small>🎂 ${e.cumples.map(c => cumpleTxt(c, e.y)).join(' · ')}</small>` : ''}`, { ms:12000, onclick:() => Nav.go('velez') });
   }
@@ -101,7 +101,7 @@ const Partido = (() => {
     el.hidden = !show; if (!show) return;
     const lg = t => t.logo ? `<img src="${esc(t.logo)}" alt="">` : '';
     const cd = () => { const s = Math.max(0, Math.round((Date.parse(m.date) - Date.now()) / 1e3)); return `faltan ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
-    el.innerHTML = `${lg(m.h.team)}<b>${esc(short(m.h.team))}</b><span class="hs-n">${m.state === 'pre' ? 'vs' : m.hs + ' - ' + m.as}</span><b>${esc(short(m.a.team))}</b>${lg(m.a.team)}<i>${m.state === 'pre' ? cd() : esc(m.st)}</i>`;
+    el.innerHTML = `${lg(m.h.team)}<b>${esc(short(m.h.team))}</b><span class="hs-n">vs</span><b>${esc(short(m.a.team))}</b>${lg(m.a.team)}<i>${m.state === 'pre' ? cd() : 'EN JUEGO'}</i>`;
     // Mientras tanto: los otros partidos de la fecha
     const mt = $('hudMt'); if (!mt) return;
     let others = []; try { others = (Fulbito.today()[m.lg]?.events || []).filter(x => x.id !== m.id && x.state !== 'pre'); } catch {}

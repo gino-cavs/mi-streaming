@@ -245,10 +245,13 @@ const TV = (() => {
     const name = s && s.label ? s.label() : '';
     const tag = !s ? '' : s.radio ? 'RADIO' : s.music ? 'MÚSICA' : s.prem && s.prem() ? 'ESTRENO' : s.live && s.live() ? 'EN VIVO' : 'AHORA';
     document.body.classList.toggle('npon', !!name);
-    const key = tag + '|' + name;
+    // al lado del canal, el título del vivo de YouTube
+    const sc = id?.startsWith?.('slot') ? Player.slots[+id.slice(4)]?.c : null, stc = sc && Canales.status[sc.uid];
+    const vtit = tag === 'EN VIVO' && stc?.title && norm(stc.title) !== norm(name) ? stc.title : '';
+    const key = tag + '|' + name + '|' + vtit;
     if (key !== lastNp && (!npBusy || key !== npKey)) { npBusy = false;          // cuando cambia lo que suena, el zócalo entra animado
       lastNp = key;
-      $('tvNp').innerHTML = name ? `<span class="hud-tag ${tag === 'EN VIVO' ? 'live' : ''}">${tag === 'EN VIVO' ? '● ' : ''}${tag}</span><span class="hud-name">${esc(name)}</span>` : '';
+      $('tvNp').innerHTML = name ? `<span class="hud-tag ${tag === 'EN VIVO' ? 'live' : ''}">${tag === 'EN VIVO' ? '● ' : ''}${tag}</span><span class="hud-name">${esc(name)}${vtit ? `<em>${esc(vtit)}</em>` : ''}</span>` : '';
       $('npHead').innerHTML = $('tvNp').innerHTML;
       [$('tvNp'), $('npHead')].forEach(x => { x.classList.remove('in'); void x.offsetWidth; x.classList.add('in'); });
       refresh();
@@ -290,7 +293,7 @@ const TV = (() => {
       if (id === 'radio' && Radio.current) { const n = RadioGrilla.nowNext(Radio.current); return n.now || n.next ? n : null; }
       if (!id.startsWith('slot')) return null;
       const c = Player.slots[+id.slice(4)]?.c; if (!c) return null;
-      if (c.t247) { const n = T247any.now(c.t247); return n ? { now:{ name:n.t }, next:n.next && { name:n.next.t, s:new Date(Date.now() + n.left * 1000) } } : null; }
+      if (c.t247) { const n = T247any.now(c.t247); return n ? { now:{ name:n.t }, left:n.left * 1000, next:n.next && { name:n.next.t, s:new Date(Date.now() + n.left * 1000) } } : null; }
       const n = Guia.nowNext(c); return n.now || n.next ? n : null;
     } catch { return null; }
   }
@@ -301,8 +304,11 @@ const TV = (() => {
     const put = (tag, name) => { [$('tvNp'), $('npHead')].forEach(x => { if (!x) return; x.innerHTML = `<span class="hud-tag nx">${tag}</span><span class="hud-name">${esc(name)}</span>`; x.classList.remove('in'); void x.offsetWidth; x.classList.add('in'); }); };
     const wait = ms => new Promise(r => setTimeout(r, ms));
     const alive = () => npBusy && npKey === my;   // si cambiás de canal en el medio, se corta
-    if (nn.now?.name) { put('AHORA', nn.now.name); await wait(7000); if (!alive()) return; }
-    if (nn.next?.name) { put(`A CONTINUACIÓN${nn.next.s ? ' · ' + hmm(nn.next.s) : ''}`, nn.next.name); await wait(7000); if (!alive()) return; }
+    // con horario: los primeros 30 min "ARRANCÓ HACE X MIN"; los últimos 30, "A CONTINUACIÓN"; en el medio, solo el canal
+    const t = Date.now(), N = nn.now, X = nn.next, M = 30 * 60e3;
+    const ini = N?.s ? t - N.s : null, fin = N?.e ? N.e - t : nn.left != null ? nn.left : null;
+    if (N?.name && ini != null && ini < M) { const m = Math.max(1, Math.round(ini / 60e3)); put(`ARRANCÓ HACE ${m} MIN`, N.name); await wait(8000); if (!alive()) return; }
+    else if (X?.name && fin != null && fin < M) { put(`A CONTINUACIÓN${X.s ? ' · ' + hmm(X.s) : ''}`, X.name); await wait(8000); if (!alive()) return; }
     npBusy = false; lastNp = ''; tick();   // vuelve a mostrar el canal
   }
   /* 🐶 Fotos de Vaca en el logo: van pasando (Ajustes → Fotos de Vaca) */
@@ -314,6 +320,6 @@ const TV = (() => {
     document.querySelectorAll('img.pet').forEach(im => { im.classList.add('swap'); setTimeout(() => { im.src = L[petI]; im.onload = () => im.classList.remove('swap'); setTimeout(() => im.classList.remove('swap'), 900); }, 450); });
   }
   setInterval(petTick, 12000);
-  setInterval(npCycle, 50000);
+  setInterval(npCycle, 40000);
   return { build, open, close, refresh, setOn, pets, get on() { return on; } };
 })();

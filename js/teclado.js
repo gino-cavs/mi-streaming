@@ -5,7 +5,7 @@ const Teclado = (() => {
     ['↑ ↓', 'Canal siguiente / anterior'], ['⌫', 'Volver al canal que veías antes'], ['3 5 Enter', 'Ir al canal 35'],
     ['← →', 'Atrasar / adelantar 10 segundos'], ['Fin', 'Volver al vivo'], ['Espacio', 'Pausa / seguir'],
     ['M', 'Silenciar'], ['+ −', 'Subir / bajar volumen'], ['F', 'Pantalla completa'], ['T', 'Pantalla TV'],
-    ['L', 'Lista de canales'], ['I', 'Qué están dando'], ['C', 'Chat'], ['A', 'Solo audio'], ['S', 'Guardar momento ⭐'],
+    ['L', 'Lista de canales'], ['I', 'Qué están dando'], ['C', 'Chat'], ['A', 'Solo audio'], ['S', 'Guardar momento ⭐'], ['Z', 'Apagado automático: 15 / 30 / 60 / 90 min'],
     ['H  o  ?', 'Esta ayuda'], ['Esc', 'Cerrar / salir de pantalla completa'],
   ];
   const slotI = () => { const i = Player.slots[Player.sel] ? Player.sel : Player.slots.findIndex(Boolean); return i; };
@@ -55,6 +55,7 @@ const Teclado = (() => {
       case 'c': { const i = slotI(); if (i < 0) return; done(); return Player.action(i, 'chat'); }
       case 'a': { const i = slotI(); if (i < 0) return; done(); Player.action(i, 'audio'); return osd(Player.slots[i].audio ? '🎧 Solo audio' : '📺 Con video'); }
       case 's': { const i = slotI(); if (i < 0) return; done(); return Player.action(i, 'star'); }
+      case 'z': done(); return Zocalos.cycle();
       case 'h': case '?': done(); return help(true);
     }
   }
