@@ -27,26 +27,29 @@ function make247(C) {
   async function fetchVids(ch) {
     if (busy[ch.id]) return; busy[ch.id] = true;
     try {
-      let list = ch.kind === 'playlist' ? ch.ref : ch.uploads;
-      if (!list) {
+      let list = ch.kind === 'playlist' ? ch.ref : ch.kind === 'multi' ? (ch.refs || [])[0] : ch.uploads;
+      if (!list && ch.kind !== 'multi') {
         const j = await Canales.yt('channels', { part:'snippet,contentDetails', ...(ch.channelId ? { id:ch.channelId } : { forHandle:ch.handle }) });
         const x = j.items?.[0]; if (!x) throw new Error('No encontré el canal');
         ch.channelId = x.id; ch.uploads = list = x.contentDetails.relatedPlaylists.uploads;
         if (!ch.name) ch.name = x.snippet.title;
       }
-      const ids = []; let token = '', pages = 0;
-      do {
-        const j = await Canales.yt('playlistItems', { part:'contentDetails', playlistId:list, maxResults:50, ...(token ? { pageToken:token } : {}) });
-        (j.items || []).forEach(i => i.contentDetails?.videoId && ids.push(i.contentDetails.videoId));
-        token = j.nextPageToken; pages++;
-      } while (token && pages < 20);
+      const ids = [];
+      for (const pl of ch.kind === 'multi' ? (ch.refs || []) : [list]) {   // 'multi': varias playlists juntas (ej. todas las tandas mezcladas)
+        let token = '', pages = 0;
+        do {
+          const j = await Canales.yt('playlistItems', { part:'contentDetails', playlistId:pl, maxResults:50, ...(token ? { pageToken:token } : {}) });
+          (j.items || []).forEach(i => i.contentDetails?.videoId && ids.push(i.contentDetails.videoId));
+          token = j.nextPageToken; pages++;
+        } while (token && pages < 20);
+      }
       const vids = [];
       for (let i = 0; i < ids.length; i += 50) {
         const j = await Canales.yt('videos', { part:'snippet,contentDetails,status', id:ids.slice(i, i + 50).join(',') });
         (j.items || []).forEach(v => {
           const d = secs(v.contentDetails.duration);
           // sin vivos, sin shorts y solo los que se pueden ver fuera de YouTube
-          if (d >= 70 && v.snippet.liveBroadcastContent === 'none' && v.status?.embeddable !== false) vids.push({ v:v.id, t:v.snippet.title, d });
+          if ((d >= 70 || (ch.tandasMix && d >= 5)) && v.snippet.liveBroadcastContent === 'none' && v.status?.embeddable !== false) vids.push({ v:v.id, t:v.snippet.title, d });
         });
       }
       if (!vids.length) throw new Error('No encontré videos que se puedan pasar');
@@ -76,8 +79,9 @@ function make247(C) {
     }
     return { ...a[0], off:0, left:a[0].d, next:a[1] || a[0] };
   }
-  function play(id) {
-    const ch = SR().chans.find(x => x.id === id), n = now(id);
+  async function play(id) {
+    const ch = SR().chans.find(x => x.id === id); let n = now(id);
+    if (ch && !n && !busy[id]) { toast('<b>Cargando ' + esc(ch.name) + '…</b>', { cls:'info' }); await fetchVids(ch); n = now(id); }
     if (!ch || !n) { toast('<b>Este canal todavía no tiene videos cargados</b><small>Esperá unos segundos y probá de nuevo.</small>', { cls:'info' }); return; }
     Player.play({ uid:C.uidp + id, platform:'youtube', ref:{ video:n.v }, name:ch.name, t247:id }, { start:n.off });
   }
@@ -158,10 +162,26 @@ function make247(C) {
   }
 
   /* ---------- Diálogos ---------- */
+  // links de un canal, para mostrarlos al editar
+  const plUrl = r => 'youtube.com/playlist?list=' + r;
+  const links = c => c.links || (c.kind === 'multi' ? (c.refs || []).map(plUrl) : c.kind === 'playlist' ? [plUrl(c.ref)] : [c.handle ? 'youtube.com/' + c.handle : 'youtube.com/channel/' + c.channelId]);
+  // de varios links a una fuente: si es uno solo queda igual que antes; si son varios, 'multi' con las playlists (los canales usan sus subidas)
+  async function srcFrom(raw) {
+    const lines = raw.split(/[\n\s]+/).map(x => x.trim()).filter(Boolean);
+    const xs = lines.map(parseSrc); if (!xs.length || xs.some(x => !x)) return null;
+    if (xs.length === 1) return { ...xs[0], links:lines };
+    const refs = [];
+    for (const x of xs) {
+      if (x.kind === 'playlist') { refs.push(x.ref); continue; }
+      const j = await Canales.yt('channels', { part:'contentDetails', ...(x.channelId ? { id:x.channelId } : { forHandle:x.handle }) });
+      const up = j.items?.[0]?.contentDetails?.relatedPlaylists?.uploads; if (!up) throw new Error('No encontré el canal ' + (x.handle || x.channelId)); refs.push(up);
+    }
+    return { kind:'multi', refs:[...new Set(refs)], links:lines };
+  }
   function openCh(id) {
     editing = id ? SR().chans.find(c => c.id === id) : null;
     $(P + 'scTitle').textContent = editing ? 'Editar canal 24/7' : 'Nuevo canal 24/7';
-    $(P + 'scUrl').value = ''; $(P + 'scUrl').disabled = !!editing; $(P + 'scName').value = editing ? editing.name : '';
+    $(P + 'scUrl').value = editing ? links(editing).join('\n') : ''; $(P + 'scUrl').disabled = !!editing?.tandasMix; $(P + 'scName').value = editing ? editing.name : '';
     $(P + 'scGroup').innerHTML = SR().groups.map(g => `<option ${(editing ? editing.group : grp) === g ? 'selected' : ''}>${esc(g)}</option>`).join('');
     $(P + 'scSec').innerHTML = Object.values(T247).map(t => `<option value="${t.key}" ${t.key === SEC ? 'selected' : ''}>${esc(t.label())}</option>`).join('');
     $(P + 'scDel').style.display = editing ? '' : 'none'; $(P + 'scMsg').textContent = '';
@@ -188,7 +208,7 @@ function make247(C) {
   function init() {
     document.body.insertAdjacentHTML('beforeend', `
       <dialog id="${P}dlgSr"><h3 id="${P}scTitle">Nuevo canal 24/7</h3>
-        <label>Link del canal o playlist de YouTube</label><input id="${P}scUrl" placeholder="youtube.com/@canal  ·  youtube.com/playlist?list=…">
+        <label>Links de canales o playlists de YouTube <small style="opacity:.7">(uno por renglón, podés poner varios y se mezclan)</small></label><textarea id="${P}scUrl" rows="3" style="width:100%;resize:vertical" placeholder="youtube.com/playlist?list=…&#10;youtube.com/@canal&#10;otra playlist…"></textarea>
         <label>Nombre del canal (opcional)</label><input id="${P}scName" placeholder="Ej: Policías en Acción 24/7">
         <label>Apartado</label><select id="${P}scGroup"></select>
         <label>Sección</label><select id="${P}scSec"></select>
@@ -208,15 +228,25 @@ function make247(C) {
     $(P + 'scDel').onclick = () => { SR().chans = SR().chans.filter(c => c !== editing); delete cache[editing.id]; saveCache(); save(); $(P + 'dlgSr').close(); render(); };
     $(P + 'scSave').onclick = async () => {
       const m = $(P + 'scMsg');
+      if (editing && !editing.tandasMix && $(P + 'scUrl').value.trim() && $(P + 'scUrl').value.trim() !== links(editing).join('\n')) {   // cambiaron los links: vuelvo a leer
+        let x; try { x = await srcFrom($(P + 'scUrl').value); } catch (e) { m.className = 'msg err'; m.textContent = e.message; return; }
+        if (!x) { m.className = 'msg err'; m.textContent = 'Hay un renglón que no es un link de canal o playlist de YouTube.'; return; }
+        const test = { ...editing, kind:undefined, ref:undefined, refs:undefined, uploads:undefined, channelId:undefined, handle:undefined, ...x, id:editing.id + '_t' };
+        m.className = 'msg'; m.textContent = 'Leyendo los videos…'; await fetchVids(test);
+        if (!cache[test.id]) { m.className = 'msg err'; m.textContent = test.err || 'No se pudo leer.'; return; }
+        ['kind', 'ref', 'refs', 'uploads', 'channelId', 'handle', 'links'].forEach(k => delete editing[k]); Object.assign(editing, x, test.uploads ? { uploads:test.uploads, channelId:test.channelId } : {});
+        cache[editing.id] = cache[test.id]; delete cache[test.id]; delete cache[editing.id].ordId; saveCache();
+        toast(`<b>${esc(editing.name)}</b><small>${cache[editing.id].vids.length} videos en rotación</small>`, { ms:3000 });
+      }
       if (editing) {
         editing.name = $(P + 'scName').value.trim() || editing.name; editing.group = $(P + 'scGroup').value;
         const to = $(P + 'scSec').value;
         if (to && to !== SEC && T247[to]) { SR().chans = SR().chans.filter(c => c !== editing); T247[to].adopt(editing, cache[editing.id]); delete cache[editing.id]; saveCache(); toast(`Movido a ${esc(T247[to].label())}`, { ms:3000 }); }
         save(); $(P + 'dlgSr').close(); render(); Zap.render(); return;
       }
-      const x = parseSrc($(P + 'scUrl').value);
-      if (!x) { m.className = 'msg err'; m.textContent = 'Pegá el link de un canal (youtube.com/@canal) o de una playlist.'; return; }
       if (!db.key) { m.className = 'msg err'; m.textContent = 'Primero cargá la clave de YouTube en ⚙.'; return; }
+      let x; try { x = await srcFrom($(P + 'scUrl').value); } catch (e) { m.className = 'msg err'; m.textContent = e.message; return; }
+      if (!x) { m.className = 'msg err'; m.textContent = 'Pegá links de canales (youtube.com/@canal) o de playlists, uno por renglón.'; return; }
       const ch = { id:uid(), name:$(P + 'scName').value.trim(), group:$(P + 'scGroup').value, ...x };
       m.className = 'msg'; m.textContent = 'Leyendo los videos del canal…';
       await fetchVids(ch);
@@ -231,8 +261,9 @@ function make247(C) {
   // recibir un canal que viene de otra sección 24/7
   function adopt(ch, c) { ch.group = SR().groups[0]; SR().chans.push(ch); if (c) { cache[ch.id] = c; saveCache(); } }
   const owns = id => SR().chans.some(c => c.id === id);
+  const forget = id => { delete cache[id]; saveCache(); };   // volver a leer los videos de un canal
   const setTitle = t => { const s = SR(); const m = t.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u); if (m) { s.icon = m[1]; s.title = m[2] || s.title; } else s.title = t; save(); };
-  const api = { key:SEC, init, render, play, now, nextFor, randomFor, adopt, owns, setTitle, label:() => `${SR().icon} ${SR().title}`, get chans() { return SR().chans; }, uidp:C.uidp };
+  const api = { key:SEC, init, render, play, now, nextFor, randomFor, adopt, owns, forget, setTitle, label:() => `${SR().icon} ${SR().title}`, get chans() { return SR().chans; }, uidp:C.uidp };
   T247[SEC] = api; return api;
 }
 const Series = make247({ key:'series', p:'', title:'Series', icon:'📼', uidp:'s247_', sub:'Canales 24/7: capítulos al azar sin parar, como un canal en vivo.', ej:'(por ejemplo, el de Policías en Acción)' });

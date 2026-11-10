@@ -40,7 +40,7 @@ const Tanda = (() => {
   // en los 24/7 (nunca en los vivos): cada ~30 minutos de mirar, una tanda de 2-3 publicidades; lo que mirabas queda en pausa y sigue al volver
   setInterval(() => {
     if (!S.get('tandaAuto', true)) return;
-    const c = Player.slots[Player.sel]?.c, playing = c?.t247 && !document.hidden && AudioMgr.sink('slot' + Player.sel)?.paused?.() === false;
+    const c = Player.slots[Player.sel]?.c, playing = c?.t247 && c.t247 !== mixCh()?.id && !document.hidden && AudioMgr.sink('slot' + Player.sel)?.paused?.() === false;
     if (!playing) { if (!c?.t247) lastT247 = 0; return; }
     if (!lastT247) lastT247 = Date.now();
     if (Date.now() - lastT247 > 30 * 60e3) { lastT247 = Date.now(); play(2 + Math.floor(Math.random() * 2), true); }
@@ -52,13 +52,28 @@ const Tanda = (() => {
     if (!db.series.chans.some(c => c.ref === PL)) db.series.chans.push({ id:uid(), name:'Tandas retro 2000s', group:(db.series.groups || ['Series'])[0], kind:'playlist', ref:PL });
     save();
   }
+  /* 🔀 Todas las tandas mezcladas como un canal 24/7 (se actualiza solo cuando cambiás la lista) */
+  const mixCh = () => (db.series?.chans || []).find(c => c.tandasMix);
+  function syncMix() {
+    const ch = mixCh(); if (!ch) return;
+    const refs = lists().filter(t => t.on !== false).map(t => t.ref);
+    if (JSON.stringify(refs) !== JSON.stringify(ch.refs || [])) { ch.refs = refs; save(); try { Series.forget(ch.id); } catch {} }
+  }
+  function makeMix() {
+    if (!lists().some(t => t.on !== false)) return toast('<b>Primero cargá alguna playlist de tandas</b>', { cls:'info' });
+    db.series = db.series || {}; db.series.chans = db.series.chans || [];
+    let ch = mixCh();
+    if (!ch) { ch = { id:uid(), name:'📼 Todas las tandas', group:(db.series.groups || ['Series'])[0], kind:'multi', refs:[], tandasMix:true }; db.series.chans.push(ch); }
+    syncMix(); save();
+    toast(`<b>🔀 "${esc(ch.name)}" listo</b><small>Todas tus tandas mezcladas, sin parar. Está en 24/7 → Series.</small>`, { ms:4500, onclick:() => Nav.go('series') });
+  }
   /* 📼 24/7 → Tandas: tus playlists de publicidades (las usan el botón Tanda retro y las tandas automáticas de los 24/7) */
   const plId = t => (String(t).match(/[?&]list=([\w-]+)/) || [])[1] || (/^(PL|UU|OL|FL|RD)[\w-]{10,}$/.test(String(t).trim()) ? String(t).trim() : null);
   async function render() {
     const v = $('v-tandas'); if (!v) return;
     const L = lists();
     v.innerHTML = `<div class="porhero"><div class="porlogo">📼</div><div><h2>Tandas retro</h2><p>Tus playlists de publicidades argentinas. De acá salen el botón 📼 Tanda retro y las tandas que cortan los canales 24/7 cada ~30 minutos.</p>
-        <div class="btns"><button class="pri" id="tdPlay">▶ Ver una tanda</button><label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="tdAuto" style="width:auto" ${S.get('tandaAuto', true) ? 'checked' : ''}> Tandas automáticas en los 24/7</label></div></div></div>
+        <div class="btns"><button class="pri" id="tdPlay">▶ Ver una tanda</button><button id="tdMix">🔀 ${mixCh() ? 'Ver todas mezcladas (24/7)' : 'Todas mezcladas como canal 24/7'}</button><label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="tdAuto" style="width:auto" ${S.get('tandaAuto', true) ? 'checked' : ''}> Tandas automáticas en los 24/7</label></div></div></div>
       <h2 class="sec">Tus playlists de tandas</h2>
       <div class="tdlist">${L.length ? '' : '<div class="empty">Todavía no cargaste ninguna. Pegá abajo el link de una playlist de YouTube.</div>'}${L.map((t, i) => `<div class="tdrow ${t.on === false ? 'off' : ''}"><label><input type="checkbox" data-on="${i}" ${t.on !== false ? 'checked' : ''} style="width:auto"></label>
         <div><b>${esc(t.name)}</b><small>${cache[t.ref]?.l?.length ? cache[t.ref].l.length + ' publicidades' : 'todavía sin cargar'} · <a href="https://www.youtube.com/playlist?list=${esc(t.ref)}" target="_blank" rel="noopener">ver en YouTube ↗</a></small></div>
@@ -66,16 +81,17 @@ const Tanda = (() => {
       <h2 class="sec">➕ Agregar una playlist</h2>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="tdUrl" placeholder="Link de la playlist de YouTube (…list=PL…)" style="flex:2;min-width:240px"><input id="tdName" placeholder="Nombre (ej. Tandas 90s)" style="flex:1;min-width:160px"><button class="pri" id="tdAdd">Agregar</button></div>`;
     $('tdPlay').onclick = () => play();
+    $('tdMix').onclick = () => { const ch = mixCh(); if (ch) { syncMix(); Series.play(ch.id); } else { makeMix(); render(); } };
     $('tdAuto').onchange = e => { S.set('tandaAuto', e.target.checked); if ($('setTanda')) $('setTanda').checked = e.target.checked; };
-    v.querySelectorAll('[data-on]').forEach(c => c.onchange = () => { L[+c.dataset.on].on = c.checked; save(); render(); });
-    v.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { const t = L[+b.dataset.del]; if (!confirm(`¿Quitar "${t.name}"?`)) return; L.splice(+b.dataset.del, 1); save(); render(); });
+    v.querySelectorAll('[data-on]').forEach(c => c.onchange = () => { L[+c.dataset.on].on = c.checked; save(); syncMix(); render(); });
+    v.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { const t = L[+b.dataset.del]; if (!confirm(`¿Quitar "${t.name}"?`)) return; L.splice(+b.dataset.del, 1); save(); syncMix(); render(); });
     v.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => { const t = L[+b.dataset.ch]; db.series = db.series || {}; db.series.chans = db.series.chans || [];
       if (db.series.chans.some(c => c.ref === t.ref)) return toast('Ya está como canal 24/7', { ms:2500 });
       db.series.chans.push({ id:uid(), name:'📼 ' + t.name, group:(db.series.groups || ['Series'])[0], kind:'playlist', ref:t.ref }); save(); toast(`<b>📺 "${esc(t.name)}" ya es un canal 24/7</b><small>Lo encontrás en 24/7 → Series.</small>`, { ms:4000 }); });
     $('tdAdd').onclick = async () => {
       const ref = plId($('tdUrl').value); if (!ref) return toast('<b>No encontré una playlist en ese link</b><small>Tiene que tener "list=" en la dirección.</small>', { cls:'info' });
       if (L.some(t => t.ref === ref)) return toast('Esa playlist ya está', { ms:2500 });
-      L.push({ ref, name:$('tdName').value.trim() || 'Tandas ' + (L.length + 1), on:true }); save();
+      L.push({ ref, name:$('tdName').value.trim() || 'Tandas ' + (L.length + 1), on:true }); save(); syncMix();
       const n = (await one(ref)).length; render();
       toast(n ? `<b>📼 Lista: ${n} publicidades</b><small>Ya entran en las tandas.</small>` : '<b>La agregué, pero no pude leerla</b><small>Revisá que sea pública o "no listada".</small>', { ms:4000, cls:n ? '' : 'info' });
     };
