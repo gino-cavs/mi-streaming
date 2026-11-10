@@ -238,6 +238,29 @@ setInterval(() => DND.paint(), 60e3);
 
 /* ---------- Avisos ---------- */
 function warn(t) { $('warns').innerHTML = `<div class="warn">${esc(t)}<button onclick="this.parentNode.remove()">OK</button></div>`; }
+/* ⛅ Clima: Open-Meteo combinando tres modelos (ECMWF europeo, GFS de EE.UU. e ICON alemán) y promediándolos.
+   El promedio de varios modelos suele acertar más que uno solo. Si algo falla, cae al pronóstico normal de Open-Meteo. */
+const METEO_MODELS = ['ecmwf_ifs025', 'gfs_seamless', 'icon_seamless'];
+async function meteo(q, opts = {}) {
+  const base = 'https://api.open-meteo.com/v1/forecast?';
+  const p = new URLSearchParams(q);
+  try {
+    p.set('models', METEO_MODELS.join(','));
+    const j = await (await fetch(base + p, opts)).json(); if (j.error) throw 0;
+    for (const sec of ['current', 'hourly', 'daily']) {
+      const want = (p.get(sec) || '').split(',').filter(Boolean), o = j[sec]; if (!o) continue;
+      for (const k of want) {
+        const vals = METEO_MODELS.map(m => o[k + '_' + m]).filter(v => v != null && !(Array.isArray(v) && v.every(x => x == null)));
+        if (!vals.length) continue;
+        const pick = /weather_code|sunrise|sunset/.test(k);
+        const avg = arr => { const n = arr.filter(x => typeof x === 'number'); return n.length ? Math.round(n.reduce((a, x) => a + x, 0) / n.length * 10) / 10 : (arr.find(x => x != null) ?? null); };
+        o[k] = Array.isArray(vals[0]) ? vals[0].map((_, i) => pick ? (vals.map(v => v[i]).find(x => x != null) ?? null) : avg(vals.map(v => v[i]))) : (pick ? vals[0] : avg(vals));
+      }
+    }
+    if (!j.current?.temperature_2m && p.get('current')) throw 0;
+    j._models = METEO_MODELS; return j;
+  } catch { p.delete('models'); return (await fetch(base + p, opts)).json(); }
+}
 /* 🙈 Temas silenciados en las noticias (FUNVS al minuto, Noticias, Último momento, Actualidad). Se editan en ⚙ Ajustes. */
 const MUTE_DEF = ['boca', 'river', 'xeneize', 'millonario', 'millonarios', 'riquelme', 'bombonera'];
 function muted(text) {

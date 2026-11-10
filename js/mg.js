@@ -19,7 +19,7 @@ const Franja = (() => {
     tarde:['dia', 'vivo', 'futbol', 'seguir', 'mg', 'humor'],
     noche:['dia', 'humor', 'seguir', 'vivo', 'tanda', 'mg'],
   };
-  const SUG = { madrugada:'dormir', manana:'info', mediodia:'info', tarde:'reir', noche:'porteno' };
+  const SUG = { madrugada:'dormir', manana:'info', mediodia:'info', tarde:'reir', noche:'cansado' };
   function order(id, base) { const l = ORDEN[now().id] || [], i = l.indexOf(id); return i >= 0 ? i : 100 + base; }
   let cur = null;
   function tick() { const f = now(); if (f.id !== cur) { document.body.classList.remove('f-' + cur); cur = f.id; document.body.classList.add('f-' + cur); try { if (Nav.current === 'inicio') Inicio.render(); } catch {} } }
@@ -53,7 +53,7 @@ const MG = (() => {
         current:'temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m',
         hourly:'temperature_2m,weather_code,precipitation_probability,relative_humidity_2m,wind_speed_10m',
         daily:'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,uv_index_max' });
-      wx = await (await fetch('https://api.open-meteo.com/v1/forecast?' + q)).json(); wxAt = Date.now();
+      wx = await meteo(q); wxAt = Date.now();
     } catch {}
     return wx;
   }

@@ -24,7 +24,8 @@ const Zap = (() => {
   // Los videos fijos y los que todavía no se chequearon cuentan como al aire.
   const onAir = c => c.ref?.video || !['off', 'soon'].includes(st(c)) && !(st(c) === 'live' && Canales.status[c.uid]?.prem);
   function step(d) {
-    if (typeof Humor !== 'undefined' && Humor.step(d)) return;   // 🎭 sonando un humor: otro video del mismo
+    if (typeof Humor !== 'undefined' && Humor.step(d)) return;
+    if (typeof Porteno !== 'undefined' && Porteno.step(d)) return;   // 🎻 otra caminata de noche   // 🎭 sonando un humor: otro video del mismo
     const all = order(); if (!all.length) return;
     const cur = Player.slots[Player.sel ?? 0] || Player.slots.find(Boolean);
     const o = all.filter(c => onAir(c) || c.uid === cur?.c.uid);

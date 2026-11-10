@@ -25,7 +25,7 @@ const TV = (() => {
     try {
       const q = new URLSearchParams({ latitude:PLACES.map(p => p[1]).join(','), longitude:PLACES.map(p => p[2]).join(','),
         current:'temperature_2m,weather_code,is_day', timezone:'America/Argentina/Buenos_Aires' });
-      const j = await (await fetch('https://api.open-meteo.com/v1/forecast?' + q)).json();
+      const j = await meteo(q);
       const arr = Array.isArray(j) ? j : [j];
       weather = { at:Date.now(), list:arr.map((x, i) => ({ name:PLACES[i][0], t:Math.round(x.current.temperature_2m), ic:icon(x.current.weather_code, x.current.is_day) })) };
       S.set('tvWeather', weather); paintWeather();

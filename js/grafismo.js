@@ -47,7 +47,7 @@ const Grafismo = (() => {
   async function weather() {
     try {
       const q = new URLSearchParams({ latitude:'-34.8157', longitude:'-58.4687', daily:'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max', hourly:'weather_code,precipitation_probability', current:'temperature_2m,weather_code', forecast_days:'2', timezone:'America/Argentina/Buenos_Aires' });
-      const j = await (await fetch('https://api.open-meteo.com/v1/forecast?' + q)).json();
+      const j = await meteo(q);
       const now = Date.now(), hrs = j.hourly.time.map((t, i) => ({ t:Date.parse(t), c:j.hourly.weather_code[i], p:j.hourly.precipitation_probability[i] })).filter(h => h.t > now && h.t < now + 12 * 3600e3);
       const storm = hrs.find(h => h.c >= 95), rain = hrs.find(h => h.p >= 70);
       const day = i => `<div class="wxd"><small>${i ? 'MAÑANA' : 'HOY'}</small><span class="wxi">${WX(j.daily.weather_code[i])}</span><b>${Math.round(j.daily.temperature_2m_max[i])}° <em>${Math.round(j.daily.temperature_2m_min[i])}°</em></b><span>${WXT(j.daily.weather_code[i])}</span><span>💧 ${j.daily.precipitation_probability_max[i] ?? 0}%</span></div>`;

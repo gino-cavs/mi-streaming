@@ -122,7 +122,14 @@ const Radio = (() => {
     audio.addEventListener('volumechange', () => {   // solo actualizo el texto (para no cortar el arrastre del volumen)
       const st = $('rbSt'); if (st && cur) st.innerHTML = audio.paused ? 'En pausa' : audio.muted ? '🔇 Silenciada (está sonando otra cosa)' : '<span class="st-live">●</span> Sonando';
     });
-    audio.addEventListener('error', () => { if (cur && audio.getAttribute('src')) err(); });
+    // 🔁 si una radio en vivo "termina" o se traba, se reconecta sola (hasta 4 veces seguidas)
+    let retries = 0, lastOk = 0;
+    const reconnect = why => { if (!cur || audio.paused && why !== 'ended') return; if (Date.now() - lastOk > 60e3) retries = 0; if (++retries > 4) return err();
+      setTimeout(() => { if (!cur) return; const r = cur; if (hls) { try { hls.destroy(); } catch {} hls = null; } audio.src = ''; play(r); }, 1500 * retries); };
+    audio.addEventListener('playing', () => { lastOk = Date.now(); });
+    audio.addEventListener('ended', () => reconnect('ended'));
+    audio.addEventListener('stalled', () => setTimeout(() => { if (cur && audio.readyState < 3 && !audio.paused) reconnect('stalled'); }, 8000));
+    audio.addEventListener('error', () => { if (cur && audio.getAttribute('src')) { if (retries < 2) reconnect('ended'); else err(); } });
     AudioMgr.register('radio', { mute() { audio.muted = true; }, unmute() { audio.muted = false; },
       label:() => cur ? cur.name : '', live:() => !!cur && !audio.paused, radio:true,
       paused:() => audio.paused, toggle:() => audio.paused ? audio.play().catch(() => {}) : audio.pause(),
@@ -131,6 +138,8 @@ const Radio = (() => {
   }
   function skip(d) { if (!db.radios.length) return; const i = db.radios.findIndex(x => x.url === cur?.url); play(db.radios[(i + d + db.radios.length) % db.radios.length]); }
   // buscar una radio por nombre (para el Modo porteño y otros atajos)
-  async function find(q, country = 'Argentina') { const l = await rb(`stations/search?name=${encodeURIComponent(q)}&country=${encodeURIComponent(country)}&hidebroken=true&order=clickcount&reverse=true&limit=10`); return (l || []).map(toRadio); }
+  const trucha = s => /storage\.googleapis\.com|\/webchat\/|\.(mp3|wav|ogg|m4a)(\?|$)/i.test(s.url_resolved || s.url || '') && !(+s.bitrate > 0);
+  async function find(q, country = 'Argentina') { const l = await rb(`stations/search?name=${encodeURIComponent(q)}&country=${encodeURIComponent(country)}&hidebroken=true&order=clickcount&reverse=true&limit=15`);
+    return (l || []).filter(s => !trucha(s) && s.lastcheckok !== 0).sort((a, b) => (+b.bitrate > 0) - (+a.bitrate > 0)).map(toRadio); }
   return { init, render, play, stop, skip, find, get current() { return cur; } };
 })();
