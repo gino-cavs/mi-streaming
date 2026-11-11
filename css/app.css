@@ -1768,3 +1768,7 @@ html.lite #negro .ngbar { transition:opacity 2s ease !important; } html.lite #ne
 .fgtag.new { background:#fff; color:#0b1f5c; }
 .fgdn { background:linear-gradient(135deg, var(--c1), #0b1f5c); border:3px solid var(--c2); border-radius:20px; padding:26px; text-align:center; color:#fff; max-width:420px; }
 .fgtro { font-size:80px; animation:fglegend 1.2s ease-out; }
+/* 🐮 vaccoin */
+.vc { display:inline-grid; place-items:center; width:1.15em; height:1.15em; border-radius:50%; vertical-align:-.18em; font:900 .72em/1 Oswald, system-ui, sans-serif; font-style:normal; color:#7a4b00;
+  background:radial-gradient(circle at 35% 30%, #fff6c8, #ffd54a 40%, #d99a14 75%, #a86d00); box-shadow:inset 0 0 0 .08em #b07a10, inset 0 -.08em .12em #0003, 0 .06em .12em #0006; text-shadow:0 1px 0 #fff8; }
+.fgcoins .vc { width:1em; height:1em; font-size:1em; margin-right:2px; }

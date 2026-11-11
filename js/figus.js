@@ -1,5 +1,5 @@
 /* =========================================================
-   🃏 FIGUS — tu idle game de figuritas (solo para vos, sin plata de verdad). Celu y compu; la tele solo suma monedas.
+   🃏 FIGUS — tu idle game de figuritas (solo para vos, sin plata de verdad). Celu y compu; la tele solo suma vaccoins (las monedas de FUNVS).
    • Monedas por estar en FUNVS: 1 cada 5 min, máx. 60 por día. Se cuentan por "turnos" de 5 minutos compartidos entre
      todos tus aparatos: si lo tenés abierto en la compu, el celu y la tele a la vez, cuenta UNA sola vez.
    • Regalo del día (con racha y lo que juntaste mientras no estabas), Prode de Fulbito, sobres de Vaca por cada paseo,
@@ -20,7 +20,9 @@ const Figus = (() => {
   const tvDev = () => Device.mode === 'tv';
   const ymdOf = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
   const today = () => ymdOf(Date.now());
-  const coinTxt = n => `🪙 ${Math.round(n).toLocaleString('es-AR')}`;
+  // 🐮 la moneda: los vaccoins (una moneda dorada con la V de Vaca, hecha con CSS para que se vea en todos lados)
+  const VC = '<i class="vc" aria-label="vaccoins">V</i>';
+  const coinTxt = n => `${VC} ${Math.round(n).toLocaleString('es-AR')}`;
 
   /* ---------------- estado (registro de movimientos) ---------------- */
   const blank = () => ({ v:1, since:Date.now(), albums:{}, ev:[], base:null });
@@ -182,7 +184,7 @@ const Figus = (() => {
       if (/v[eé]lez/i.test(`${p.home} ${p.away}`)) c *= ECO.velezX;
       add({ id:'p-' + p.id, ty:'prode', n:c, m:`${p.home} ${r.hs}-${r.as} ${p.away}` }); if (c) n += c;
     });
-    if (n && !tvDev()) toast(`<b>🪙 +${n} del Prode</b><small>Se sumaron a Figus.</small>`, { cls:'info', ms:4000, onclick:() => Nav.go('figus') });
+    if (n && !tvDev()) toast(`<b>${VC} +${n} vaccoins del Prode</b><small>Se sumaron a Figus.</small>`, { cls:'info', ms:4000, onclick:() => Nav.go('figus') });
   }
   function velezTok() {   // 💙 los días que juega Vélez: un sobre de Vélez de regalo
     let m = null; try { m = Partido.match(); } catch {} if (!m || new Date(m.date).toDateString() !== new Date().toDateString()) return false;
@@ -208,7 +210,7 @@ const Figus = (() => {
   function openPack(a, { tok, cost = 0 } = {}) {
     if (!a || ready(a).length < 1) return toast('<b>Ese álbum todavía no tiene figus con imagen</b>', { cls:'info' });
     const before = { ...derive().have };
-    if (!tok && derive().coins < cost) return toast(`<b>Te faltan monedas</b><small>Necesitás ${cost} y tenés ${derive().coins}.</small>`, { cls:'info' });
+    if (!tok && derive().coins < cost) return toast(`<b>Te faltan vaccoins</b><small>Necesitás ${cost} y tenés ${derive().coins}.</small>`, { cls:'info' });
     const c = draw(a); add({ id:'k' + uid() + Date.now().toString(36), ty:'pack', a:a.id, c, cost:tok ? 0 : cost, ...(tok ? { tok } : {}) });
     showPack(a, c, before); pushSoon();
   }
@@ -247,7 +249,7 @@ const Figus = (() => {
   }
   function render() {
     const v = $('v-figus'); if (!v) return;
-    if (tvDev()) { v.innerHTML = '<div class="empty">🃏 Figus se juega desde el celu o la compu. Acá en la tele igual vas sumando monedas.</div>'; return; }
+    if (tvDev()) { v.innerHTML = '<div class="empty">🃏 Figus se juega desde el celu o la compu. Acá en la tele igual vas sumando vaccoins.</div>'; return; }
     if (view.alb) return renderAlbum(v);
     const d = derive(), A = albums(); let body = '';
     if (view.tab === 'inicio') {
@@ -256,7 +258,7 @@ const Figus = (() => {
         ${toks.length ? `<h2 class="sec">🎁 Sobres para abrir</h2><div class="fgtoks">${toks.map(t => { const a = albumOfKind(t.k); return `<button class="fgtok" data-tok="${esc(t.id)}" ${a ? '' : 'disabled'}>${t.k === 'vaca' ? '🐶' : '💙'} <b>Sobre de ${t.k === 'vaca' ? 'Vaca' : 'Vélez'}</b><small>${esc(t.why || '')}${a ? '' : ` · primero creá un álbum de ${t.k === 'vaca' ? 'Vaca' : 'Vélez'} con figus`}</small></button>`; }).join('')}</div>` : ''}
         <h2 class="sec">📚 Tus álbumes</h2>
         <div class="fgalbs">${A.map(albumTile).join('')}<button class="fgalb fgnew" data-new>＋ Nuevo álbum</button></div>
-        <h2 class="sec">¿Cómo se ganan monedas?</h2>
+        <h2 class="sec">¿Cómo se ganan vaccoins?</h2>
         <div class="fghow"><div>⏱️ <b>1 cada 5 min</b> en FUNVS (hasta ${ECO.slotCap} por día, una sola vez aunque esté abierto en varios aparatos)</div>
           <div>🎁 <b>Regalo del día</b>: ${ECO.daily} + racha (hasta +${ECO.streakMax * ECO.streakStep}) + lo de mientras no estabas</div>
           <div>🔮 <b>Prode</b>: ${ECO.prodeWin} por acertar el ganador, ${ECO.prodeExact} el resultado exacto, +${ECO.prodeScorer} por goleador. Vélez ×2</div>
@@ -327,8 +329,8 @@ const Figus = (() => {
     v.querySelector('[data-edit]').onclick = () => { view.edit = true; work = null; render(); };
     v.querySelectorAll('[data-buy1]').forEach(b => b.onclick = () => {
       const c = a.cards.find(x => String(x.n) === b.dataset.buy1), cost = ECO.buy[c.rar || 'c'];
-      if (derive().coins < cost) return toast(`<b>Te faltan monedas</b><small>Necesitás ${cost}.</small>`, { cls:'info' });
-      if (!confirm(`¿Comprar la #${c.n}${c.name ? ' (' + c.name + ')' : ''} por ${cost} monedas?`)) return;
+      if (derive().coins < cost) return toast(`<b>Te faltan vaccoins</b><small>Necesitás ${cost}.</small>`, { cls:'info' });
+      if (!confirm(`¿Comprar la #${c.n}${c.name ? ' (' + c.name + ')' : ''} por ${cost} vaccoins?`)) return;
       add({ id:'b' + uid(), ty:'buy', k:a.id + ':' + c.n, cost }); pushSoon(); checkDone(a); render(); });
     v.querySelectorAll('.fig[data-k]').forEach(f => f.onclick = () => zoom(f));
     hydrate(v); ensureImgs(a.id);
@@ -419,7 +421,7 @@ const Figus = (() => {
     setTimeout(async () => {
       await pull();
       try { prode(); } catch {} velezTok();
-      if (!tvDev()) { const g = daily(); if (g) { pushSoon(); toast(`<b>🎁 Regalo del día: +${g.n} monedas</b><small>Racha de ${g.s} día${g.s === 1 ? '' : 's'}${g.off ? ` · +${g.off} de mientras no estabas` : ''}. Están en 🃏 Figus.</small>`, { cls:'info', ms:6000, onclick:() => Nav.go('figus') }); } }
+      if (!tvDev()) { const g = daily(); if (g) { pushSoon(); toast(`<b>🎁 Regalo del día: +${g.n} vaccoins</b><small>Racha de ${g.s} día${g.s === 1 ? '' : 's'}${g.off ? ` · +${g.off} de mientras no estabas` : ''}. Están en 🃏 Figus.</small>`, { cls:'info', ms:6000, onclick:() => Nav.go('figus') }); } }
     }, 6000);
     setInterval(pull, tvDev() ? 30 * 60e3 : 5 * 60e3);
     document.addEventListener('visibilitychange', () => { if (document.hidden) { if (pushT) pushNow(); } else pull(); });
