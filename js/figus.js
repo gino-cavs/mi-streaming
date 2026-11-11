@@ -17,12 +17,47 @@ const Figus = (() => {
   const STYLES = { panini:'🟨 Clásico Panini', retro:'📼 Retro 90s', neon:'💡 Neón', diario:'📰 Diario de papel', holo:'🌈 Holográfico' };
   const KINDS = { canal:'📺 Canal o temática', vaca:'🐶 Vaca (solo sale paseándola)', velez:'💙 Vélez (días de partido o kiosco)' };
   const RAR = { c:'Común', r:'Rara', l:'Legendaria' };
+  const ROLES = { '':'Figu común', conductor:'🎙️ Conducción', panel:'💬 Panelista', invitado:'⭐ Invitado' };
+  const AREAS = { '':'—', deportes:'⚽ Deportes', politica:'🏛️ Política', espectaculos:'🎬 Espectáculos', humor:'😂 Humor', economia:'💼 Economía', policiales:'🚨 Policiales', musica:'🎸 Música', tecnologia:'💻 Tecnología', otra:'📌 Otra' };
   const tvDev = () => Device.mode === 'tv';
   const ymdOf = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
   const today = () => ymdOf(Date.now());
   // 🐮 la moneda: los vaccoins (una moneda dorada con la V de Vaca, hecha con CSS para que se vea en todos lados)
   const VC = '<i class="vc" aria-label="vaccoins">V</i>';
   const coinTxt = n => `${VC} ${Math.round(n).toLocaleString('es-AR')}`;
+
+  /* ---------------- 🏎️ GARAGE: F1 y MotoGP 2026 a escala ----------------
+     Grilla oficial de la temporada 2026 (lista de inscriptos). Cada modelo tiene 10 piezas; las cajas
+     (2 piezas del piloto que elijas, sin repetir hasta completarlo) solo se venden los fines de semana de carrera. */
+  const GARAGE = {
+    f1:{ n:'Fórmula 1', ic:'🏎️', price:35, teams:[
+      ['McLaren', '#FF8000', '#111111', '#47C7FC', [[1, 'Lando Norris'], [81, 'Oscar Piastri']]],
+      ['Mercedes', '#C8CCCE', '#0A0A0A', '#00D2BE', [[63, 'George Russell'], [12, 'Kimi Antonelli']]],
+      ['Red Bull', '#1E2A5A', '#E10600', '#FFC906', [[3, 'Max Verstappen'], [6, 'Isack Hadjar']]],
+      ['Ferrari', '#DC0000', '#FFFFFF', '#111111', [[16, 'Charles Leclerc'], [44, 'Lewis Hamilton']]],
+      ['Williams', '#005AFF', '#0A1A3C', '#FFFFFF', [[23, 'Alexander Albon'], [55, 'Carlos Sainz']]],
+      ['Racing Bulls', '#F5F5F5', '#2B4BFF', '#E10600', [[30, 'Liam Lawson'], [41, 'Arvid Lindblad']]],
+      ['Aston Martin', '#006F62', '#CEDC00', '#0A0A0A', [[14, 'Fernando Alonso'], [18, 'Lance Stroll']]],
+      ['Haas', '#F0F0F0', '#1A1A1A', '#E10600', [[31, 'Esteban Ocon'], [87, 'Oliver Bearman']]],
+      ['Audi', '#B6BABD', '#1A1A1A', '#E4002B', [[27, 'Nico Hülkenberg'], [5, 'Gabriel Bortoleto']]],
+      ['Alpine', '#0090FF', '#FF87BC', '#0A1A3C', [[10, 'Pierre Gasly'], [43, 'Franco Colapinto']]],
+      ['Cadillac', '#111111', '#F5F5F5', '#C9A227', [[11, 'Sergio Pérez'], [77, 'Valtteri Bottas']]]],
+      parts:[['chasis', 'Monocasco'], ['motor', 'Unidad de potencia'], ['pontones', 'Pontones'], ['alerond', 'Alerón delantero'], ['alerona', 'Alerón trasero'], ['halo', 'Halo'], ['ruedad', 'Rueda delantera'], ['ruedat', 'Rueda trasera'], ['volante', 'Volante'], ['casco', 'Casco']] },
+    motogp:{ n:'MotoGP', ic:'🏍️', price:35, teams:[
+      ['Ducati Lenovo', '#CC0000', '#FFFFFF', '#111111', [[93, 'Marc Márquez'], [63, 'Francesco Bagnaia']]],
+      ['Aprilia Racing', '#1A1A1A', '#A6192E', '#7A3FA0', [[89, 'Jorge Martín'], [72, 'Marco Bezzecchi']]],
+      ['Gresini', '#7EC8E3', '#E2001A', '#0A1A3C', [[73, 'Álex Márquez'], [54, 'Fermín Aldeguer']]],
+      ['VR46', '#FFED00', '#111111', '#00A651', [[49, 'Fabio Di Giannantonio'], [21, 'Franco Morbidelli']]],
+      ['KTM Factory', '#FF6600', '#0A1E3C', '#FFFFFF', [[37, 'Pedro Acosta'], [33, 'Brad Binder']]],
+      ['KTM Tech3', '#FF6600', '#1C2B4A', '#E10600', [[12, 'Maverick Viñales'], [23, 'Enea Bastianini']]],
+      ['Trackhouse', '#1C3F94', '#FFFFFF', '#E10600', [[25, 'Raúl Fernández'], [79, 'Ai Ogura']]],
+      ['Yamaha', '#0033A0', '#111111', '#FFFFFF', [[20, 'Fabio Quartararo'], [42, 'Álex Rins']]],
+      ['Pramac Yamaha', '#6A1B9A', '#00B5E2', '#FFFFFF', [[43, 'Jack Miller'], [7, 'Toprak Razgatlıoğlu']]],
+      ['Honda HRC', '#C8102E', '#FFFFFF', '#0A0A0A', [[36, 'Joan Mir'], [10, 'Luca Marini']]],
+      ['LCR Honda', '#F5F5F5', '#C8102E', '#00843D', [[5, 'Johann Zarco'], [11, 'Diogo Moreira']]]],
+      parts:[['chasis', 'Chasis'], ['motor', 'Motor'], ['carenado', 'Carenado'], ['tanque', 'Tanque y colín'], ['escape', 'Escape'], ['horquilla', 'Horquilla'], ['alerones', 'Alerones'], ['ruedad', 'Rueda delantera'], ['ruedat', 'Rueda trasera'], ['casco', 'Casco']] } };
+  const models = s => GARAGE[s].teams.flatMap(([team, c1, c2, c3, ds]) => ds.map(([num, name]) => ({ s, team, c1, c2, c3, num, name, key:s + ':' + num })));
+  const modelOf = key => { const [s] = key.split(':'); return models(s).find(m => m.key === key); };
 
   /* ---------------- estado (registro de movimientos) ---------------- */
   const blank = () => ({ v:1, since:Date.now(), albums:{}, ev:[], base:null });
@@ -38,6 +73,7 @@ const Figus = (() => {
     const B = st.base || {}, evs = [...st.ev].sort((a, b) => a.t - b.t || (a.id < b.id ? -1 : 1));
     let coins = B.coins || 0; const have = { ...(B.have || {}) }, toks = { ...(B.toks || {}) }, day = {}, dailies = new Set(B.dailies || []), done = new Set(B.done || []);
     let lastSlot = B.lastSlot || 0, earned = { slot:0, daily:0, prode:0, sell:0 }, spent = 0;
+    const gar = JSON.parse(JSON.stringify(B.gar || {})), wins = JSON.parse(JSON.stringify(B.wins || {}));
     for (const e of evs) {
       if (e.ty === 'slot') { const d = ymdOf(e.t); day[d] = (day[d] || 0) + 1; if (day[d] <= ECO.slotCap) { coins++; earned.slot++; } lastSlot = Math.max(lastSlot, e.t); }
       else if (e.ty === 'daily') { coins += e.n; earned.daily += e.n; dailies.add(e.d); }
@@ -51,15 +87,17 @@ const Figus = (() => {
       else if (e.ty === 'buy') { if (coins < e.cost) continue; coins -= e.cost; spent += e.cost; have[e.k] = (have[e.k] || 0) + 1; }
       else if (e.ty === 'sell') { if ((have[e.k] || 0) < 2) continue; have[e.k]--; coins += e.n; earned.sell += e.n; }
       else if (e.ty === 'done') done.add(e.a);
+      else if (e.ty === 'part') { if (coins < e.cost) continue; coins -= e.cost; spent += e.cost; const g = gar[e.m] = gar[e.m] || []; (e.p || []).forEach(x => { if (!g.includes(x)) g.push(x); }); }
+      else if (e.ty === 'win') (wins[e.m] = wins[e.m] || []).push(e.gp);
     }
-    return D = { coins, have, toks, day, dailies, done, lastSlot, earned, spent };
+    return D = { coins, have, toks, day, dailies, done, lastSlot, earned, spent, gar, wins };
   }
   // cuando el registro crece mucho, lo viejo (más de 60 días) se resume en una "base" (igual en todos los aparatos)
   function compact() {
     if (st.ev.length < 4000) return;
     const cut = Date.now() - 60 * 864e5, old = st.ev.filter(e => e.t <= cut); if (!old.length) return;
     const keep = st.ev.filter(e => e.t > cut); st.ev = old; D = null; const d = derive();
-    st.base = { upTo:cut, coins:d.coins, have:d.have, toks:d.toks, dailies:[...d.dailies], done:[...d.done], lastSlot:d.lastSlot };
+    st.base = { upTo:cut, coins:d.coins, have:d.have, toks:d.toks, dailies:[...d.dailies], done:[...d.done], lastSlot:d.lastSlot, gar:d.gar, wins:d.wins };
     st.ev = keep; saveSt();
   }
   function merge(r) {
@@ -120,15 +158,16 @@ const Figus = (() => {
   const tx = async (mode, fn) => { const d = await idb(); return new Promise((ok, no) => { const t = d.transaction('img', mode), s = t.objectStore('img'); const r = fn(s); t.oncomplete = () => ok(r?.result); t.onerror = () => no(t.error); }); };
   const imgGet = id => tx('readonly', s => s.get(id));
   const imgPut = (id, v) => tx('readwrite', s => s.put(v, id));
+  const imgIds = a => [a.logo, ...(a.cards || []).map(c => c.img), ...(a.pages || []).map(p => p.bg)].filter(Boolean);
   async function imgsOf(aid) {   // todas las imágenes de un álbum (para subirlas)
     const a = st.albums[aid]; if (!a) return {}; const o = {};
-    for (const id of [a.logo, ...(a.cards || []).map(c => c.img)].filter(Boolean)) { const v = await imgGet(id); if (v) o[id] = v; }
+    for (const id of imgIds(a)) { const v = await imgGet(id); if (v) o[id] = v; }
     return o;
   }
   const fetched = new Set();
   async function ensureImgs(aid) {   // si faltan en este aparato, las bajo del Gist
     const a = st.albums[aid]; if (!a || fetched.has(aid) || !online()) return;
-    const ids = [a.logo, ...(a.cards || []).map(c => c.img)].filter(Boolean); let miss = false;
+    const ids = imgIds(a); let miss = false;
     for (const id of ids) if (!urlCache[id] && !(await imgGet(id))) { miss = true; break; }
     if (!miss) return; fetched.add(aid);
     try { if (!gmeta) gmeta = await gh('/gists/' + await gistId()); const f = gmeta.files[`img-${aid}.json`]; if (!f) return;
@@ -142,13 +181,13 @@ const Figus = (() => {
       if (u) { if (el.tagName === 'IMG') { if (el.src !== u) el.src = u; } else el.style.backgroundImage = `url("${u}")`; el.classList.add('ok'); } }
   }
   // achico al subir: fotos a 360 px (webp/jpeg); los gif quedan como están si pesan menos de 700 KB
-  function readImg(file) {
+  function readImg(file, max = 360) {
     return new Promise((ok, no) => {
       const fr = new FileReader();
       fr.onload = () => {
         const u = fr.result;
         if (/^data:image\/gif/.test(u)) return file.size <= 700e3 ? ok(u) : no(new Error('Ese gif pesa mucho (más de 700 KB). Probá uno más corto o más chico.'));
-        const im = new Image(); im.onload = () => { const z = 360, k = Math.min(1, z / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+        const im = new Image(); im.onload = () => { const z = max, k = Math.min(1, z / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
           c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); let out = c.toDataURL('image/webp', .82); if (!/^data:image\/webp/.test(out)) out = c.toDataURL('image/jpeg', .85); ok(out); };
         im.onerror = () => no(new Error('No pude leer esa imagen.')); im.src = u;
       };
@@ -245,7 +284,7 @@ const Figus = (() => {
 
   /* ---------------- 🖥️ pantalla ---------------- */
   let view = { tab:'inicio' }, work = null;
-  const TABS = [['inicio', '🏠 Inicio'], ['albumes', '📚 Álbumes'], ['kiosco', '🏪 Kiosco'], ['repes', '🔁 Repetidas'], ['balance', '📒 Balance']];
+  const TABS = [['inicio', '🏠 Inicio'], ['albumes', '📚 Álbumes'], ['garage', '🏎️ Garage'], ['kiosco', '🏪 Kiosco'], ['repes', '🔁 Repetidas'], ['balance', '📒 Balance']];
   function header() {
     const d = derive(), hoy = Math.min(ECO.slotCap, d.day[today()] || 0), s = streakFor(today()) + (d.dailies.has(today()) ? 1 : 0);
     return `<div class="fghead"><div class="fgcoins">${coinTxt(d.coins)}</div>
@@ -291,10 +330,12 @@ const Figus = (() => {
       const tot = R.reduce((s, o) => s + (o.n - 1) * ECO.sell[o.x.c.rar || 'c'], 0);
       body = `${R.length ? `<div class="btns"><span class="mut">Vendiendo todas las repetidas (te quedás con una de cada): ${coinTxt(tot)}</span><span class="sp"></span><button data-sellall>Vender todas</button></div>` : ''}
         <div class="fggrid">${R.map(o => `<div class="fgcell">${figHtml(o.x.a, o.x.c, { n:o.n, small:true })}<button data-sell="${esc(o.k)}">Vender 1 · ${coinTxt(ECO.sell[o.x.c.rar || 'c'])}</button></div>`).join('') || '<div class="empty">No tenés repetidas.</div>'}</div>`;
+    } else if (view.tab === 'garage') {
+      body = garageHtml();
     } else if (view.tab === 'balance') {
       const L = [...st.ev].sort((a, b) => b.t - a.t).filter(e => e.ty !== 'slot').slice(0, 40);
-      const ic = e => e.ty === 'daily' ? `🎁 Regalo del día (racha ${e.s})${e.off ? ` · +${e.off} mientras no estabas` : ''}` : e.ty === 'prode' ? `🔮 Prode: ${esc(e.m || '')}` : e.ty === 'pack' ? `📦 Sobre de ${esc(st.albums[e.a]?.name || '?')}${e.tok ? ' (regalo)' : ''}` : e.ty === 'buy' ? `🛒 Compraste #${esc(e.k.split(':')[1])} de ${esc(st.albums[e.k.split(':')[0]]?.name || '?')}` : e.ty === 'sell' ? '🔁 Vendiste una repetida' : e.ty === 'tok' ? `🎁 Sobre de ${e.k === 'vaca' ? 'Vaca' : 'Vélez'}: ${esc(e.why || '')}` : e.ty === 'done' ? `🏆 Completaste ${esc(st.albums[e.a]?.name || '')}` : e.ty;
-      const amt = e => e.ty === 'daily' || e.ty === 'prode' ? `+${e.n}` : e.ty === 'sell' ? `+${e.n}` : e.ty === 'pack' && !e.tok || e.ty === 'buy' ? `−${e.cost}` : '';
+      const ic = e => e.ty === 'part' ? `🔧 Piezas para el ${esc(modelOf(e.m)?.name || '')} (${(e.p || []).length})` : e.ty === 'win' ? `🏆 ${esc(modelOf(e.m)?.name || '')} ganó ${esc(e.gp)}` : e.ty === 'daily' ? `🎁 Regalo del día (racha ${e.s})${e.off ? ` · +${e.off} mientras no estabas` : ''}` : e.ty === 'prode' ? `🔮 Prode: ${esc(e.m || '')}` : e.ty === 'pack' ? `📦 Sobre de ${esc(st.albums[e.a]?.name || '?')}${e.tok ? ' (regalo)' : ''}` : e.ty === 'buy' ? `🛒 Compraste #${esc(e.k.split(':')[1])} de ${esc(st.albums[e.k.split(':')[0]]?.name || '?')}` : e.ty === 'sell' ? '🔁 Vendiste una repetida' : e.ty === 'tok' ? `🎁 Sobre de ${e.k === 'vaca' ? 'Vaca' : 'Vélez'}: ${esc(e.why || '')}` : e.ty === 'done' ? `🏆 Completaste ${esc(st.albums[e.a]?.name || '')}` : e.ty;
+      const amt = e => e.ty === 'daily' || e.ty === 'prode' ? `+${e.n}` : e.ty === 'sell' ? `+${e.n}` : e.ty === 'pack' && !e.tok || e.ty === 'buy' || e.ty === 'part' ? `−${e.cost}` : '';
       body = `<div class="psstats"><div><b>${d.earned.slot}</b><small>por estar</small></div><div><b>${d.earned.daily}</b><small>regalos</small></div><div><b>${d.earned.prode}</b><small>Prode</small></div><div><b>${d.earned.sell}</b><small>ventas</small></div><div><b>${d.spent}</b><small>gastadas</small></div></div>
         <div class="tdlist">${L.map(e => `<div class="tdrow"><div><b>${ic(e)}</b><small>${new Date(e.t).toLocaleString('es-AR', { day:'numeric', month:'numeric', hour:'2-digit', minute:'2-digit' })}</small></div><b class="fgamt">${amt(e)}</b></div>`).join('') || '<div class="empty">Todavía no hay movimientos.</div>'}</div>`;
     }
@@ -302,6 +343,9 @@ const Figus = (() => {
     bindCommon(v);
     v.querySelectorAll('[data-alb]').forEach(b => b.onclick = () => { view = { tab:view.tab, alb:b.dataset.alb }; render(); });
     v.querySelectorAll('[data-new]').forEach(b => b.onclick = newAlbum);
+    v.querySelectorAll('[data-gs]').forEach(b => b.onclick = () => { view.gs = b.dataset.gs; render(); });
+    v.querySelectorAll('[data-gbox]').forEach(b => b.onclick = () => buyBox(b.dataset.gbox));
+    v.querySelectorAll('[data-gmod]').forEach(b => b.onclick = () => modelZoom(b.dataset.gmod));
     v.querySelectorAll('[data-tok]').forEach(b => b.onclick = () => { const t = derive().toks[b.dataset.tok]; const a = t && albumOfKind(t.k); if (a) openPack(a, { tok:t.id }); });
     v.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => { const a = st.albums[b.dataset.buy]; openPack(a, { cost:priceFor(a) }); });
     v.querySelectorAll('[data-sell]').forEach(b => b.onclick = () => { const x = keyCard(b.dataset.sell); add({ id:'x' + uid(), ty:'sell', k:b.dataset.sell, n:ECO.sell[x.c.rar || 'c'] }); pushSoon(); render(); });
@@ -334,8 +378,7 @@ const Figus = (() => {
         <div class="fgbar"><i style="width:${p.pct}%"></i></div></div>
         <div class="btns"><button data-back>← Volver</button><button data-edit>✎ Editar álbum</button></div></div>
       ${a.story ? `<div class="fgstory">${esc(a.story).replace(/\n/g, '<br>')}</div>` : ''}
-      ${byPage.map(({ pg, cards }) => cards.length ? `<div class="fgpage">${pg.t ? `<h3>${esc(pg.t)}</h3>` : ''}${pg.txt ? `<p>${esc(pg.txt).replace(/\n/g, '<br>')}</p>` : ''}
-        <div class="fggrid">${cards.map(c => { const n = h[a.id + ':' + c.n] || 0; return `<div class="fgcell">${n ? figHtml(a, c, { n }) : figHtml(a, c, { ghost:true })}${!n && c.img && a.kind !== 'vaca' ? `<button class="fgbuy1" data-buy1="${c.n}">Comprar · ${coinTxt(ECO.buy[c.rar || 'c'])}</button>` : ''}</div>`; }).join('')}</div></div>` : '').join('')}
+      ${byPage.map(({ pg, cards }) => cards.length ? pageHtml(a, pg, cards, h) : '').join('')}
       </div>`;
     bindCommon(v);
     v.querySelector('[data-back]').onclick = () => { view = { tab:view.tab || 'albumes' }; render(); };
@@ -348,8 +391,34 @@ const Figus = (() => {
     v.querySelectorAll('.fig[data-k]').forEach(f => f.onclick = () => zoom(f));
     hydrate(v); ensureImgs(a.id);
   }
+  // 📖 una página: grilla común, o "mesa" (doble página con la escenografía del programa: conducción al centro, panelistas a los costados)
+  function pageHtml(a, pg, cards, h) {
+    const cell = c => { const n = h[a.id + ':' + c.n] || 0; return `<div class="fgcell ${c.role ? 'r-' + c.role : ''}">${n ? figHtml(a, c, { n }) : figHtml(a, c, { ghost:true })}${!n && c.img && a.kind !== 'vaca' ? `<button class="fgbuy1" data-buy1="${c.n}">Comprar · ${coinTxt(ECO.buy[c.rar || 'c'])}</button>` : ''}</div>`; };
+    const head = `${pg.t ? `<h3>${esc(pg.t)}</h3>` : ''}${pg.txt ? `<p>${esc(pg.txt).replace(/\n/g, '<br>')}</p>` : ''}`;
+    if (pg.lay !== 'mesa') return `<div class="fgpage">${head}<div class="fggrid">${cards.map(cell).join('')}</div></div>`;
+    const cond = cards.filter(c => c.role === 'conductor'), resto = cards.filter(c => c.role !== 'conductor');
+    const izq = resto.filter((_, i) => i % 2 === 0), der = resto.filter((_, i) => i % 2 === 1);
+    return `<div class="fgpage fgmesa" style="${pg.col ? `--pc:${esc(pg.col)};` : ''}">
+      <div class="fgspread"><div class="fgbg" data-img="${esc(pg.bg || '')}"></div>
+        <div class="fgmesahead">${head}</div>
+        <div class="fgdesk"><div class="fgside">${izq.map(cell).join('')}</div><div class="fgcenter">${cond.map(cell).join('') || ''}</div><div class="fgside">${der.map(cell).join('')}</div></div>
+        <div class="fgtable"></div></div></div>`;
+  }
+  // 🪪 la ficha del personaje (al tocar una figu pegada)
+  function fichaHtml(a, c) {
+    const f = c.ficha || {}, b = Math.max(0, Math.min(5, +f.bardo || 0));
+    const rows = [f.area ? `<span class="fchip">${AREAS[f.area] || esc(f.area)}</span>` : '', c.role ? `<span class="fchip">${ROLES[c.role]}</span>` : ''].join('');
+    return `<div class="fgficha" style="${cv(a)}"><h3>${esc(c.name || 'Figu #' + c.n)}</h3><div>${rows}</div>
+      ${f.horario ? `<p>🕒 <b>Horario:</b> ${esc(f.horario)}</p>` : ''}
+      ${f.mule ? `<p class="fmule">“${esc(f.mule)}”</p>` : ''}
+      ${b ? `<p>🔥 <b>Nivel de bardo:</b> <span class="fbardo">${'🔥'.repeat(b)}${'·'.repeat(5 - b)}</span></p>` : ''}
+      ${f.extra ? `<p>${esc(f.extra).replace(/\n/g, '<br>')}</p>` : ''}
+      ${!f.horario && !f.mule && !b && !f.extra && !f.area ? '<p class="mut">Todavía no le cargaste la ficha (✎ Editar álbum → 📝 Ficha).</p>' : ''}
+      <small class="mut">#${c.n} · ${esc(a.name)} · ${RAR[c.rar || 'c']}</small></div>`;
+  }
   function zoom(f) { let o = $('fgZoom'); if (!o) { o = document.createElement('div'); o.id = 'fgZoom'; o.onclick = () => o.remove(); }
-    o.innerHTML = f.outerHTML; document.body.appendChild(o); o.querySelector('.fig').classList.add('big'); hydrate(o); }
+    const x = keyCard(f.dataset.k || '');
+    o.innerHTML = `<div class="fgzwrap">${f.outerHTML}${x?.c ? fichaHtml(x.a, x.c) : ''}</div>`; document.body.appendChild(o); o.querySelector('.fig').classList.add('big'); hydrate(o); }
 
   function renderEdit(v, a) {
     if (!work) work = JSON.parse(JSON.stringify(a));
@@ -369,7 +438,10 @@ const Figus = (() => {
         </div>
         <div class="box"><h3>La historia</h3><textarea data-f="story" rows="6" placeholder="Contá la historia del canal: cuándo nació, quiénes están, qué lo hace especial…">${esc(W.story || '')}</textarea>
           <h3>Páginas (programas o secciones)</h3>
-          <div class="fgpages">${pages.map((p, i) => `<div class="fgpg"><input data-pt="${i}" value="${esc(p.t)}" placeholder="Nombre de la página"><textarea data-px="${i}" rows="2" placeholder="Texto de esa página (opcional)">${esc(p.txt || '')}</textarea>${pages.length > 1 ? `<button data-pdel="${i}" title="Borrar página">✕</button>` : ''}</div>`).join('')}</div>
+          <div class="fgpages">${pages.map((p, i) => `<div class="fgpg"><input data-pt="${i}" value="${esc(p.t)}" placeholder="Nombre de la página (ej: el programa)"><textarea data-px="${i}" rows="2" placeholder="Texto de esa página (opcional)">${esc(p.txt || '')}</textarea>
+            <div class="fgpgopt"><select data-pl="${i}"><option value="">▦ Grilla</option><option value="mesa" ${p.lay === 'mesa' ? 'selected' : ''}>🎙️ Mesa del programa (doble página)</option></select>
+              ${p.lay === 'mesa' ? `<label class="petadd fgbgup" data-img="${esc(p.bg || '')}"><input type="file" accept="image/*" data-pbg="${i}" hidden>🖼️ Escenografía</label><input type="color" data-pc="${i}" value="${/^#[0-9a-f]{6}$/i.test(p.col || '') ? p.col : '#1238b5'}" title="Color de la mesa">` : ''}</div>
+            ${pages.length > 1 ? `<button data-pdel="${i}" title="Borrar página">✕</button>` : ''}</div>`).join('')}</div>
           <button data-padd>＋ Página</button></div>
       </div>
       <h3>Las figus <small class="mut">(tocá el cuadro para subir la imagen o el gif)</small></h3>
@@ -377,7 +449,14 @@ const Figus = (() => {
           <label class="fgcimg" data-img="${esc(c.img || '')}"><input type="file" accept="image/*" data-cimg="${i}" hidden><span>#${c.n}<br>＋ imagen</span></label>
           <input data-cn="${i}" value="${esc(c.name || '')}" placeholder="Nombre">
           <select data-cp="${i}">${pages.map((p, j) => `<option value="${j}" ${(c.page || 0) === j ? 'selected' : ''}>${esc(p.t || 'Página ' + (j + 1))}</option>`).join('')}</select>
-          <select data-cr="${i}">${Object.entries(RAR).map(([k, t]) => `<option value="${k}" ${(c.rar || 'c') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>`).join('')}</div>
+          <select data-cr="${i}">${Object.entries(RAR).map(([k, t]) => `<option value="${k}" ${(c.rar || 'c') === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+          <select data-crol="${i}">${Object.entries(ROLES).map(([k, t]) => `<option value="${k}" ${(c.role || '') === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+          <details class="fgfed"><summary>📝 Ficha</summary>
+            <select data-ff="${i}|area">${Object.entries(AREAS).map(([k, t]) => `<option value="${k}" ${(c.ficha?.area || '') === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+            <input data-ff="${i}|horario" value="${esc(c.ficha?.horario || '')}" placeholder="Horario (ej: lun a vie 20 h)">
+            <input data-ff="${i}|mule" value="${esc(c.ficha?.mule || '')}" placeholder="Muletilla o frase célebre">
+            <label class="mut" style="font-size:12px">🔥 Nivel de bardo: <input type="range" min="0" max="5" data-ff="${i}|bardo" value="${+c.ficha?.bardo || 0}"></label>
+            <textarea data-ff="${i}|extra" rows="2" placeholder="Algo más (opcional)">${esc(c.ficha?.extra || '')}</textarea></details></div>`).join('')}</div>
       <div class="btns" style="margin-top:14px"><button data-delalb class="danger">🗑 Borrar álbum</button><span class="sp"></span><button class="pri" data-savealb>Guardar cambios</button></div></div>`;
     bindCommon(v);
     const dirty = () => { $('fgDirty').textContent = JSON.stringify(work) !== JSON.stringify(st.albums[a.id]) ? 'Hay cambios sin guardar' : ''; };
@@ -393,15 +472,97 @@ const Figus = (() => {
     v.querySelectorAll('[data-pdel]').forEach(x => x.onclick = () => { const i = +x.dataset.pdel; pages.splice(i, 1); W.cards.forEach(c => { if ((c.page || 0) === i) c.page = 0; else if (c.page > i) c.page--; }); re(); });
     v.querySelector('[data-padd]').onclick = () => { pages.push({ t:'Página ' + (pages.length + 1), txt:'' }); re(); };
     v.querySelectorAll('[data-cn]').forEach(x => x.oninput = () => { W.cards[+x.dataset.cn].name = x.value; dirty(); });
+    v.querySelectorAll('[data-crol]').forEach(x => x.onchange = () => { W.cards[+x.dataset.crol].role = x.value; dirty(); });
+    v.querySelectorAll('[data-ff]').forEach(x => x.oninput = x.onchange = () => { const [i, k] = x.dataset.ff.split('|'); const c = W.cards[+i]; c.ficha = c.ficha || {}; c.ficha[k] = k === 'bardo' ? +x.value : x.value; dirty(); });
+    v.querySelectorAll('[data-pl]').forEach(x => x.onchange = () => { pages[+x.dataset.pl].lay = x.value; re(); });
+    v.querySelectorAll('[data-pc]').forEach(x => x.oninput = () => { pages[+x.dataset.pc].col = x.value; dirty(); });
+    v.querySelectorAll('[data-pbg]').forEach(x => x.onchange = () => x.files[0] && up(x.files[0], id => { pages[+x.dataset.pbg].bg = id; }, 1280));
     v.querySelectorAll('[data-cp]').forEach(x => x.onchange = () => { W.cards[+x.dataset.cp].page = +x.value; dirty(); });
     v.querySelectorAll('[data-cr]').forEach(x => x.onchange = () => { W.cards[+x.dataset.cr].rar = x.value; x.closest('.fgced').className = 'fgced rar-' + x.value; dirty(); });
-    const up = async (file, set) => { try { const u = await readImg(file), id = 'i' + uid() + Date.now().toString(36); await imgPut(id, u); urlCache[id] = u; set(id); re(); } catch (e) { toast(`<b>${esc(e.message)}</b>`, { cls:'info' }); } };
+    const up = async (file, set, max) => { try { const u = await readImg(file, max), id = 'i' + uid() + Date.now().toString(36); await imgPut(id, u); urlCache[id] = u; set(id); re(); } catch (e) { toast(`<b>${esc(e.message)}</b>`, { cls:'info' }); } };
     v.querySelectorAll('[data-cimg]').forEach(x => x.onchange = () => x.files[0] && up(x.files[0], id => { W.cards[+x.dataset.cimg].img = id; }));
     v.querySelector('[data-logo]').onchange = e => e.target.files[0] && up(e.target.files[0], id => { W.logo = id; });
     v.querySelector('[data-back]').onclick = () => { if (JSON.stringify(work) !== JSON.stringify(st.albums[a.id]) && !confirm('¿Salir sin guardar los cambios?')) return; work = null; view.edit = false; render(); };
     v.querySelectorAll('[data-savealb]').forEach(b => b.onclick = () => { W.colors = (W.colors || []).filter(Boolean); W.upd = Date.now(); st.albums[a.id] = JSON.parse(JSON.stringify(W)); work = null; markDirty(a.id); saveSt(); pushSoon(); toast('🃏 Álbum guardado', { ms:1800 }); view.edit = false; checkDone(st.albums[a.id]); render(); });
     v.querySelector('[data-delalb]').onclick = () => { if (!confirm(`¿Borrar el álbum "${a.name}"? Las figus que tenías de ese álbum se pierden.`)) return; st.albums[a.id] = { id:a.id, del:true, upd:Date.now() }; work = null; saveSt(); pushSoon(); view = { tab:'albumes' }; render(); };
     dirty(); hydrate(v);
+  }
+
+  /* ---------------- 🏎️ el Garage: dibujo 2D (SVG, liviano), cajas y vitrina ---------------- */
+  // cada pieza es una parte del dibujo: si la tenés va pintada con los colores del equipo; si no, solo el contorno
+  function carSvg(m, got) {
+    const has = id => got.includes(id), P = (id, d, fill, extra = '') => has(id) ? `<path d="${d}" fill="${fill}" ${extra}/>` : `<path d="${d}" fill="none" stroke="#ffffff38" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+    const W = (id, cx, cy, r) => has(id) ? `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#121212"/><circle cx="${cx}" cy="${cy}" r="${r * .55}" fill="${m.c3}"/><circle cx="${cx}" cy="${cy}" r="${r * .2}" fill="#bbb"/>` : `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#ffffff38" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+    if (m.s === 'f1') return `<svg viewBox="0 0 400 124" class="gsvg">
+      ${P('alerona', 'M328 26 L388 22 L390 38 L330 42 Z', m.c3)}${P('alerona', 'M352 40 L361 40 L350 68 L341 68 Z', m.c1)}
+      ${P('chasis', 'M36 88 L60 79 L150 71 L190 59 L252 57 L302 61 L348 67 L352 86 L60 96 Z', m.c1)}
+      ${P('pontones', 'M174 73 L232 65 L302 67 L306 84 L180 88 Z', m.c2)}
+      ${P('motor', 'M214 57 L234 33 L256 33 L302 59 L250 59 Z', m.c3)}
+      ${P('halo', 'M168 58 Q195 38 228 52 L224 55 Q196 44 172 60 Z', '#2a2a2a')}
+      ${P('volante', 'M181 55 L193 55 L193 61 L181 61 Z', '#3a3a3a')}
+      ${P('casco', 'M196 52 a11 11 0 1 1 22 0 L218 58 L196 58 Z', m.c2, `stroke="${m.c3}" stroke-width="2"`)}${has('casco') ? '<path d="M206 50 L218 50 L218 54 L206 54 Z" fill="#0b0b0b"/>' : ''}
+      ${P('alerond', 'M6 94 L72 94 L68 102 L2 102 Z', m.c3)}${P('alerond', 'M8 82 L15 82 L13 102 L6 102 Z', m.c2)}
+      ${W('ruedad', 96, 92, 22)}${W('ruedat', 318, 90, 25)}
+      ${has('chasis') ? `<text x="130" y="88" fill="${m.c2}" font-size="15" font-weight="900" font-family="Oswald, system-ui, sans-serif" font-style="italic">${m.num}</text>` : ''}</svg>`;
+    // 🏍️ moto de perfil (de frente a la izquierda): ruedas, basculante y chasis, motor, escape, horquilla, carenado con burbuja, tanque y colín, alerones y el casco apoyado en el asiento
+    return `<svg viewBox="0 0 300 210" class="gsvg">
+      ${W('ruedad', 70, 160, 34)}${W('ruedat', 232, 160, 36)}
+      ${P('chasis', 'M150 72 L198 74 L234 156 L222 162 L186 98 L150 98 Z', '#6b6f78')}
+      ${P('motor', 'M130 96 L178 96 L188 130 L140 136 Z', '#34363c')}
+      ${P('escape', 'M188 106 L246 82 L252 92 L194 116 Z', '#b3b6bb')}
+      ${has('horquilla') ? '<path d="M70 160 L102 78" stroke="#d7d9dd" stroke-width="8" stroke-linecap="round"/><path d="M70 160 L102 78" stroke="#ffd34d" stroke-width="3" stroke-linecap="round" opacity=".7"/>' : '<path d="M70 160 L102 78" stroke="#ffffff38" stroke-width="1.5" stroke-dasharray="4 3"/>'}
+      ${P('carenado', 'M94 70 C102 52 126 44 150 48 L180 56 L192 92 L178 120 L120 124 C104 118 92 106 90 92 Z', m.c1)}
+      ${has('carenado') ? '<path d="M104 64 C112 50 130 46 146 48 L140 57 C126 55 114 59 108 68 Z" fill="#bcd3e6" opacity=".55"/>' : ''}
+      ${P('tanque', 'M150 50 C170 42 192 44 208 54 L252 62 L256 74 L210 78 L186 70 Z', m.c2)}
+      ${P('alerones', 'M100 80 L78 74 L80 86 L102 92 Z', m.c3)}
+      ${P('casco', 'M206 44 a15 15 0 1 1 30 0 L236 52 L206 52 Z', m.c2, `stroke="${m.c3}" stroke-width="2"`)}${has('casco') ? '<path d="M216 40 L236 40 L236 46 L216 46 Z" fill="#0b0b0b"/>' : ''}
+      ${has('carenado') ? `<text x="120" y="102" fill="${m.c2}" font-size="22" font-weight="900" font-family="Oswald, system-ui, sans-serif" font-style="italic">${m.num}</text>` : ''}</svg>`;
+  }
+  const weekend = s => { try { return Motor.weekend(s); } catch { return { open:false }; } };
+  const dt = t => new Date(t).toLocaleString('es-AR', { weekday:'short', day:'numeric', month:'numeric', hour:'2-digit', minute:'2-digit' });
+  function garageHtml() {
+    const s = view.gs || 'f1', G = GARAGE[s], d = derive(), w = weekend(s);
+    const all = models(s), done = all.filter(m => (d.gar[m.key] || []).length >= 10).length;
+    return `<div class="fgtabs">${Object.entries(GARAGE).map(([k, g]) => `<button data-gs="${k}" class="${k === s ? 'on' : ''}">${g.ic} ${g.n}</button>`).join('')}</div>
+      <div class="gwk ${w.open ? 'on' : ''}">${w.open ? `🟢 <b>Fin de semana de carrera: ${esc(w.name)}</b> · cajas abiertas hasta el ${dt(w.to)}` : w.from ? `🔴 Cajas cerradas · abren el ${dt(w.from)} para el <b>${esc(w.name)}</b>` : '🔴 Cajas cerradas hasta el próximo fin de semana de carrera'}</div>
+      <p class="mut">Temporada 2026 · escala 1:43 · ${done}/${all.length} modelos completos. Cada caja trae 2 piezas del piloto que elijas (sin repetir) por ${G.price} vaccoins.</p>
+      ${G.teams.map(([team, c1, c2]) => `<div class="gteam" style="--t1:${c1};--t2:${c2}"><h3>${esc(team)}</h3><div class="gmods">${all.filter(m => m.team === team).map(m => { const got = d.gar[m.key] || [], full = got.length >= 10, wn = d.wins[m.key] || [];
+        return `<div class="gmod ${full ? 'full' : ''}" style="--t1:${m.c1};--t2:${m.c2}"><button class="gview" data-gmod="${esc(m.key)}">${carSvg(m, got)}</button>
+          <div class="ginfo"><b>#${m.num} ${esc(m.name)}</b><small>${full ? '✅ Modelo completo' : `${got.length}/10 piezas`}${wn.length ? ` · 🏆×${wn.length}` : ''}</small></div>
+          ${full ? '' : `<button data-gbox="${esc(m.key)}" ${w.open && d.coins >= G.price ? '' : 'disabled'}>📦 Caja · ${coinTxt(G.price)}</button>`}</div>`; }).join('')}</div></div>`).join('')}`;
+  }
+  function buyBox(key) {
+    const m = modelOf(key), G = GARAGE[m.s], d = derive(), got = d.gar[key] || [];
+    if (!weekend(m.s).open) return toast('<b>Las cajas solo se venden el fin de semana de carrera</b>', { cls:'info' });
+    if (d.coins < G.price) return toast(`<b>Te faltan vaccoins</b><small>La caja cuesta ${G.price}.</small>`, { cls:'info' });
+    const left = G.parts.map(p => p[0]).filter(p => !got.includes(p)).sort(() => Math.random() - .5).slice(0, 2);
+    if (!left.length) return;
+    add({ id:'g' + uid() + Date.now().toString(36), ty:'part', m:key, p:left, cost:G.price }); pushSoon();
+    const names = left.map(p => G.parts.find(x => x[0] === p)[1]), now = derive().gar[key] || [];
+    let o = $('fgPack'); if (!o) { o = document.createElement('div'); o.id = 'fgPack'; document.body.appendChild(o); }
+    o.innerHTML = `<div class="fgpk"><div class="gbig ${now.length >= 10 ? 'full' : ''}" style="--t1:${m.c1};--t2:${m.c2}">${carSvg(m, now)}</div>
+      <h2>📦 ${names.map(esc).join(' + ')}</h2><p>${now.length >= 10 ? `🎉 ¡Completaste el ${esc(m.name)} #${m.num}!` : `${esc(m.name)}: ${now.length}/10 piezas`}</p>
+      <div class="btns"><button class="pri" data-close>Listo</button></div></div>`;
+    o.classList.add('on'); o.querySelector('[data-close]').onclick = () => { o.classList.remove('on'); o.innerHTML = ''; render(); };
+  }
+  function modelZoom(key) {
+    const m = modelOf(key), G = GARAGE[m.s], got = derive().gar[key] || [], wn = derive().wins[key] || [];
+    let o = $('fgZoom'); if (!o) { o = document.createElement('div'); o.id = 'fgZoom'; o.onclick = e => { if (e.target === o) o.remove(); }; }
+    o.innerHTML = `<div class="gzoom" style="--t1:${m.c1};--t2:${m.c2}"><div class="gbig ${got.length >= 10 ? 'full' : ''}">${carSvg(m, got)}</div>
+      <h2>#${m.num} ${esc(m.name)}</h2><p class="mut">${esc(m.team)} · ${G.n} · Temporada 2026 · escala 1:43</p>
+      <div class="gparts">${G.parts.map(([id, n]) => `<span class="${got.includes(id) ? 'ok' : ''}">${got.includes(id) ? '✓' : '·'} ${n}</span>`).join('')}</div>
+      ${wn.length ? `<div class="gwins">${wn.map(g => `<span>🏆 ${esc(g)}</span>`).join('')}</div>` : ''}
+      <button data-x>Cerrar</button></div>`;
+    document.body.appendChild(o); o.querySelector('[data-x]').onclick = () => o.remove();
+  }
+  // 🏆 cuando gana uno de la grilla, queda la plaquita en su modelo (para el recuerdo)
+  function wins() {
+    for (const s of Object.keys(GARAGE)) {
+      let L; try { L = Motor.lastRace(s); } catch { continue; } if (!L?.results?.length || !/^2026/.test(L.date || '')) continue;
+      const w = L.results.find(r => r.pos === 1); if (!w) continue;
+      const tk = norm(w.name).split(' '), m = models(s).find(m => norm(m.name).split(' ').every(x => tk.includes(x)));   // "Kimi Antonelli" ⊂ "Andrea Kimi Antonelli"; Marc ≠ Álex Márquez
+      if (m) add({ id:`w-${s}-${norm(L.name).replace(/\s+/g, '')}-${L.date.slice(0, 10)}`, ty:'win', m:m.key, gp:L.name });
+    }
   }
 
   /* ---------------- 🎉 abrir el sobre y completar ---------------- */
@@ -430,10 +591,10 @@ const Figus = (() => {
   function init() {
     if (!st.since) { st.since = Date.now(); saveSt(); }
     setInterval(slotTick, 60e3); setTimeout(slotTick, 5000);
-    setInterval(() => { try { prode(); } catch {} velezTok(); }, 10 * 60e3);
+    setInterval(() => { try { prode(); } catch {} velezTok(); try { wins(); } catch {} }, 10 * 60e3);
     setTimeout(async () => {
       await pull();
-      try { prode(); } catch {} velezTok();
+      try { prode(); } catch {} velezTok(); try { wins(); } catch {}
       if (!tvDev()) { const g = daily(); if (g) { pushSoon(); toast(`<b>🎁 Regalo del día: +${g.n} vaccoins</b><small>Racha de ${g.s} día${g.s === 1 ? '' : 's'}${g.off ? ` · +${g.off} de mientras no estabas` : ''}. Están en 🃏 Figus.</small>`, { cls:'info', ms:6000, onclick:() => Nav.go('figus') }); } }
     }, 6000);
     setInterval(pull, tvDev() ? 30 * 60e3 : 5 * 60e3);

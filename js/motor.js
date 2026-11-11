@@ -191,5 +191,12 @@ const Motor = (() => {
     return CATS.flatMap(([id, n]) => (data.cats[id]?.next?.sessions || []).filter(s => !s.dayOnly && sState(id, s) === 'pre' && (s.key || s.race)).map(s => ({ cat:n, name:s.name, t:Date.parse(s.start) })))
       .sort((a, b) => a.t - b.t)[0] || null;
   }
-  return { init, render, ticker, upcoming, liveCount:() => liveSessions().length };
+  // 🏁 ¿es fin de semana de carrera? (desde 18 h antes de la primera sesión hasta 6 h después de la última) — para el Garage de Figus
+  function weekend(id) {
+    const c = data?.cats?.[id], n = c?.next; if (!n?.sessions?.length) return { open:false };
+    const t = n.sessions.map(x => Date.parse(x.start)).filter(Boolean).sort((a, b) => a - b), from = t[0] - 18 * 3600e3, to = t[t.length - 1] + 6 * 3600e3;
+    return { open:Date.now() >= from && Date.now() <= to, name:n.name, from, to };
+  }
+  const lastRace = id => data?.cats?.[id]?.last || null;
+  return { init, render, ticker, upcoming, weekend, lastRace, liveCount:() => liveSessions().length };
 })();
