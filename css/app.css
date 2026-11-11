@@ -1649,3 +1649,7 @@ body.gs-depo .hud-br { font-style:italic; clip-path:polygon(12px 0, 100% 0, 100%
 /* 🎂 Fechas */
 .fclist { display:flex; flex-direction:column; gap:6px; }
 .fcrow { display:flex; gap:6px; align-items:center; flex-wrap:wrap; } .fcrow input[data-k=n] { flex:1; min-width:140px; } .fcrow select { width:auto; }
+/* 🌙 Dormir: lluvia o música para perros */
+.dmopts { display:flex; flex-direction:column; gap:8px; margin:6px 0; }
+.dmopts button { display:flex; align-items:center; gap:10px; text-align:left; font-size:18px; padding:12px 14px; }
+.dmopts button small { margin-left:auto; color:var(--mut); font-size:13px; }

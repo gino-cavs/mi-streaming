@@ -12,6 +12,8 @@ const Humor = (() => {
     laburar:{ ic:'💻', n:'Fondo para laburar', q:[['lofi hip hop radio', 'live'], ['jazz cafe music live', 'live'], ['deep focus music', 'long']] },
     info:   { ic:'📰', n:'Ponerme al día', news:true },
     dormir: { ic:'🌙', n:'Dormir', q:[['sonido de lluvia pantalla negra', 'long'], ['rain sounds black screen 10 hours', 'long'], ['lluvia para dormir pantalla negra', 'long']], dark:true },
+    // 🐕 dentro de Dormir: música para que duerman los perros (Vaca), con pantalla negra o con el video
+    perros: { ic:'🐕', n:'Música para perros', hide:true, q:[['music for dogs to sleep', 'long'], ['relaxing music for dogs calming', 'long'], ['música relajante para perros dormir', 'long']] },
   };
   const comedians = () => (db.humor = db.humor || { comedians:['MattRife'] }).comedians;   // sin ||= (WebView viejos de la Fire Stick)
   const pools = S.get('humorPool', {}), seen = new Set(S.get('humorSeen', []));
@@ -38,8 +40,9 @@ const Humor = (() => {
     pools[id] = { at:Date.now(), v:vids }; S.set('humorPool', pools);
     return vids;
   }
-  async function play(id, d = 1) {
+  async function play(id, d = 1, dark) {
     const M = MOODS[id];
+    if (dark == null) dark = id === 'perros' ? S.get('perrosDark', true) : !!M.dark;
     if (M.news) {   // de tus canales: uno de noticias que esté en vivo
       const l = db.chans.filter(c => /noticia/i.test(c.cat || '') || /c5n|a24|tn|ln\+|cr[oó]nica|canal 26/i.test(c.name)).filter(c => Canales.isLive(c));
       if (!l.length) return toast('<b>No hay canales de noticias en vivo ahora</b>', { cls:'info' });
@@ -53,22 +56,34 @@ const Humor = (() => {
     seen.add(v.id); S.set('humorSeen', [...seen].slice(-400));
     cur = id;
     Player.play({ uid:'humor-' + id, name:`${M.ic} ${v.t}`, platform:'youtube', ref:{ video:v.id }, cat:M.n, humor:id });
-    if (M.dark) { if (!document.body.classList.contains('tvlock')) TV.open(); document.body.classList.add('oscuro'); return; }   // 🌙 sin carteles ni brillo
+    if (dark) { if (!document.body.classList.contains('tvlock')) TV.open(); document.body.classList.add('oscuro'); return; }   // 🌙 sin carteles ni brillo
     document.body.classList.remove('oscuro');
     toast(`<b>${M.ic} ${esc(v.t)}</b><small>${esc(v.by)} · ▲▼ para otro</small>`, { cls:'info zapt', ms:4000 });
   }
   // ▲▼ mientras suena un humor: otro video del mismo
-  function step(d) { const s = Player.slots[Player.sel ?? 0] || Player.slots.find(Boolean); if (!s?.c?.humor) return false; play(s.c.humor, d); return true; }
+  function step(d) { const s = Player.slots[Player.sel ?? 0] || Player.slots.find(Boolean); if (!s?.c?.humor) return false; play(s.c.humor, d, document.body.classList.contains('oscuro')); return true; }
+  // 🌙 Dormir: elegís lluvia para vos o música para que duerma Vaca (con pantalla negra o con el video)
+  function dormir() {
+    let d = $('dlgDormir'); if (!d) { d = document.createElement('dialog'); d.id = 'dlgDormir'; document.body.appendChild(d); }
+    d.innerHTML = `<h3>🌙 Dormir</h3><div class="dmopts">
+        <button data-dm="dormir|1">🌧️ <b>Lluvia</b><small>pantalla negra</small></button>
+        <button data-dm="perros|1">🐕 <b>Música para perros</b><small>pantalla negra</small></button>
+        <button data-dm="perros|0">🐕 <b>Música para perros</b><small>con el video</small></button></div>
+      <div class="btns"><span class="sp"></span><button data-close>Cancelar</button></div>`;
+    d.querySelector('[data-close]').onclick = () => d.close();
+    d.querySelectorAll('[data-dm]').forEach(b => b.onclick = () => { const [id, dk] = b.dataset.dm.split('|'); if (id === 'perros') S.set('perrosDark', dk === '1'); d.close(); play(id, 1, dk === '1'); });
+    d.showModal(); d.querySelector('[data-dm]')?.focus();
+  }
 
   Inicio.add({ id:'humor', order:5, html() {
-    return `<h2 class="sec">🎭 ¿Cómo estás?</h2><div class="hmrow">${Object.entries(MOODS).map(([k, m]) => `<button class="hmb ${Franja.sug() === k ? 'sug' : ''}" data-hm="${k}"><span>${m.ic}</span>${esc(m.n)}</button>`).join('')}
+    return `<h2 class="sec">🎭 ¿Cómo estás?</h2><div class="hmrow">${Object.entries(MOODS).filter(([, m]) => !m.hide).map(([k, m]) => `<button class="hmb ${Franja.sug() === k ? 'sug' : ''}" data-hm="${k}"><span>${m.ic}</span>${esc(m.n)}</button>`).join('')}
       <button class="hmb hmcfg" data-hmcfg title="Tus comediantes">🎤 <small>${esc(comedians().map(h => '@' + h).join(', '))}</small> ✎</button></div>`; },
     bind(el) {
-      el.querySelectorAll('[data-hm]').forEach(b => b.onclick = () => play(b.dataset.hm));
+      el.querySelectorAll('[data-hm]').forEach(b => b.onclick = () => b.dataset.hm === 'dormir' ? dormir() : play(b.dataset.hm));
       el.querySelector('[data-hmcfg]').onclick = () => {
         const v = prompt('Tus comediantes de YouTube (los @ separados por coma). Ej: MattRife, ...', comedians().join(', ')); if (v == null) return;
         db.humor.comedians = v.split(/[,\s]+/).map(x => x.replace(/^@/, '').trim()).filter(Boolean); save(); delete pools.reir; S.set('humorPool', pools); Inicio.render();
       };
     } });
-  return { play, step, MOODS };
+  return { play, step, dormir, MOODS };
 })();
