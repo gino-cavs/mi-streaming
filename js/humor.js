@@ -70,16 +70,22 @@ const Humor = (() => {
     let el = $('negro');
     if (!el) {
       el = document.createElement('div'); el.id = 'negro';
-      const wake = () => { el.classList.add('wake'); clearTimeout(wakeT); wakeT = setTimeout(() => el.classList.remove('wake'), 5000); };
+      const wake = () => { paintSleep(); el.classList.add('wake'); clearTimeout(wakeT); wakeT = setTimeout(() => el.classList.remove('wake'), 6000); };
+      el._wake = wake;
       el.addEventListener('pointermove', wake); el.addEventListener('pointerdown', wake);
       document.addEventListener('keydown', e => { if (!document.body.classList.contains('oscuro')) return; const was = el.classList.contains('wake'); wake();
         if (!was && !/^Arrow|Escape|Backspace/.test(e.key)) { e.preventDefault(); e.stopImmediatePropagation(); el.querySelector('button')?.focus(); } }, true);
       el.onclick = e => { const b = e.target.closest('[data-ng]'); if (!b) return; const a = b.dataset.ng;
-        if (a === 'x') salirNegro(); else if (a === 'ver') { document.body.classList.remove('oscuro'); } else step(1); };
+        if (a === 'x') salirNegro(); else if (a === 'ver') { document.body.classList.remove('oscuro'); } else if (a === 'zz') { Zocalos.cycle(); setTimeout(() => { paintSleep(); el._wake(); }, 50); } else step(1); };
     }
-    el.innerHTML = `<div class="ngbar"><span>🌙 ${esc(lbl || "Dormir")}<small>${Lite.tv ? " · ☰ para salir" : " · Esc para salir"}</small></span><button data-ng="otro">⏭ Otro</button><button data-ng="ver">🎬 Ver el video</button><button data-ng="x">✕ Salir</button></div>`;
+    el.innerHTML = `<div class="ngbar"><span>🌙 ${esc(lbl || "Dormir")}<small>${Lite.tv ? " · ☰ para salir" : " · Esc para salir"}</small></span><button data-ng="zz" id="ngZz">😴 Apagar…</button><button data-ng="otro">⏭ Otro</button><button data-ng="ver">🎬 Ver el video</button><button data-ng="x">✕ Salir</button></div>`;
     (document.fullscreenElement || document.body).appendChild(el);
-    el.classList.remove('wake');
+    el._wake();   // al entrar se ve la barra y después se desvanece sola
+  }
+  // 😴 el temporizador de apagado, dentro de la barra (en la pantalla negra no se ven los avisos)
+  function paintSleep() {
+    const b = $('ngZz'); if (!b) return; const at = Zocalos.sleepAt;
+    b.textContent = at ? `😴 Se apaga en ${Math.max(1, Math.round((at - Date.now()) / 60e3))} min` : '😴 Apagar en…';
   }
   function salirNegro() { document.body.classList.remove('oscuro'); try { Player.closeAll(); } catch {} try { TV.close(); } catch {} }
   // 🌙 Dormir: elegís lluvia para vos o música para que duerma Vaca (con pantalla negra o con el video)
