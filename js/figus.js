@@ -39,7 +39,6 @@ const Figus = (() => {
   // 🎨 tapas para comprar con vaccoins (sirven para cualquier álbum, una vez compradas)
   const COVERS = { clasica:'📕 Clásica', cuero:'📜 Libro antiguo de cuero', retro:'📼 Retro de los 90', neon:'🌃 Neón cyberpunk' };
   const STK = ['⭐', '💙', '🐶', '🦴', '⚽', '🏆', '🔥', '👑', '✨', '🎸', '📺', '🏎️', '🏍️', '❤️', '🌙', '☀️', '💥', '🎉', '🍀', '🎙️', '📼', '🌈', '🐾', '😎'];
-  const STICK_SINCE = Date.UTC(2026, 10, 11, 18, 0);   // lo que ya tenías antes de esto cuenta como pegado
   const pcDev = () => Device.mode !== 'tv' && Device.mode !== 'celu' && matchMedia('(pointer:fine)').matches;
   const ROLES = { '':'Figu común', conductor:'🎙️ Conducción', panel:'💬 Panelista', invitado:'⭐ Invitado' };
   const AREAS = { '':'—', deportes:'⚽ Deportes', politica:'🏛️ Política', espectaculos:'🎬 Espectáculos', humor:'😂 Humor', economia:'💼 Economía', policiales:'🚨 Policiales', musica:'🎸 Música', tecnologia:'💻 Tecnología', otra:'📌 Otra' };
@@ -99,10 +98,9 @@ const Figus = (() => {
     let lastSlot = B.lastSlot || 0, earned = { slot:0, daily:0, prode:0, sell:0 }, spent = 0;
     const gar = JSON.parse(JSON.stringify(B.gar || {})), wins = JSON.parse(JSON.stringify(B.wins || {}));
     const exps = {}, posts = new Set(B.posts || []); let blends = B.blends || 0, expDone = B.expDone || 0;
-    const stuck = new Set(B.stuck || []), covers = new Set(B.covers || ['clasica']); let perfects = B.perfects || 0, snap = (B.upTo || 0) >= STICK_SINCE;
-    const sticks = [], snapNow = () => { Object.keys(have).forEach(k => have[k] > 0 && stuck.add(k)); snap = true; };
+    const stuck = new Set(B.stuckV === 2 ? B.stuck || [] : []), covers = new Set(B.covers || ['clasica']), postT = { ...(B.postT || {}) }; let perfects = B.perfects || 0;
+    const sticks = [];   // 🂠 nada se pega solo: todo lo que tenés y no pegaste está en el mazo
     for (const e of evs) {
-      if (!snap && e.t >= STICK_SINCE) snapNow();
       if (e.ty === 'slot') { const d = ymdOf(e.t); day[d] = (day[d] || 0) + 1; if (day[d] <= ECO.slotCap) { coins++; earned.slot++; } lastSlot = Math.max(lastSlot, e.t); }
       else if (e.ty === 'daily') { coins += e.n; earned.daily += e.n; dailies.add(e.d); }
       else if (e.ty === 'prode') { coins += e.n; earned.prode += e.n; }
@@ -128,20 +126,19 @@ const Figus = (() => {
       else if (e.ty === 'exp') exps[e.id] = { ...e };
       else if (e.ty === 'expok') { const x = exps[e.e]; if (!x || x.ok) continue; x.ok = true; const r = e.rw || {};
         coins += r.vc || 0; earned.exp = (earned.exp || 0) + (r.vc || 0); if (r.fig) have[r.fig] = (have[r.fig] || 0) + 1;
-        if (r.part) { const g = gar[r.part[0]] = gar[r.part[0]] || []; if (!g.includes(r.part[1])) g.push(r.part[1]); } if (r.post) posts.add(r.post); expDone++; }
+        if (r.part) { const g = gar[r.part[0]] = gar[r.part[0]] || []; if (!g.includes(r.part[1])) g.push(r.part[1]); } if (r.post) { posts.add(r.post); postT[r.post] = postT[r.post] || e.t; } expDone++; }
       else if (e.ty === 'stick') sticks.push(e);   // se resuelven al final (por si el reloj de un aparato anda atrasado)
       else if (e.ty === 'cover') { if (covers.has(e.d) || coins < e.cost) continue; coins -= e.cost; spent += e.cost; covers.add(e.d); }
     }
-    if (!snap) snapNow();
     for (const e of sticks) { if (!(have[e.k] > 0) || stuck.has(e.k)) continue; stuck.add(e.k); const n = Math.min(10, e.n || 0); if (n) { coins += n; earned.stick = (earned.stick || 0) + n; perfects++; } }
-    return D = { coins, have, toks, day, dailies, done, lastSlot, earned, spent, gar, wins, exps, posts, blends, expDone, stuck, covers, perfects };
+    return D = { coins, have, toks, day, dailies, done, lastSlot, earned, spent, gar, wins, exps, posts, postT, blends, expDone, stuck, covers, perfects };
   }
   // cuando el registro crece mucho, lo viejo (más de 60 días) se resume en una "base" (igual en todos los aparatos)
   function compact() {
     if (st.ev.length < 4000) return;
     const cut = Date.now() - 60 * 864e5, old = st.ev.filter(e => e.t <= cut); if (!old.length) return;
     const keep = st.ev.filter(e => e.t > cut); st.ev = old; D = null; const d = derive();
-    st.base = { upTo:cut, coins:d.coins, have:d.have, toks:d.toks, dailies:[...d.dailies], done:[...d.done], lastSlot:d.lastSlot, gar:d.gar, wins:d.wins, posts:[...d.posts], blends:d.blends, expDone:d.expDone, stuck:[...d.stuck], covers:[...d.covers], perfects:d.perfects };
+    st.base = { upTo:cut, coins:d.coins, have:d.have, toks:d.toks, dailies:[...d.dailies], done:[...d.done], lastSlot:d.lastSlot, gar:d.gar, wins:d.wins, posts:[...d.posts], blends:d.blends, expDone:d.expDone, stuck:[...d.stuck], stuckV:2, postT:d.postT, covers:[...d.covers], perfects:d.perfects };
     st.ev = keep; saveSt();
   }
   function merge(r) {
@@ -337,12 +334,14 @@ const Figus = (() => {
       <div class="fgstat"><span>Hoy por estar: <b>${hoy}/${ECO.slotCap}</b></span><span>🔥 Racha: <b>${s} día${s === 1 ? '' : 's'}</b></span><span>🏅 <b>${achList().filter(a => a.ok).length}</b>/${ACH.length} trofeos</span></div></div>
       <div class="fgtabs">${TABS.map(([k, t]) => `<button data-tab="${k}" class="${view.tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
   }
-  function progress(a) { const h = derive().have, tot = (a.cards || []).length || a.size || 0, got = (a.cards || []).filter(c => h[a.id + ':' + c.n]).length; return { got, tot, pct:tot ? Math.round(got / tot * 100) : 0 }; }
+  // pegadas = las que ya pusiste en el álbum; mazo = las que tenés y faltan pegar
+  function progress(a) { const d = derive(), tot = (a.cards || []).length || a.size || 0, ks = (a.cards || []).map(c => a.id + ':' + c.n);
+    const got = ks.filter(k => d.stuck.has(k) && d.have[k]).length, own = ks.filter(k => d.have[k]).length; return { got, own, pend:own - got, tot, pct:tot ? Math.round(got / tot * 100) : 0 }; }
   function albumTile(a) {
     const p = progress(a);
     return `<button class="fgalb st-${a.style || 'panini'}" style="${cv(a)}" data-alb="${esc(a.id)}">
       <div class="fgalogo" data-img="${esc(a.logo || '')}">${a.logo ? '' : esc((a.name || '?').slice(0, 2).toUpperCase())}</div>
-      <div class="fgainfo"><b>${esc(a.name)}</b><small>${THEMES[themeOf(a)].t.split(' ')[0]} ${p.got}/${p.tot}${derive().done.has(a.id) ? ' · 🏆' : ''}</small>
+      <div class="fgainfo"><b>${esc(a.name)}</b><small>${THEMES[themeOf(a)].t.split(' ')[0]} ${p.got}/${p.tot}${derive().done.has(a.id) ? ' · 👑' : ''}</small>${p.pend && !tvDev() ? `<span class="fgpend">🂠 ${p.pend} para pegar</span>` : ''}
       <div class="fgbar"><i style="width:${p.pct}%"></i></div></div></button>`;
   }
   function render() {
@@ -452,18 +451,18 @@ const Figus = (() => {
   /* ---------------- 📖 el álbum de papel: hojas que se pasan ---------------- */
   const narrow = () => innerWidth < 820;
   // en la compu, la figu nueva no se pega sola: queda la silueta hasta que la arrastrás
-  const cellHtml = (a, c, h) => { const k = a.id + ':' + c.n, n = h[k] || 0, toStick = n && pcDev() && !derive().stuck.has(k);
-    const ghost = figHtml(a, c, { ghost:true }).replace('<div class="fig ghost', `<div data-slotk="${esc(k)}" class="fig ghost${toStick ? ' tostick' : ''}`);
-    return `<div class="fgcell ${c.role ? 'r-' + c.role : ''}">${n && !toStick ? figHtml(a, c, { n }) : ghost}${!n && c.img && a.kind !== 'vaca' && !tvDev() ? `<button class="fgbuy1" data-buy1="${c.n}">Comprar · ${coinTxt(ECO.buy[c.rar || 'c'])}</button>` : ''}</div>`; };
+  const cellHtml = (a, c, h) => { const k = a.id + ':' + c.n, n = h[k] || 0, pend = n && !derive().stuck.has(k), toStick = pend && !tvDev();
+    const ghost = figHtml(a, c, { ghost:true }).replace('<div class="fig ghost', `<div data-slotk="${esc(k)}" class="fig ghost${toStick ? ' tostick' : ''}${toStick && pickK === k ? ' pick' : ''}`);
+    return `<div class="fgcell ${c.role ? 'r-' + c.role : ''}">${n && !pend ? figHtml(a, c, { n }) : ghost}${!n && c.img && a.kind !== 'vaca' && !tvDev() ? `<button class="fgbuy1" data-buy1="${c.n}">Comprar · ${coinTxt(ECO.buy[c.rar || 'c'])}</button>` : ''}</div>`; };
   const stkHtml = a => `<div class="bkstk">${(a.stk || []).map((x, i) => `<span data-si="${i}" style="left:${x.x}%;top:${x.y}%;--r:${x.r || 0}deg;--s:${x.s || 1}">${esc(x.e)}</span>`).join('')}</div>`;
   function leaves(a) {   // todas las hojas, en orden: tapa, presentación, páginas, contratapa
     const h = derive().have, p = progress(a), per = Math.max(1, +a.per || 6), pages = a.pages?.length ? a.pages : [{ t:'', txt:'' }];
     const L = [], idx = []; let num = 1;
     L.push({ kind:'cover', html:`<div class="bkcover cv-${esc(a.cover || 'clasica')} ${derive().done.has(a.id) ? 'golden' : ''}">${stkHtml(a)}<div class="fgalogo big" data-img="${esc(a.logo || '')}">${a.logo ? '' : esc((a.name || '?').slice(0, 2).toUpperCase())}</div>
-      <h1>${esc(a.name)}</h1><span class="bkstamp">ÁLBUM DE FIGURITAS</span><small>${(a.cards || []).length} figus · ${p.got} pegadas${derive().done.has(a.id) ? ' · 👑 COMPLETO' : ''}</small></div>` });
+      <h1>${esc(a.name)}</h1><span class="bkstamp">ÁLBUM DE FIGURITAS</span><small>${(a.cards || []).length} figus · ${p.got} pegadas${p.pend && !tvDev() ? ` · ${p.pend} en el mazo` : ''}${derive().done.has(a.id) ? ' · 👑 COMPLETO' : ''}</small></div>` });
     const intro = { kind:'page', n:num++ }; L.push(intro);
     pages.forEach((pg, i) => { const cards = (a.cards || []).filter(c => (c.page || 0) === i); if (!cards.length) return;
-      idx.push({ t:pg.t || 'Página ' + (i + 1), n:num, got:cards.filter(c => h[a.id + ':' + c.n]).length, tot:cards.length, leaf:L.length });
+      idx.push({ t:pg.t || 'Página ' + (i + 1), n:num, got:cards.filter(c => h[a.id + ':' + c.n] && derive().stuck.has(a.id + ':' + c.n)).length, tot:cards.length, leaf:L.length });
       if (pg.lay === 'mesa') { L.push({ kind:'wide', n:num, html:pageHtml(a, pg, cards, h) }); num += 2; return; }
       const head = `${pg.t ? `<h3>${esc(pg.t)}</h3>` : ''}${pg.txt ? `<p>${esc(pg.txt).replace(/\n/g, '<br>')}</p>` : ''}`;
       for (let j = 0, k = 0; j < cards.length; k++) {
@@ -473,7 +472,7 @@ const Figus = (() => {
           <div class="bkbody ${hero ? 'hero' : ''}">${hero ? `<div class="bkhero">${cellHtml(a, ch[0], h)}</div>` : ''}${grid.length ? `<div class="bkgrid" style="--cols:${hero ? Math.min(2, grid.length) : cols};--rows:${hero ? Math.ceil(grid.length / 2) : rows}">${grid.map(c => cellHtml(a, c, h)).join('')}</div>` : ''}</div>` }); } });
     intro.html = `<div class="bkhead"><h3>${esc(a.name)}</h3></div>${a.story ? `<div class="bkstory">${esc(a.story).replace(/\n/g, '<br>')}</div>` : ''}
       <h4 class="bkidxh">Índice</h4><div class="bkidx">${idx.map(x => `<button data-goto="${x.leaf}"><span>${esc(x.t)}</span><i></i><small>${x.got}/${x.tot}</small><b>${x.n}</b></button>`).join('')}</div>
-      <div class="bkprog"><div class="fgbar"><i style="width:${p.pct}%"></i></div><small>${p.got} de ${p.tot} pegadas (${p.pct}%)</small></div>`;
+      <div class="bkprog"><div class="fgbar"><i style="width:${p.pct}%"></i></div><small>${p.got} de ${p.tot} pegadas (${p.pct}%)${p.pend && !tvDev() ? ` · 🂠 ${p.pend} en el mazo` : ''}</small></div>`;
     L.push({ kind:'back', html:`<div class="bkcover back"><span class="bkstamp">FUNVS</span><small>Colección de klasito7</small><div class="bkprog"><div class="fgbar"><i style="width:${p.pct}%"></i></div><small>${p.pct}% completo</small></div></div>` });
     return L;
   }
@@ -505,17 +504,17 @@ const Figus = (() => {
     if (view.edit && !tvDev()) return renderEdit(v, a);
     const TV = tvDev(), PC = pcDev(), L = leaves(a), SP = spreads(L);
     let si = Math.max(0, SP.findIndex(sp => [sp.one, sp.solo, sp.wide, sp.l, sp.r].includes(view.leaf ?? 0)));
-    const d = derive(), inv = PC ? (a.cards || []).filter(c => d.have[a.id + ':' + c.n] && !d.stuck.has(a.id + ':' + c.n)) : [];
+    const d = derive(), inv = !TV ? (a.cards || []).filter(c => d.have[a.id + ':' + c.n] && !d.stuck.has(a.id + ':' + c.n)) : [];
     v.innerHTML = (TV ? `<div class="fghead tvh"><h2>🏛️ ${esc(a.name)}</h2><small class="mut">◀ ▶ pasan las hojas · ☰ Menú vuelve</small></div>` : header()) + `<div class="fgbook st-${a.style || 'panini'} ${PC ? 'pc' : ''}" style="${cv(a)}">
       <div class="btns"><button data-back>← Volver</button><span class="sp"></span>${PC ? `<button data-snd title="Sonidos">${S.get('figusSnd', true) ? '🔊' : '🔇'}</button><button data-cov>🎨 Tapa</button>` : ''}${TV ? '' : '<button data-edit>✎ Editar álbum</button>'}</div>
       <div class="bkstage"><button class="bknav" data-bk="-1" aria-label="Hoja anterior">‹</button><div class="bkview"></div><button class="bknav" data-bk="1" aria-label="Hoja siguiente">›</button>
-      ${inv.length ? `<div class="bktray" title="Agarrala y soltala sobre su silueta. Justo encima = ¡pegado perfecto! y vaccoins. Un toque te lleva a su página."><b>✋ Para pegar</b><small>${inv.length} figu${inv.length === 1 ? '' : 's'} · arrastralas a su silueta</small>
-        <div class="bktrayl">${inv.map(c => `<div class="bktit" data-drag="${esc(a.id + ':' + c.n)}">${figHtml(a, c, { small:true })}<small>#${c.n}</small></div>`).join('')}</div></div>` : ''}</div>
+      ${inv.length ? `<div class="bktray ${PC ? '' : 'phone'}" title="${PC ? 'Agarrala y soltala sobre su silueta. Justo encima = ¡pegado perfecto! y vaccoins. Un toque te lleva a su página.' : ''}"><b>🂠 Mazo · ${inv.length} para pegar</b><small>${PC ? 'Arrastralas a su silueta' : 'Tocá una figu y después tocá su lugar en la hoja'}</small>
+        <div class="bktrayl">${inv.map(c => `<div class="bktit ${pickK === a.id + ':' + c.n ? 'on' : ''}" data-drag="${esc(a.id + ':' + c.n)}">${figHtml(a, c, { small:true })}<small>#${c.n}</small></div>`).join('')}</div></div>` : ''}</div>
       <div class="bkfoot"><input type="range" min="0" max="${SP.length - 1}" value="${si}" data-bkr ${TV ? 'tabindex="-1"' : ''}><small data-bkn></small></div>
       <div class="bkcovp" hidden></div></div>`;
     if (!TV) bindCommon(v);
     const vw = v.querySelector('.bkview'), rng = v.querySelector('[data-bkr]');
-    const paint = () => { vw.innerHTML = spreadHtml(L, SP[si]); bindPage(vw); hydrate(vw); rng.value = si; view.leaf = leafOf(SP[si]);
+    const paint = () => { vw.innerHTML = spreadHtml(L, SP[si]); bindPage(vw); hydrate(vw); if (pickK) vw.querySelector(`.tostick[data-slotk="${CSS.escape(pickK)}"]`)?.classList.add('pick'); rng.value = si; view.leaf = leafOf(SP[si]);
       v.querySelector('[data-bkn]').textContent = si === 0 ? 'Tapa' : si === SP.length - 1 ? 'Contratapa' : `Hoja ${si} de ${SP.length - 2}`;
       v.querySelector('[data-bk="-1"]').disabled = si === 0; v.querySelector('[data-bk="1"]').disabled = si === SP.length - 1; };
     const bindPage = root => {
@@ -558,6 +557,7 @@ const Figus = (() => {
       e.preventDefault(); e.stopImmediatePropagation(); turn(si + (e.key === 'ArrowRight' ? 1 : -1)); };
     v.querySelector('[data-back]').onclick = () => { view = { tab:view.tab || 'albumes' }; render(); };
     v.querySelector('[data-edit]')?.addEventListener('click', () => { view.edit = true; work = null; render(); });
+    if (!TV && !PC) tapStick(v, a, vw, leaf => { const t = spreadOf(leaf); if (t >= 0) turn(t); });
     if (PC) {
       v.querySelector('[data-snd]').onclick = e => { const on = !S.get('figusSnd', true); S.set('figusSnd', on); e.target.textContent = on ? '🔊' : '🔇'; };
       tilt(vw); dragStick(v, a, vw, leaf => { const t = spreadOf(leaf); if (t >= 0) turn(t); }, () => SP[si]);
@@ -640,6 +640,23 @@ const Figus = (() => {
           const nf = $('v-figus').querySelector(`.bkview .fig[data-k="${CSS.escape(k)}"]`); nf?.classList.add('justin'); }, 170); };
       addEventListener('pointermove', mv); addEventListener('pointerup', up);
     });
+  }
+
+  let pickK = null;   // 📱 la figu del mazo que elegiste para pegar
+  function tapStick(v, a, vw, goLeaf) {
+    v.querySelectorAll('.bktray [data-drag]').forEach(it => it.onclick = () => {
+      const k = it.dataset.drag; pickK = pickK === k ? null : k;
+      v.querySelectorAll('.bktit').forEach(x => x.classList.toggle('on', x.dataset.drag === pickK));
+      if (!pickK) return vw.querySelectorAll('.tostick.pick').forEach(x => x.classList.remove('pick'));
+      const here = vw.querySelector(`[data-slotk="${CSS.escape(k)}"]`);
+      if (here) { vw.querySelectorAll('.tostick.pick').forEach(x => x.classList.remove('pick')); here.classList.add('pick'); here.scrollIntoView({ block:'nearest', behavior:'smooth' }); }
+      else { const leaf = leaves(a).findIndex(x => x.html?.includes(`data-slotk="${esc(k)}"`)); if (leaf >= 0) goLeaf(leaf); } });
+    vw.addEventListener('click', e => {
+      const sl = e.target.closest('.tostick[data-slotk]'); if (!sl) return;
+      if (!pickK) return toast('<b>Primero elegí la figu del mazo</b><small>Está abajo de la hoja.</small>', { cls:'info', ms:2200 });
+      if (sl.dataset.slotk !== pickK) { sl.classList.remove('nope'); void sl.offsetWidth; sl.classList.add('nope'); return toast('<b>Esa no va ahí</b><small>Fijate el número.</small>', { cls:'info', ms:1800 }); }
+      const k = pickK; pickK = null; add({ id:'st-' + k, ty:'stick', k, acc:100, n:0 }); pushSoon(); checkDone(a); render();
+      $('v-figus').querySelector(`.bkview .fig[data-k="${CSS.escape(k)}"]`)?.classList.add('justin'); });
   }
 
   /* ---------------- 🎨 la tapa: diseños que se compran y stickers que se pegan donde quieras ---------------- */
@@ -940,10 +957,53 @@ const Figus = (() => {
         <ul><li>${VC} ${T.vc[0]}–${T.vc[1]}</li><li>📮 postal: ${Math.round(T.post * 100)}%</li>${T.fig ? `<li>🃏 figu: ${Math.round(T.fig * 100)}%</li>` : ''}${T.part ? `<li>🔧 repuesto de maqueta: ${Math.round(T.part * 100)}%</li>` : ''}</ul>
         <button data-exgo="${h}" ${x ? 'disabled' : ''}>🦴 Salir ${h} h</button></div>`; }).join('')}</div>
       <h2 class="sec">📮 Postales de los repartos (${d.posts.size}/${DEST.length})</h2>
-      <div class="expost">${DEST.map(p => `<div class="${d.posts.has(p) ? 'ok' : ''}"><span>${d.posts.has(p) ? '📮' : '❔'}</span><b>${d.posts.has(p) ? esc(p) : '???'}</b></div>`).join('')}</div>
+      <div class="expost">${DEST.map(p => d.posts.has(p) ? `<button class="ok" data-post="${esc(p)}" data-pimg="${esc(p)}"><span>📮</span><b>${esc(p)}</b><small>Tocá para verla</small></button>` : `<div><span>❔</span><b>???</b></div>`).join('')}</div>
       <p class="mut">El repuesto va para una maqueta que ya empezaste. Vaca reparte de a un viaje por vez.</p>`;
   }
-  function bindExpe(v) { v.querySelectorAll('[data-exgo]').forEach(b => b.onclick = () => startExp(+b.dataset.exgo)); v.querySelector('[data-exclaim]')?.addEventListener('click', claimExp); }
+  function bindExpe(v) { v.querySelectorAll('[data-exgo]').forEach(b => b.onclick = () => startExp(+b.dataset.exgo)); v.querySelector('[data-exclaim]')?.addEventListener('click', claimExp);
+    v.querySelectorAll('[data-post]').forEach(b => b.onclick = () => postal(b.dataset.post));
+    v.querySelectorAll('[data-pimg]').forEach(async b => { const w = await wiki(b.dataset.pimg).catch(() => null); if (w?.img) { b.style.backgroundImage = `linear-gradient(#0000 40%, #000c), url("${w.img}")`; b.classList.add('ph'); } }); }
+
+  /* ---------------- 📮 las postales: la foto del lugar, lo que escribió Vaca y la historia (de Wikipedia) ---------------- */
+  const POST = {
+    'Monte Grande centro':{ w:'Monte Grande', m:'Hoy arranqué por casa. Repartí huesos alrededor de la plaza y me saludó medio barrio. Volví con la cola cansada de tanto moverla.' },
+    'Luis Guillón':{ w:'Luis Guillón', m:'Crucé las vías y repartí por Guillón. Un señor me dio una galletita y casi me quedo a vivir. Pero no: el reparto es sagrado.' },
+    'El Jagüel':{ w:'El Jagüel', m:'Llegué a El Jagüel con las patas llenas de tierra. Dicen que el nombre viene de un pozo de agua. Yo encontré un charco y me pareció bien.' },
+    '9 de Abril':{ w:'Nueve de Abril (Buenos Aires)', m:'En 9 de Abril había un perro grandote que me quiso sacar un hueso. Le ladré con todo y se fue. Reparto completo.' },
+    'Canning':{ w:'Canning (Buenos Aires)', m:'Canning es todo verde. Corrí por el pasto entre entrega y entrega. Si me ves con abrojos, ya sabés de dónde vienen.' },
+    'Ezeiza':{ w:'Ezeiza (Buenos Aires)', m:'En Ezeiza vi pasar aviones bajitos. Les ladré a todos, por las dudas. Ninguno bajó a buscar su hueso.' },
+    'Tristán Suárez':{ w:'Tristán Suárez', m:'Tristán Suárez tiene calles tranquilas, ideales para olfatear. Tardé un poco más porque olía todo.' },
+    'Lomas de Zamora':{ w:'Lomas de Zamora', m:'Lomas, mucho movimiento. Esquivé bicis, colectivos y un señor con paraguas. Entregué todo y me gané una caricia.' },
+    'Adrogué':{ w:'Adrogué', m:'Adrogué: árboles enormes y casonas lindas. Me eché un ratito a la sombra en una plaza antes de seguir.' },
+    'Temperley':{ w:'Temperley', m:'Pasé por la estación de Temperley y me miraron raro por llevar huesos en la mochila. Cosas del oficio.' },
+    'Constitución':{ w:'Estación Constitución', m:'Llegué a Constitución en el Roca, como vos cuando vas a la oficina. Mucha gente apurada; yo, tranqui, repartiendo.' },
+    'Liniers (Amalfitani)':{ w:'Estadio José Amalfitani', m:'¡Llegué al Fortín! Dejé el último hueso en la puerta del Amalfitani y ladré un "Vamos Vélez" bien fuerte. 💙' } };
+  async function wiki(name) {   // foto e historia del lugar, guardadas 30 días
+    const P = POST[name]; if (!P) return null; const C = S.get('postWiki', {}), c = C[name];
+    if (c && Date.now() - c.at < 30 * 864e5) return c;
+    const ask = async q => { const r = await fetch('https://es.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&prop=extracts|pageimages|pageprops|info&inprop=url&ppprop=disambiguation&exintro=1&explaintext=1&pithumbsize=900&' + q); return Object.values((await r.json()).query?.pages || {})[0]; };
+    let pg = await ask('titles=' + encodeURIComponent(P.w));
+    if (!pg || pg.missing !== undefined || pg.pageprops?.disambiguation !== undefined) pg = await ask('generator=search&gsrlimit=1&gsrsearch=' + encodeURIComponent(name.replace(/\(.*\)/, '') + ' Buenos Aires'));
+    if (!pg?.extract) return null;
+    const out = { t:pg.title, txt:pg.extract.split('\n').filter(Boolean).slice(0, 3).join('\n\n'), img:pg.thumbnail?.source || '', url:pg.fullurl || 'https://es.wikipedia.org/wiki/' + encodeURIComponent(pg.title), at:Date.now() };
+    C[name] = out; S.set('postWiki', C); return out;
+  }
+  async function postal(name) {
+    const P = POST[name], d = derive(), t = d.postT[name], o = document.createElement('div'); o.id = 'fgPostal';
+    const when = t ? new Date(t).toLocaleDateString('es-AR', { day:'numeric', month:'long', year:'numeric' }) : '';
+    o.innerHTML = `<div class="pcwrap"><div class="pcard">
+        <div class="pcfront" data-ph><div class="pcsal"><small>Saludos desde</small><b>${esc(name.replace(/\s*\(.*\)/, ''))}</b></div></div>
+        <div class="pcback"><div class="pcmsg"><p>Querido klasito7:</p><p>${esc(P?.m || '')}</p><p class="pcsig">Te quiere, Vaca 🐾</p></div>
+          <div class="pcaddr"><div class="pcstamp">🦴<small>VACA EXPRESS</small></div><div class="pcmark">${when ? esc(when) : ''}<br>${esc(name)}</div><i></i><i></i><i></i></div></div></div>
+      <div class="pchist"><h3>📜 Un poco de historia</h3><div data-hist><p class="mut">Buscando la historia del lugar…</p></div>
+        <div class="btns"><a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/${encodeURIComponent(name.replace(/\s*\(.*\)/, '') + ', Buenos Aires')}">📍 Ver en Google Maps</a><span class="sp"></span><button data-pcx>Cerrar</button></div></div></div>`;
+    document.body.appendChild(o);
+    const close = () => o.remove(); o.onclick = e => { if (e.target === o) close(); }; o.querySelector('[data-pcx]').onclick = close;
+    const w = await wiki(name).catch(() => null), H = o.querySelector('[data-hist]');
+    if (w?.img) o.querySelector('[data-ph]').style.backgroundImage = `url("${w.img}")`;
+    H.innerHTML = w ? `${w.txt.split('\n\n').map(x => `<p>${esc(x)}</p>`).join('')}<p><a href="${esc(w.url)}" target="_blank" rel="noopener">Seguir leyendo «${esc(w.t)}» en Wikipedia →</a></p>`
+      : '<p class="mut">No pude traer la historia ahora (¿sin internet?). Probá de nuevo más tarde.</p>';
+  }
 
   /* ---------------- 🌀 LICUADORA: 5 que te sobran → 1 de rareza superior ----------------
      Entran figus repetidas (te queda siempre una) y piezas de maquetas sin terminar. Sale una figu sorteada
@@ -1077,6 +1137,7 @@ const Figus = (() => {
   }
   // ☰ / Atrás: primero cierra la ficha, después sale del álbum
   function back() {
+    if ($('fgPostal')) { $('fgPostal').remove(); return true; }
     if ($('fgZoom')) { $('fgZoom').remove(); return true; }
     if (Nav.current === 'figus' && view.alb && !view.edit) { view = { tab:view.tab || 'albumes' }; render(); setTimeout(() => $('v-figus')?.querySelector('[data-alb]')?.focus(), 50); return true; }
     return false;
