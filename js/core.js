@@ -7,6 +7,15 @@ const S = {
   get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
+// 📋 imágenes copiadas: del evento "pegar" (Ctrl+V) o leyendo el portapapeles (botón Pegar, sirve en el celu)
+function pastedImages(e) { return [...(e.clipboardData?.items || [])].filter(i => i.kind === 'file' && i.type.startsWith('image/')).map(i => i.getAsFile()).filter(Boolean); }
+async function clipImages() {
+  if (!navigator.clipboard?.read) throw new Error('Este navegador no deja leer el portapapeles: usá Ctrl+V o mantené apretado y Pegar');
+  const out = [];
+  for (const it of await navigator.clipboard.read()) { const ty = it.types.find(t => t.startsWith('image/')); if (ty) { const b = await it.getType(ty); out.push(new File([b], 'pegada.' + ty.split('/')[1], { type:ty })); } }
+  if (!out.length) throw new Error('No hay ninguna imagen copiada');
+  return out;
+}
 function uid() { return Math.random().toString(36).slice(2, 10); }
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();

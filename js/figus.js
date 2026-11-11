@@ -15,7 +15,24 @@ const Figus = (() => {
     prodeWin:15, prodeExact:40, prodeScorer:10, velezX:2,
     pack:40, packVelez:60, packSize:5, buy:{ c:60, r:150, l:400 }, sell:{ c:3, r:10, l:40 }, odds:{ c:.70, r:.25, l:.05 } };
   const STYLES = { panini:'🟨 Clásico Panini', retro:'📼 Retro 90s', neon:'💡 Neón', diario:'📰 Diario de papel', holo:'🌈 Holográfico' };
-  const KINDS = { canal:'📺 Canal o temática', vaca:'🐶 Vaca (solo sale paseándola)', velez:'💙 Vélez (días de partido o kiosco)' };
+  // cómo se consiguen los sobres (independiente de qué trata el álbum)
+  const KINDS = { canal:'🏪 Sobres en el kiosco', vaca:'🐶 Sobres solo paseando a Vaca', velez:'💙 Kiosco (más barato los días que juega Vélez)' };
+  // de qué trata: son puntos de partida, después todo se cambia (páginas, ficha, diseño)
+  const F = (k, l, ty = 'text', ic = '') => ({ k, l, ty, ic });
+  const F_PROG = [F('area', 'Área', 'area'), F('horario', '🕒 Horario'), F('mule', 'Muletilla o frase célebre', 'quote'), F('bardo', 'Nivel de bardo', 'scale', '🔥'), F('extra', 'Algo más', 'long')];
+  const THEMES = {
+    programa:{ t:'📺 Programa o canal', d:'Conducción, panel e invitados, con la mesa del programa', kind:'canal', pages:[['El programa', 'mesa'], ['Invitados']], fields:F_PROG, story:'Contá la historia del canal: cuándo nació, quiénes están, qué lo hace especial…' },
+    vaca:{ t:'🐶 Vaca', d:'Sus fotos, paseos, siestas y travesuras', kind:'vaca', pages:[['De cachorra', 'hero'], ['Paseos'], ['Siestas'], ['Travesuras'], ['Con la familia']], fields:[F('fecha', '📅 Cuándo'), F('lugar', '📍 Dónde'), F('que', 'Qué pasó', 'long'), F('ternura', 'Nivel de ternura', 'scale', '🥰')], story:'La historia de Vaca: cuándo llegó, cómo es, sus mañas…' },
+    velez:{ t:'💙 Vélez', d:'Plantel, ídolos, el Amalfitani, partidos y títulos', kind:'velez', pages:[['Plantel 2026'], ['Ídolos', 'hero'], ['El Amalfitani'], ['Partidos inolvidables'], ['Títulos']], fields:[F('pos', '⚽ Posición'), F('num', '👕 Número'), F('epoca', '📅 Época'), F('dato', 'Dato', 'long'), F('idolo', 'Nivel de ídolo', 'scale', '💙')], story:'El Fortín: su historia, sus ídolos, sus noches…' },
+    musica:{ t:'🎸 Música', d:'Bandas, discos, recitales', kind:'canal', pages:[['Bandas'], ['Discos'], ['Recitales']], fields:[F('anio', '📅 Año'), F('tema', '🎵 Tema favorito'), F('dato', 'Dato', 'long')], story:'' },
+    pelis:{ t:'🎬 Series y pelis', d:'Personajes, villanos, escenas', kind:'canal', pages:[['Protagonistas'], ['Villanos'], ['Escenas']], fields:[F('de', '🎞️ De dónde'), F('frase', 'Frase', 'quote'), F('dato', 'Dato', 'long')], story:'' },
+    gente:{ t:'👨‍👩‍👧 Familia y amigos', d:'La gente y los momentos', kind:'canal', pages:[['Familia'], ['Amigos'], ['Momentos', 'hero']], fields:[F('quien', '🙂 Quién es'), F('fecha', '📅 Cuándo'), F('recuerdo', 'Recuerdo', 'long')], story:'' },
+    lugares:{ t:'🗺️ Lugares y viajes', d:'El barrio, la ciudad, los viajes', kind:'canal', pages:[['Monte Grande'], ['Buenos Aires'], ['Viajes']], fields:[F('donde', '📍 Dónde'), F('cuando', '📅 Cuándo'), F('dato', 'Dato', 'long')], story:'' },
+    libre:{ t:'✨ Lo que quieras', d:'En blanco: armás páginas y ficha a tu gusto', kind:'canal', pages:[['Página 1']], fields:[F('dato', 'Dato', 'long')], story:'' } };
+  const LAYS = { '':'▦ Grilla', hero:'🖼️ Foto grande + grilla', mesa:'🎙️ Mesa del programa (doble página)' };
+  const FTY = { text:'Texto corto', long:'Texto largo', quote:'Frase (entre comillas)', scale:'Escala de 0 a 5', area:'Área (deportes, política…)' };
+  const themeOf = a => THEMES[a.theme] ? a.theme : a.kind === 'vaca' ? 'vaca' : a.kind === 'velez' ? 'velez' : 'programa';
+  const fieldsOf = a => a.fields || ((a.cards || []).some(c => c.ficha && Object.values(c.ficha).some(Boolean)) ? F_PROG : THEMES[themeOf(a)].fields);
   const RAR = { c:'Común', r:'Rara', l:'Legendaria' };
   const ROLES = { '':'Figu común', conductor:'🎙️ Conducción', panel:'💬 Panelista', invitado:'⭐ Invitado' };
   const AREAS = { '':'—', deportes:'⚽ Deportes', politica:'🏛️ Política', espectaculos:'🎬 Espectáculos', humor:'😂 Humor', economia:'💼 Economía', policiales:'🚨 Policiales', musica:'🎸 Música', tecnologia:'💻 Tecnología', otra:'📌 Otra' };
@@ -310,13 +327,14 @@ const Figus = (() => {
     const p = progress(a);
     return `<button class="fgalb st-${a.style || 'panini'}" style="${cv(a)}" data-alb="${esc(a.id)}">
       <div class="fgalogo" data-img="${esc(a.logo || '')}">${a.logo ? '' : esc((a.name || '?').slice(0, 2).toUpperCase())}</div>
-      <div class="fgainfo"><b>${esc(a.name)}</b><small>${KINDS[a.kind || 'canal'].split(' ')[0]} ${p.got}/${p.tot}${derive().done.has(a.id) ? ' · 🏆' : ''}</small>
+      <div class="fgainfo"><b>${esc(a.name)}</b><small>${THEMES[themeOf(a)].t.split(' ')[0]} ${p.got}/${p.tot}${derive().done.has(a.id) ? ' · 🏆' : ''}</small>
       <div class="fgbar"><i style="width:${p.pct}%"></i></div></div></button>`;
   }
   function render() {
     const v = $('v-figus'); if (!v) return;
     if (!tvDev()) try { achCheck(); } catch {}
     if (tvDev()) { v.innerHTML = '<div class="empty">🃏 La Colección se juega desde el celu o la compu. Acá en la tele igual vas sumando vaccoins.</div>'; return; }
+    if (view.nuevo) return renderNew(v);
     if (view.alb) return renderAlbum(v);
     const d = derive(), A = albums(); let body = '';
     if (view.tab === 'inicio') {
@@ -379,43 +397,138 @@ const Figus = (() => {
   function bindCommon(v) { v.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { view = { tab:b.dataset.tab }; render(); }); }
 
   /* ---------------- 📖 un álbum: verlo y editarlo ---------------- */
-  function newAlbum() {
-    const id = 'a' + uid(), n = albums().length;
-    st.albums[id] = { id, name:'Nuevo álbum', kind:'canal', style:Object.keys(STYLES)[n % 5], colors:['#1238b5', '#ffffff'], size:20, story:'', pages:[{ t:'Página 1', txt:'' }], cards:[], cr:Date.now(), upd:Date.now() };
-    for (let i = 1; i <= 20; i++) st.albums[id].cards.push({ n:i, name:'', page:0, rar:i % 10 === 0 ? 'l' : i % 4 === 0 ? 'r' : 'c', img:'' });
-    saveSt(); schedule(); view = { tab:'albumes', alb:id, edit:true }; work = null; render();
+  function newAlbum() { view = { tab:'albumes', nuevo:{ th:'', n:20, name:'', kind:'' } }; render(); }
+  // ✨ asistente: de qué es, cómo se llama, cuántas figus y cómo se consiguen
+  function renderNew(v) {
+    const N = view.nuevo, T = THEMES[N.th];
+    v.innerHTML = header() + `<div class="fgnuevo"><div class="btns"><button data-back>← Volver</button></div>
+      <h2>📖 Álbum nuevo</h2><h3>1 · ¿De qué es?</h3>
+      <div class="fgths">${Object.entries(THEMES).map(([k, t]) => `<button class="fgth ${N.th === k ? 'on' : ''}" data-th="${k}"><b>${t.t}</b><small>${t.d}</small></button>`).join('')}</div>
+      ${T ? `<p class="mut">Arranca con las páginas ${T.pages.map(p => '«' + esc(p[0]) + '»').join(', ')} y una ficha con ${fieldsOf({ theme:N.th, cards:[] }).map(f => f.l.replace(/^\S+\s/, '')).join(', ').toLowerCase()}. Todo se cambia después.</p>
+      <h3>2 · ¿Cómo se llama?</h3><input data-nn value="${esc(N.name)}" placeholder="${esc(T.t.replace(/^\S+\s/, ''))}" maxlength="40">
+      <h3>3 · ¿Cuántas figus?</h3><div class="fgnn">${[10, 20, 30, 50, 100].map(n => `<button data-nc="${n}" class="${N.n === n ? 'on' : ''}">${n}</button>`).join('')}<input type="number" min="1" max="150" data-nc2 value="${N.n}"></div>
+      <h3>4 · ¿Cómo se consiguen los sobres?</h3><select data-nk>${Object.entries(KINDS).map(([k, t]) => `<option value="${k}" ${(N.kind || T.kind) === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <div class="btns" style="margin-top:16px"><span class="sp"></span><button class="pri" data-mk>Crear y cargar las figus →</button></div>` : ''}</div>`;
+    bindCommon(v);
+    v.querySelector('[data-back]').onclick = () => { view = { tab:'albumes' }; render(); };
+    v.querySelectorAll('[data-th]').forEach(b => b.onclick = () => { N.th = b.dataset.th; N.kind = ''; render(); });
+    v.querySelector('[data-nn]')?.addEventListener('input', e => N.name = e.target.value);
+    v.querySelectorAll('[data-nc]').forEach(b => b.onclick = () => { N.n = +b.dataset.nc; render(); });
+    v.querySelector('[data-nc2]')?.addEventListener('change', e => { N.n = Math.max(1, Math.min(150, +e.target.value || 20)); render(); });
+    v.querySelector('[data-nk]')?.addEventListener('change', e => N.kind = e.target.value);
+    v.querySelector('[data-mk]')?.addEventListener('click', () => {
+      const id = 'a' + uid(), k = albums().length, pages = T.pages.map(([t, lay]) => ({ t, txt:'', ...(lay ? { lay } : {}) }));
+      const a = st.albums[id] = { id, name:N.name.trim() || T.t.replace(/^\S+\s/, ''), theme:N.th, kind:N.kind || T.kind, style:Object.keys(STYLES)[k % 5], colors:['#1238b5', '#ffffff'], per:6,
+        story:'', pages, fields:JSON.parse(JSON.stringify(T.fields)), cards:[], cr:Date.now(), upd:Date.now() };
+      for (let i = 1; i <= N.n; i++) a.cards.push({ n:i, name:'', page:Math.min(pages.length - 1, Math.floor((i - 1) * pages.length / N.n)), rar:i % 10 === 0 ? 'l' : i % 4 === 0 ? 'r' : 'c', img:'' });
+      saveSt(); schedule(); view = { tab:'albumes', alb:id, edit:true }; work = null; render(); });
   }
   function checkDone(a) {
     if (derive().done.has(a.id)) return; const p = progress(a);
     if (p.tot && p.got === p.tot && (a.cards || []).every(c => c.img)) { add({ id:'done-' + a.id, ty:'done', a:a.id }); celebrate(a); }
   }
+  /* ---------------- 📖 el álbum de papel: hojas que se pasan ---------------- */
+  const narrow = () => innerWidth < 820;
+  const cellHtml = (a, c, h) => { const n = h[a.id + ':' + c.n] || 0; return `<div class="fgcell ${c.role ? 'r-' + c.role : ''}">${n ? figHtml(a, c, { n }) : figHtml(a, c, { ghost:true })}${!n && c.img && a.kind !== 'vaca' ? `<button class="fgbuy1" data-buy1="${c.n}">Comprar · ${coinTxt(ECO.buy[c.rar || 'c'])}</button>` : ''}</div>`; };
+  function leaves(a) {   // todas las hojas, en orden: tapa, presentación, páginas, contratapa
+    const h = derive().have, p = progress(a), per = Math.max(1, +a.per || 6), pages = a.pages?.length ? a.pages : [{ t:'', txt:'' }];
+    const L = [], idx = []; let num = 1;
+    L.push({ kind:'cover', html:`<div class="bkcover"><div class="fgalogo big" data-img="${esc(a.logo || '')}">${a.logo ? '' : esc((a.name || '?').slice(0, 2).toUpperCase())}</div>
+      <h1>${esc(a.name)}</h1><span class="bkstamp">ÁLBUM DE FIGURITAS</span><small>${(a.cards || []).length} figus · ${p.got} pegadas${derive().done.has(a.id) ? ' · 🏆 COMPLETO' : ''}</small></div>` });
+    const intro = { kind:'page', n:num++ }; L.push(intro);
+    pages.forEach((pg, i) => { const cards = (a.cards || []).filter(c => (c.page || 0) === i); if (!cards.length) return;
+      idx.push({ t:pg.t || 'Página ' + (i + 1), n:num, got:cards.filter(c => h[a.id + ':' + c.n]).length, tot:cards.length, leaf:L.length });
+      if (pg.lay === 'mesa') { L.push({ kind:'wide', n:num, html:pageHtml(a, pg, cards, h) }); num += 2; return; }
+      const head = `${pg.t ? `<h3>${esc(pg.t)}</h3>` : ''}${pg.txt ? `<p>${esc(pg.txt).replace(/\n/g, '<br>')}</p>` : ''}`;
+      for (let j = 0, k = 0; j < cards.length; k++) {
+        const hero = pg.lay === 'hero' && k === 0, take = hero ? Math.max(1, Math.min(per, 5)) : per, ch = cards.slice(j, j + take); j += take;
+        const grid = hero ? ch.slice(1) : ch, cols = grid.length <= 2 ? Math.max(1, grid.length) : grid.length <= 4 ? 2 : grid.length <= 9 ? 3 : 4, rows = Math.ceil(grid.length / cols) || 1;
+        L.push({ kind:'page', n:num++, html:`<div class="bkhead">${k === 0 ? head : `<h4>${esc(pg.t || '')} <small>(sigue)</small></h4>`}</div>
+          <div class="bkbody ${hero ? 'hero' : ''}">${hero ? `<div class="bkhero">${cellHtml(a, ch[0], h)}</div>` : ''}${grid.length ? `<div class="bkgrid" style="--cols:${hero ? Math.min(2, grid.length) : cols};--rows:${hero ? Math.ceil(grid.length / 2) : rows}">${grid.map(c => cellHtml(a, c, h)).join('')}</div>` : ''}</div>` }); } });
+    intro.html = `<div class="bkhead"><h3>${esc(a.name)}</h3></div>${a.story ? `<div class="bkstory">${esc(a.story).replace(/\n/g, '<br>')}</div>` : ''}
+      <h4 class="bkidxh">Índice</h4><div class="bkidx">${idx.map(x => `<button data-goto="${x.leaf}"><span>${esc(x.t)}</span><i></i><small>${x.got}/${x.tot}</small><b>${x.n}</b></button>`).join('')}</div>
+      <div class="bkprog"><div class="fgbar"><i style="width:${p.pct}%"></i></div><small>${p.got} de ${p.tot} pegadas (${p.pct}%)</small></div>`;
+    L.push({ kind:'back', html:`<div class="bkcover back"><span class="bkstamp">FUNVS</span><small>Colección de klasito7</small><div class="bkprog"><div class="fgbar"><i style="width:${p.pct}%"></i></div><small>${p.pct}% completo</small></div></div>` });
+    return L;
+  }
+  function spreads(L) {   // en la compu: de a dos hojas (tapa y contratapa solas, la mesa ocupa las dos). En el celu: de a una
+    const S = [];
+    if (narrow()) { L.forEach((x, i) => S.push({ one:i })); return S; }
+    let cur = null;
+    L.forEach((x, i) => {
+      if (x.kind === 'cover') return S.push({ solo:i });
+      if (x.kind === 'back') { if (cur !== null) { S.push({ l:cur, r:-1 }); cur = null; } return S.push({ solo:i, back:true }); }
+      if (x.kind === 'wide') { if (cur !== null) { S.push({ l:cur, r:-1 }); cur = null; } return S.push({ wide:i }); }
+      if (cur === null) cur = i; else { S.push({ l:cur, r:i }); cur = null; } });
+    return S;
+  }
+  const leafOf = sp => sp.one ?? sp.solo ?? sp.wide ?? sp.l;
+  function pageBox(L, i, side) {
+    if (i < 0) return `<div class="bkp ${side} blank"></div>`;
+    const x = L[i]; if (x.kind === 'cover' || x.kind === 'back') return `<div class="bkp ${side} cov">${x.html}</div>`;
+    return `<div class="bkp ${side}">${x.html}${x.n ? `<span class="bknum">${x.n}</span>` : ''}</div>`;
+  }
+  function spreadHtml(L, sp) {
+    if (sp.wide !== undefined) return `<div class="bkspread wide">${L[sp.wide].html}<span class="bknum l">${L[sp.wide].n}</span><span class="bknum r">${L[sp.wide].n + 1}</span></div>`;
+    if (sp.one !== undefined) return `<div class="bkspread one">${L[sp.one].kind === 'wide' ? `<div class="bkp one widep">${L[sp.one].html}</div>` : pageBox(L, sp.one, 'one')}</div>`;
+    if (sp.solo !== undefined) return `<div class="bkspread solo ${sp.back ? 'atl' : 'atr'}">${sp.back ? pageBox(L, sp.solo, 'l') + '<div class="bkp r none"></div>' : '<div class="bkp l none"></div>' + pageBox(L, sp.solo, 'r')}</div>`;
+    return `<div class="bkspread">${pageBox(L, sp.l, 'l')}${pageBox(L, sp.r, 'r')}</div>`;
+  }
   function renderAlbum(v) {
     const a = st.albums[view.alb]; if (!a) { view = { tab:'albumes' }; return render(); }
     if (view.edit) return renderEdit(v, a);
-    const h = derive().have, p = progress(a), pages = a.pages?.length ? a.pages : [{ t:'', txt:'' }];
-    const byPage = pages.map((pg, i) => ({ pg, cards:(a.cards || []).filter(c => (c.page || 0) === i) }));
-    v.innerHTML = header() + `<div class="fgalbum st-${a.style || 'panini'}" style="${cv(a)}">
-      <div class="fgcover"><div class="fgalogo big" data-img="${esc(a.logo || '')}">${a.logo ? '' : esc((a.name || '?').slice(0, 2).toUpperCase())}</div>
-        <div><h2>${esc(a.name)}</h2><small>${KINDS[a.kind || 'canal']} · ${p.got}/${p.tot} (${p.pct}%)${derive().done.has(a.id) ? ' · 🏆 COMPLETO' : ''}</small>
-        <div class="fgbar"><i style="width:${p.pct}%"></i></div></div>
-        <div class="btns"><button data-back>← Volver</button><button data-edit>✎ Editar álbum</button></div></div>
-      ${a.story ? `<div class="fgstory">${esc(a.story).replace(/\n/g, '<br>')}</div>` : ''}
-      ${byPage.map(({ pg, cards }) => cards.length ? pageHtml(a, pg, cards, h) : '').join('')}
-      </div>`;
+    const L = leaves(a), S = spreads(L); let si = Math.max(0, S.findIndex(sp => [sp.one, sp.solo, sp.wide, sp.l, sp.r].includes(view.leaf ?? 0)));
+    v.innerHTML = header() + `<div class="fgbook st-${a.style || 'panini'}" style="${cv(a)}">
+      <div class="btns"><button data-back>← Volver</button><span class="sp"></span><button data-edit>✎ Editar álbum</button></div>
+      <div class="bkstage"><button class="bknav" data-bk="-1" aria-label="Hoja anterior">‹</button><div class="bkview"></div><button class="bknav" data-bk="1" aria-label="Hoja siguiente">›</button></div>
+      <div class="bkfoot"><input type="range" min="0" max="${S.length - 1}" value="${si}" data-bkr><small data-bkn></small></div></div>`;
     bindCommon(v);
+    const vw = v.querySelector('.bkview'), rng = v.querySelector('[data-bkr]');
+    const paint = () => { vw.innerHTML = spreadHtml(L, S[si]); bindPage(vw); hydrate(vw); rng.value = si; view.leaf = leafOf(S[si]);
+      v.querySelector('[data-bkn]').textContent = si === 0 ? 'Tapa' : si === S.length - 1 ? 'Contratapa' : `Hoja ${si} de ${S.length - 2}`;
+      v.querySelector('[data-bk="-1"]').disabled = si === 0; v.querySelector('[data-bk="1"]').disabled = si === S.length - 1; };
+    const bindPage = root => {
+      root.querySelectorAll('.fig[data-k]').forEach(f => f.onclick = () => zoom(f));
+      root.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => { const t = S.findIndex(sp => [sp.one, sp.solo, sp.wide, sp.l, sp.r].includes(+b.dataset.goto)); if (t >= 0) turn(t); });
+      root.querySelectorAll('[data-buy1]').forEach(b => b.onclick = () => {
+        const c = a.cards.find(x => String(x.n) === b.dataset.buy1), cost = ECO.buy[c.rar || 'c'];
+        if (derive().coins < cost) return toast(`<b>Te faltan vaccoins</b><small>Necesitás ${cost}.</small>`, { cls:'info' });
+        if (!confirm(`¿Comprar la #${c.n}${c.name ? ' (' + c.name + ')' : ''} por ${cost} vaccoins?`)) return;
+        add({ id:'b' + uid(), ty:'buy', k:a.id + ':' + c.n, cost }); pushSoon(); checkDone(a); render(); }); };
+    let busy = false;
+    function turn(to) {   // pasar la hoja (con la hoja que gira, como en un álbum de verdad)
+      if (to < 0 || to >= S.length || to === si || busy) return;
+      const from = S[si], dir = to > si ? 1 : -1, nx = S[to]; si = to;
+      const calm = matchMedia('(prefers-reduced-motion: reduce)').matches; if (calm) return paint();
+      const two = from.l !== undefined && nx.l !== undefined;
+      paint(); busy = true;
+      const flap = document.createElement('div');
+      if (two) {   // la hoja que gira: de un lado la que estabas viendo, del otro la nueva
+        const keep = vw.querySelector(dir > 0 ? '.bkp.l' : '.bkp.r'); keep.outerHTML = pageBox(L, dir > 0 ? from.l : from.r, dir > 0 ? 'l' : 'r');
+        flap.className = 'bkflap half ' + (dir > 0 ? 'fwd' : 'bwd');
+        flap.innerHTML = `<div class="bkf">${pageBox(L, dir > 0 ? from.r : from.l, dir > 0 ? 'r' : 'l')}</div><div class="bkf backf">${pageBox(L, dir > 0 ? nx.l : nx.r, dir > 0 ? 'l' : 'r')}</div>`;
+      } else { flap.className = 'bkflap full ' + (dir > 0 ? 'fwd' : 'bwd'); flap.innerHTML = `<div class="bkf">${spreadHtml(L, from)}</div>`; }
+      vw.querySelector(".bkspread").appendChild(flap); hydrate(vw);
+      requestAnimationFrame(() => requestAnimationFrame(() => flap.classList.add('go')));
+      setTimeout(() => { busy = false; paint(); }, 620);
+    }
+    v.querySelectorAll('[data-bk]').forEach(b => b.onclick = () => turn(si + +b.dataset.bk));
+    rng.oninput = () => { si = +rng.value; paint(); };
+    let x0 = null; vw.addEventListener('touchstart', e => x0 = e.touches[0].clientX, { passive:true });
+    vw.addEventListener('touchend', e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 50) turn(si + (dx < 0 ? 1 : -1)); });
+    bookKeys = e => { if (Nav.current !== 'figus' || !document.body.contains(vw) || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)) return;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); e.stopImmediatePropagation(); turn(si + (e.key === 'ArrowRight' ? 1 : -1)); } };
     v.querySelector('[data-back]').onclick = () => { view = { tab:view.tab || 'albumes' }; render(); };
     v.querySelector('[data-edit]').onclick = () => { view.edit = true; work = null; render(); };
-    v.querySelectorAll('[data-buy1]').forEach(b => b.onclick = () => {
-      const c = a.cards.find(x => String(x.n) === b.dataset.buy1), cost = ECO.buy[c.rar || 'c'];
-      if (derive().coins < cost) return toast(`<b>Te faltan vaccoins</b><small>Necesitás ${cost}.</small>`, { cls:'info' });
-      if (!confirm(`¿Comprar la #${c.n}${c.name ? ' (' + c.name + ')' : ''} por ${cost} vaccoins?`)) return;
-      add({ id:'b' + uid(), ty:'buy', k:a.id + ':' + c.n, cost }); pushSoon(); checkDone(a); render(); });
-    v.querySelectorAll('.fig[data-k]').forEach(f => f.onclick = () => zoom(f));
-    hydrate(v); ensureImgs(a.id);
+    wasNarrow = narrow(); paint(); ensureImgs(a.id);
   }
+  let bookKeys = null, wasNarrow = null, pasteFn = null, pasteTo = null, hoverSlot = null;
+  addEventListener('paste', e => Nav.current === 'figus' && pasteFn && pasteFn(e));
+  addEventListener('keydown', e => bookKeys && bookKeys(e), true);
+  addEventListener('resize', () => { const n = narrow(); if (wasNarrow !== null && n !== wasNarrow && Nav.current === 'figus' && view.alb && !view.edit) render(); wasNarrow = n; });
   // 📖 una página: grilla común, o "mesa" (doble página con la escenografía del programa: conducción al centro, panelistas a los costados)
   function pageHtml(a, pg, cards, h) {
-    const cell = c => { const n = h[a.id + ':' + c.n] || 0; return `<div class="fgcell ${c.role ? 'r-' + c.role : ''}">${n ? figHtml(a, c, { n }) : figHtml(a, c, { ghost:true })}${!n && c.img && a.kind !== 'vaca' ? `<button class="fgbuy1" data-buy1="${c.n}">Comprar · ${coinTxt(ECO.buy[c.rar || 'c'])}</button>` : ''}</div>`; };
+    const cell = c => cellHtml(a, c, h);
     const head = `${pg.t ? `<h3>${esc(pg.t)}</h3>` : ''}${pg.txt ? `<p>${esc(pg.txt).replace(/\n/g, '<br>')}</p>` : ''}`;
     if (pg.lay !== 'mesa') return `<div class="fgpage">${head}<div class="fggrid">${cards.map(cell).join('')}</div></div>`;
     const cond = cards.filter(c => c.role === 'conductor'), resto = cards.filter(c => c.role !== 'conductor');
@@ -428,14 +541,15 @@ const Figus = (() => {
   }
   // 🪪 la ficha del personaje (al tocar una figu pegada)
   function fichaHtml(a, c) {
-    const f = c.ficha || {}, b = Math.max(0, Math.min(5, +f.bardo || 0));
-    const rows = [f.area ? `<span class="fchip">${AREAS[f.area] || esc(f.area)}</span>` : '', c.role ? `<span class="fchip">${ROLES[c.role]}</span>` : ''].join('');
-    return `<div class="fgficha" style="${cv(a)}"><h3>${esc(c.name || 'Figu #' + c.n)}</h3><div>${rows}</div>
-      ${f.horario ? `<p>🕒 <b>Horario:</b> ${esc(f.horario)}</p>` : ''}
-      ${f.mule ? `<p class="fmule">“${esc(f.mule)}”</p>` : ''}
-      ${b ? `<p>🔥 <b>Nivel de bardo:</b> <span class="fbardo">${'🔥'.repeat(b)}${'·'.repeat(5 - b)}</span></p>` : ''}
-      ${f.extra ? `<p>${esc(f.extra).replace(/\n/g, '<br>')}</p>` : ''}
-      ${!f.horario && !f.mule && !b && !f.extra && !f.area ? '<p class="mut">Todavía no le cargaste la ficha (✎ Editar álbum → 📝 Ficha).</p>' : ''}
+    const f = c.ficha || {}, FS = fieldsOf(a), val = x => f[x.k];
+    const chips = [...FS.filter(x => x.ty === 'area' && val(x)).map(x => `<span class="fchip">${AREAS[val(x)] || esc(val(x))}</span>`), c.role ? `<span class="fchip">${ROLES[c.role]}</span>` : ''].join('');
+    const rows = FS.filter(x => x.ty !== 'area' && val(x)).map(x => {
+      if (x.ty === 'scale') { const b = Math.max(0, Math.min(5, +val(x) || 0)); return b ? `<p><b>${esc(x.ic || '⭐')} ${esc(x.l)}:</b> <span class="fbardo">${(x.ic || '⭐').repeat(b)}${'·'.repeat(5 - b)}</span></p>` : ''; }
+      if (x.ty === 'quote') return `<p class="fmule">“${esc(val(x))}”</p>`;
+      if (x.ty === 'long') return `<p>${esc(val(x)).replace(/\n/g, '<br>')}</p>`;
+      return `<p><b>${esc(x.l)}:</b> ${esc(val(x))}</p>`; }).join('');
+    return `<div class="fgficha" style="${cv(a)}"><h3>${esc(c.name || 'Figu #' + c.n)}</h3><div>${chips}</div>${rows}
+      ${!rows && !chips ? '<p class="mut">Todavía no le cargaste la ficha (✎ Editar álbum → 📝 Ficha).</p>' : ''}
       <small class="mut">#${c.n} · ${esc(a.name)} · ${RAR[c.rar || 'c']}</small></div>`;
   }
   function zoom(f) { let o = $('fgZoom'); if (!o) { o = document.createElement('div'); o.id = 'fgZoom'; o.onclick = () => o.remove(); }
@@ -445,48 +559,61 @@ const Figus = (() => {
   function renderEdit(v, a) {
     if (!work) work = JSON.parse(JSON.stringify(a));
     const W = work, pages = W.pages?.length ? W.pages : (W.pages = [{ t:'Página 1', txt:'' }]);
+    if (!W.fields) W.fields = JSON.parse(JSON.stringify(fieldsOf(W))); if (!W.theme) W.theme = themeOf(W);
+    const FS = W.fields, mesa = pages.some(p => p.lay === 'mesa');
     v.innerHTML = header() + `<div class="fgedit">
       <div class="btns"><button data-back>← Volver sin guardar</button><span class="sp"></span><span class="mut" id="fgDirty"></span><button class="pri" data-savealb>Guardar cambios</button></div>
       <div class="fgedgrid">
         <div class="box"><h3>El álbum</h3>
           <label>Nombre</label><input data-f="name" value="${esc(W.name)}">
-          <label>Tipo</label><select data-f="kind">${Object.entries(KINDS).map(([k, t]) => `<option value="${k}" ${W.kind === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+          <label>De qué es</label><select data-f="theme">${Object.entries(THEMES).map(([k, t]) => `<option value="${k}" ${themeOf(W) === k ? 'selected' : ''}>${t.t}</option>`).join('')}</select>
+          <label>Cómo se consiguen los sobres</label><select data-f="kind">${Object.entries(KINDS).map(([k, t]) => `<option value="${k}" ${(W.kind || 'canal') === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
           <label>Estilo de plantilla</label><select data-f="style">${Object.entries(STYLES).map(([k, t]) => `<option value="${k}" ${W.style === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
-          <label>Colores del canal <small class="mut">(pegá el código hex, hasta 3: el más llamativo primero)</small></label>
+          <label>Colores <small class="mut">(pegá el código hex, hasta 3: el más llamativo primero)</small></label>
           <div class="fgcolors">${[0, 1, 2].map(i => `<span><input type="color" data-ci="${i}" value="${/^#[0-9a-f]{6}$/i.test(W.colors[i] || '') ? W.colors[i] : '#000000'}"><input data-ch="${i}" value="${esc(W.colors[i] || '')}" placeholder="#RRGGBB" maxlength="9"></span>`).join('')}</div>
-          <label>Logo <small class="mut">(opcional)</small></label><div class="fglogoed"><div class="fgalogo" data-img="${esc(W.logo || '')}"></div><label class="petadd"><input type="file" accept="image/*" data-logo hidden>Elegir imagen</label></div>
-          <label>Cantidad de figus</label><input type="number" min="5" max="80" data-f="size" value="${W.cards.length}" style="width:90px">
+          <label>Logo <small class="mut">(opcional)</small></label><div class="fglogoed"><div class="fgalogo ${pasteTo === 'logo' ? 'tgt' : ''}" data-img="${esc(W.logo || '')}" data-slot="logo"></div><label class="petadd"><input type="file" accept="image/*" data-logo hidden>＋ Subir</label><button type="button" class="petadd" data-paste="logo">📋 Pegar</button></div>
+          <div class="fgnums"><span><label>Cantidad de figus</label><input type="number" min="1" max="150" data-f="size" value="${W.cards.length}"></span>
+            <span><label>Figus por hoja</label><select data-f="per">${[1, 2, 4, 6, 8, 9, 12].map(n => `<option ${(+W.per || 6) === n ? 'selected' : ''}>${n}</option>`).join('')}</select></span></div>
           <div class="fgprev">${figHtml(W, W.cards.find(c => c.img) || { n:1, name:'Así se ve', rar:'r', img:'' })}${figHtml(W, { n:2, name:'Legendaria', rar:'l', img:W.cards.find(c => c.img && c.rar === 'l')?.img || '' })}</div>
         </div>
-        <div class="box"><h3>La historia</h3><textarea data-f="story" rows="6" placeholder="Contá la historia del canal: cuándo nació, quiénes están, qué lo hace especial…">${esc(W.story || '')}</textarea>
-          <h3>Páginas (programas o secciones)</h3>
+        <div class="box"><h3>La historia</h3><textarea data-f="story" rows="6" placeholder="${esc(THEMES[themeOf(W)].story || 'La presentación del álbum (va en la primera hoja)')}">${esc(W.story || '')}</textarea>
+          <h3>Páginas <small class="mut">(cada una ocupa las hojas que necesite)</small></h3>
           <div class="fgpages">${pages.map((p, i) => `<div class="fgpg"><input data-pt="${i}" value="${esc(p.t)}" placeholder="Nombre de la página (ej: el programa)"><textarea data-px="${i}" rows="2" placeholder="Texto de esa página (opcional)">${esc(p.txt || '')}</textarea>
-            <div class="fgpgopt"><select data-pl="${i}"><option value="">▦ Grilla</option><option value="mesa" ${p.lay === 'mesa' ? 'selected' : ''}>🎙️ Mesa del programa (doble página)</option></select>
-              ${p.lay === 'mesa' ? `<label class="petadd fgbgup" data-img="${esc(p.bg || '')}"><input type="file" accept="image/*" data-pbg="${i}" hidden>🖼️ Escenografía</label><input type="color" data-pc="${i}" value="${/^#[0-9a-f]{6}$/i.test(p.col || '') ? p.col : '#1238b5'}" title="Color de la mesa">` : ''}</div>
+            <div class="fgpgopt"><select data-pl="${i}">${Object.entries(LAYS).map(([k, t]) => `<option value="${k}" ${(p.lay || '') === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+              ${p.lay === 'mesa' ? `<label class="petadd fgbgup ${pasteTo === 'pbg:' + i ? 'tgt' : ''}" data-img="${esc(p.bg || '')}" data-slot="pbg:${i}"><input type="file" accept="image/*" data-pbg="${i}" hidden>🖼️ Escenografía</label><button type="button" class="petadd" data-paste="pbg:${i}">📋</button><input type="color" data-pc="${i}" value="${/^#[0-9a-f]{6}$/i.test(p.col || '') ? p.col : '#1238b5'}" title="Color de la mesa">` : ''}</div>
             ${pages.length > 1 ? `<button data-pdel="${i}" title="Borrar página">✕</button>` : ''}</div>`).join('')}</div>
-          <button data-padd>＋ Página</button></div>
+          <button data-padd>＋ Página</button>
+          <h3>📝 La ficha de cada figu <small class="mut">(lo que aparece al tocarla)</small></h3>
+          <div class="fgflds">${FS.map((x, i) => `<div class="fgfld"><input data-fl="${i}" value="${esc(x.l)}" placeholder="Nombre del dato"><select data-ft="${i}">${Object.entries(FTY).map(([k, t]) => `<option value="${k}" ${x.ty === k ? 'selected' : ''}>${t}</option>`).join('')}</select>${x.ty === 'scale' ? `<input data-fi="${i}" value="${esc(x.ic || '⭐')}" maxlength="4" title="Emoji de la escala" class="fgfic">` : ''}<button data-fdel="${i}" title="Sacar">✕</button></div>`).join('')}</div>
+          <button data-fadd>＋ Dato</button></div>
       </div>
-      <h3>Las figus <small class="mut">(tocá el cuadro para subir la imagen o el gif)</small></h3>
+      <h3>Las figus</h3><p class="mut fgpastehint">Para cada figu: tocá el cuadro para <b>subir</b> una imagen o gif, o copiá una imagen (de una página, WhatsApp, captura…) y apretá <b>📋 Pegar</b>. En la compu también podés hacer <b>Ctrl+V</b>: va al cuadro que tenés el mouse encima o, si no, a la próxima figu sin imagen (y sigue con la siguiente, así pegás varias seguidas).</p>
       <div class="fgcards">${W.cards.map((c, i) => `<div class="fgced rar-${c.rar || 'c'}">
-          <label class="fgcimg" data-img="${esc(c.img || '')}"><input type="file" accept="image/*" data-cimg="${i}" hidden><span>#${c.n}<br>＋ imagen</span></label>
+          <label class="fgcimg ${pasteTo === 'cimg:' + i ? 'tgt' : ''}" data-img="${esc(c.img || '')}" data-slot="cimg:${i}"><input type="file" accept="image/*" data-cimg="${i}" hidden><span>#${c.n}<br>＋ subir</span><button type="button" class="fgpaste" data-paste="cimg:${i}" title="Pegar la imagen copiada">📋 Pegar</button></label>
           <input data-cn="${i}" value="${esc(c.name || '')}" placeholder="Nombre">
           <select data-cp="${i}">${pages.map((p, j) => `<option value="${j}" ${(c.page || 0) === j ? 'selected' : ''}>${esc(p.t || 'Página ' + (j + 1))}</option>`).join('')}</select>
           <select data-cr="${i}">${Object.entries(RAR).map(([k, t]) => `<option value="${k}" ${(c.rar || 'c') === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
-          <select data-crol="${i}">${Object.entries(ROLES).map(([k, t]) => `<option value="${k}" ${(c.role || '') === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
-          <details class="fgfed"><summary>📝 Ficha</summary>
-            <select data-ff="${i}|area">${Object.entries(AREAS).map(([k, t]) => `<option value="${k}" ${(c.ficha?.area || '') === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
-            <input data-ff="${i}|horario" value="${esc(c.ficha?.horario || '')}" placeholder="Horario (ej: lun a vie 20 h)">
-            <input data-ff="${i}|mule" value="${esc(c.ficha?.mule || '')}" placeholder="Muletilla o frase célebre">
-            <label class="mut" style="font-size:12px">🔥 Nivel de bardo: <input type="range" min="0" max="5" data-ff="${i}|bardo" value="${+c.ficha?.bardo || 0}"></label>
-            <textarea data-ff="${i}|extra" rows="2" placeholder="Algo más (opcional)">${esc(c.ficha?.extra || '')}</textarea></details></div>`).join('')}</div>
+          ${mesa ? `<select data-crol="${i}">${Object.entries(ROLES).map(([k, t]) => `<option value="${k}" ${(c.role || '') === k ? 'selected' : ''}>${t}</option>`).join('')}</select>` : ''}
+          ${FS.length ? `<details class="fgfed"><summary>📝 Ficha</summary>${FS.map(x => { const val = c.ficha?.[x.k] ?? '', key = `${i}|${esc(x.k)}`;
+            if (x.ty === 'area') return `<select data-ff="${key}">${Object.entries(AREAS).map(([k, t]) => `<option value="${k}" ${val === k ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+            if (x.ty === 'scale') return `<label class="mut" style="font-size:12px">${esc(x.ic || '⭐')} ${esc(x.l)}: <input type="range" min="0" max="5" data-ff="${key}" value="${+val || 0}"></label>`;
+            if (x.ty === 'long') return `<textarea data-ff="${key}" rows="2" placeholder="${esc(x.l)}">${esc(val)}</textarea>`;
+            return `<input data-ff="${key}" value="${esc(val)}" placeholder="${esc(x.l)}">`; }).join('')}</details>` : ''}</div>`).join('')}</div>
       <div class="btns" style="margin-top:14px"><button data-delalb class="danger">🗑 Borrar álbum</button><span class="sp"></span><button class="pri" data-savealb>Guardar cambios</button></div></div>`;
     bindCommon(v);
     const dirty = () => { $('fgDirty').textContent = JSON.stringify(work) !== JSON.stringify(st.albums[a.id]) ? 'Hay cambios sin guardar' : ''; };
     const re = () => { renderEdit(v, a); };
     v.querySelectorAll('[data-f]').forEach(x => x.onchange = () => {
       const f = x.dataset.f;
-      if (f === 'size') { const n = Math.max(5, Math.min(80, +x.value || 20)); while (W.cards.length < n) W.cards.push({ n:W.cards.length + 1, name:'', page:0, rar:'c', img:'' }); W.cards.length = n; return re(); }
-      W[f] = x.value; if (f === 'style' || f === 'kind') re(); else dirty(); });
+      if (f === 'size') { const n = Math.max(1, Math.min(150, +x.value || 20)); if (n < W.cards.length && W.cards.slice(n).some(c => c.img) && !confirm(`Las figus de la ${n + 1} a la ${W.cards.length} se borran (algunas tienen imagen). ¿Seguro?`)) return re();
+        while (W.cards.length < n) W.cards.push({ n:W.cards.length + 1, name:'', page:pages.length - 1, rar:'c', img:'' }); W.cards.length = n; return re(); }
+      if (f === 'per') { W.per = +x.value; return dirty(); }
+      W[f] = x.value; if (f === 'style' || f === 'kind' || f === 'theme') re(); else dirty(); });
+    v.querySelectorAll('[data-fl]').forEach(x => x.oninput = () => { FS[+x.dataset.fl].l = x.value; dirty(); });
+    v.querySelectorAll('[data-ft]').forEach(x => x.onchange = () => { FS[+x.dataset.ft].ty = x.value; re(); });
+    v.querySelectorAll('[data-fi]').forEach(x => x.oninput = () => { FS[+x.dataset.fi].ic = x.value; dirty(); });
+    v.querySelectorAll('[data-fdel]').forEach(x => x.onclick = () => { FS.splice(+x.dataset.fdel, 1); re(); });
+    v.querySelector('[data-fadd]').onclick = () => { FS.push(F('f' + uid(), 'Dato nuevo')); re(); };
     v.querySelectorAll('[data-ch]').forEach(x => x.oninput = () => { W.colors[+x.dataset.ch] = x.value.trim(); W.colors = W.colors.map(c => c || ''); if (/^#[0-9a-f]{3,8}$/i.test(x.value.trim()) || !x.value) { const p = v.querySelector(`[data-ci="${x.dataset.ch}"]`); if (/^#[0-9a-f]{6}$/i.test(x.value)) p.value = x.value; v.querySelectorAll('.fgprev .fig').forEach(f => f.setAttribute('style', cv(W))); } dirty(); });
     v.querySelectorAll('[data-ci]').forEach(x => x.oninput = () => { W.colors[+x.dataset.ci] = x.value; v.querySelector(`[data-ch="${x.dataset.ci}"]`).value = x.value; v.querySelectorAll('.fgprev .fig').forEach(f => f.setAttribute('style', cv(W))); dirty(); });
     v.querySelectorAll('[data-pt]').forEach(x => x.oninput = () => { pages[+x.dataset.pt].t = x.value; dirty(); });
@@ -495,7 +622,7 @@ const Figus = (() => {
     v.querySelector('[data-padd]').onclick = () => { pages.push({ t:'Página ' + (pages.length + 1), txt:'' }); re(); };
     v.querySelectorAll('[data-cn]').forEach(x => x.oninput = () => { W.cards[+x.dataset.cn].name = x.value; dirty(); });
     v.querySelectorAll('[data-crol]').forEach(x => x.onchange = () => { W.cards[+x.dataset.crol].role = x.value; dirty(); });
-    v.querySelectorAll('[data-ff]').forEach(x => x.oninput = x.onchange = () => { const [i, k] = x.dataset.ff.split('|'); const c = W.cards[+i]; c.ficha = c.ficha || {}; c.ficha[k] = k === 'bardo' ? +x.value : x.value; dirty(); });
+    v.querySelectorAll('[data-ff]').forEach(x => x.oninput = x.onchange = () => { const [i, k] = x.dataset.ff.split('|'); const c = W.cards[+i]; c.ficha = c.ficha || {}; c.ficha[k] = x.type === 'range' ? +x.value : x.value; dirty(); });
     v.querySelectorAll('[data-pl]').forEach(x => x.onchange = () => { pages[+x.dataset.pl].lay = x.value; re(); });
     v.querySelectorAll('[data-pc]').forEach(x => x.oninput = () => { pages[+x.dataset.pc].col = x.value; dirty(); });
     v.querySelectorAll('[data-pbg]').forEach(x => x.onchange = () => x.files[0] && up(x.files[0], id => { pages[+x.dataset.pbg].bg = id; }, 1280));
@@ -503,6 +630,17 @@ const Figus = (() => {
     v.querySelectorAll('[data-cr]').forEach(x => x.onchange = () => { W.cards[+x.dataset.cr].rar = x.value; x.closest('.fgced').className = 'fgced rar-' + x.value; dirty(); });
     const up = async (file, set, max) => { try { const u = await readImg(file, max), id = 'i' + uid() + Date.now().toString(36); await imgPut(id, u); urlCache[id] = u; set(id); re(); } catch (e) { toast(`<b>${esc(e.message)}</b>`, { cls:'info' }); } };
     v.querySelectorAll('[data-cimg]').forEach(x => x.onchange = () => x.files[0] && up(x.files[0], id => { W.cards[+x.dataset.cimg].img = id; }));
+    // 📋 pegar: a qué cuadro va, y después saltar a la próxima figu vacía
+    const setFor = key => { const [t, i] = key.split(':'); return t === 'cimg' ? id => { W.cards[+i].img = id; } : t === 'logo' ? id => { W.logo = id; } : id => { pages[+i].bg = id; }; };
+    const nextEmpty = (from = -1) => { const i = W.cards.findIndex((c, j) => j > from && !c.img); return i >= 0 ? 'cimg:' + i : null; };
+    const pasteIn = (key, file) => { if (!key) return toast('<b>Todas las figus ya tienen imagen</b><small>Pasá el mouse por la que quieras cambiar y pegá.</small>', { cls:'info' });
+      if (key.startsWith('cimg:')) pasteTo = nextEmpty(+key.split(':')[1]); up(file, setFor(key), key.startsWith('pbg') ? 1280 : undefined); };
+    v.querySelectorAll('[data-slot]').forEach(x => x.addEventListener('mouseenter', () => { hoverSlot = x.dataset.slot; }));
+    v.querySelectorAll('[data-slot]').forEach(x => x.addEventListener('mouseleave', () => { if (hoverSlot === x.dataset.slot) hoverSlot = null; }));
+    v.querySelectorAll('[data-paste]').forEach(b => b.onclick = async e => { e.preventDefault(); e.stopPropagation();
+      try { const [f] = await clipImages(); pasteIn(b.dataset.paste, f); } catch (er) { toast(`<b>${esc(er.message)}</b>`, { cls:'info' }); } });
+    pasteFn = e => { if (!document.body.contains(v.querySelector('.fgedit'))) return; const [f] = pastedImages(e); if (!f) return;
+      e.preventDefault(); pasteIn(hoverSlot || (pasteTo && !(pasteTo.startsWith('cimg:') && W.cards[+pasteTo.split(':')[1]]?.img) ? pasteTo : nextEmpty()), f); };
     v.querySelector('[data-logo]').onchange = e => e.target.files[0] && up(e.target.files[0], id => { W.logo = id; });
     v.querySelector('[data-back]').onclick = () => { if (JSON.stringify(work) !== JSON.stringify(st.albums[a.id]) && !confirm('¿Salir sin guardar los cambios?')) return; work = null; view.edit = false; render(); };
     v.querySelectorAll('[data-savealb]').forEach(b => b.onclick = () => { W.colors = (W.colors || []).filter(Boolean); W.upd = Date.now(); st.albums[a.id] = JSON.parse(JSON.stringify(W)); work = null; markDirty(a.id); saveSt(); pushSoon(); toast('🃏 Álbum guardado', { ms:1800 }); view.edit = false; checkDone(st.albums[a.id]); render(); });

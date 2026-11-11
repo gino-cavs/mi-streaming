@@ -119,9 +119,12 @@ function initSettings() {
     $('petList').querySelectorAll('[data-pd]').forEach(b => b.onclick = () => { db.vacaFotos.splice(+b.dataset.pd, 1); save(); petPaint(); }); };
   const shrink = f => new Promise(r => { const im = new Image(); im.onload = () => { const z = 200, c = document.createElement('canvas'); c.width = c.height = z; const m = Math.min(im.width, im.height);
     c.getContext('2d').drawImage(im, (im.width - m) / 2, (im.height - m) / 2, m, m, 0, 0, z, z); URL.revokeObjectURL(im.src); r(c.toDataURL('image/jpeg', .82)); }; im.onerror = () => r(null); im.src = URL.createObjectURL(f); });
-  $('petIn').onchange = async e => { db.vacaFotos = db.vacaFotos || [];
-    for (const f of [...e.target.files].slice(0, 30 - db.vacaFotos.length)) { const u = await shrink(f); if (u) db.vacaFotos.push(u); }
-    e.target.value = ''; save(); petPaint(); toast(`<b>🐶 ${db.vacaFotos.length + 1} fotos de Vaca</b><small>Van pasando en el logo.</small>`, { ms:3000 }); };
+  const addPets = async files => { db.vacaFotos = db.vacaFotos || [];
+    for (const f of [...files].slice(0, 30 - db.vacaFotos.length)) { const u = await shrink(f); if (u) db.vacaFotos.push(u); }
+    save(); petPaint(); toast(`<b>🐶 ${db.vacaFotos.length + 1} fotos de Vaca</b><small>Van pasando en el logo.</small>`, { ms:3000 }); };
+  $('petIn').onchange = async e => { await addPets(e.target.files); e.target.value = ''; };
+  $('petPaste').onclick = async () => { try { await addPets(await clipImages()); } catch (er) { toast(`<b>${esc(er.message)}</b>`, { cls:'info' }); } };
+  addEventListener('paste', e => { if (!$('petList')?.offsetParent) return; const f = pastedImages(e); if (f.length) { e.preventDefault(); addPets(f); } });
   $('btnSettings').addEventListener('click', petPaint);
   $('btnSettings').onclick = () => {
     $('setHud').checked = TV.on; $('setZfx').checked = S.get('zapFx', { on:true }).on; $('setYtClean').checked = S.get('ytClean', true); $('setLite').checked = Lite.on; $('setZfxS').checked = !!S.get('zapFx', {}).sound;
