@@ -112,6 +112,8 @@ const FUNVSApp = (() => {
     checking = false;
   }
   function showUpdate() {
+    // 📺 en la tele mientras suena algo, nada de cartel en el medio que tape: un aviso chiquito y sigue todo
+    if (tv && AudioMgr.active) { snooze = Date.now() + 3 * 3600e3; try { Grafismo.barPop('✨ FUNVS', 'Hay una versión nueva · tocá ☰ dos veces cuando quieras para actualizar', { ms:9000 }); } catch {} return; }
     let d = $('dlgUpd'); if (!d) { d = document.createElement('dialog'); d.id = 'dlgUpd'; d.className = 'updlg'; document.body.appendChild(d); }
     d.innerHTML = `<div class="updic">✨</div><h3>Hay una versión nueva de FUNVS</h3><p class="mut">Se recarga en un segundo y queda todo como lo tenías.</p>
       <div class="btns"><button id="updLater">Más tarde</button><button class="pri" id="updGo" autofocus>⟳ Actualizar ahora</button></div>`;

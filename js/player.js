@@ -146,7 +146,9 @@ const Player = (() => {
         // 🔊 el volumen se mantiene al cambiar de canal: lo pongo apenas el reproductor está listo y lo vuelvo a fijar
         // los primeros segundos (YouTube a veces lo resetea solo al arrancar el vivo o al cambiar de calidad)
         const wantVol = () => Math.round(S.get('vol', 1) * 100);
-        const pinVol = () => { let n = 0; const t = setInterval(() => { if (s.seq !== my || ++n > 16) return clearInterval(t); try { if (Math.abs(p.getVolume() - wantVol()) > 2) p.setVolume(wantVol()); } catch {} }, 500); };
+        // 🎧 y que no quede muda: si este es el que tiene que sonar y YouTube lo dejó silenciado (pasaba en el celu con auriculares), lo destrabo
+        const pinVol = () => { let n = 0; const t = setInterval(() => { if (s.seq !== my || ++n > 16) return clearInterval(t); try { if (Math.abs(p.getVolume() - wantVol()) > 2) p.setVolume(wantVol());
+          if (AudioMgr.active === sid && !s.mutedByApp && !s.audioOff && p.isMuted()) { p.unMute(); if (p.getVolume() < 5) p.setVolume(wantVol() || 100); } } catch {} }, 500); };
         const p = new YT.Player(f, { events:{ onReady:() => { try { p.setVolume(wantVol()); } catch {} pinVol(); }, onStateChange:e => {
           // solo cuenta como "empezó a sonar" si veníamos de pausa/inicio (no al terminar de cargar)
           if (e.data === 1 || e.data === 2) snowOff(s, my);
@@ -173,10 +175,15 @@ const Player = (() => {
         const noLive = () => { if (!s.e.tryLive || s.seq !== my) return; clearTimeout(s.tryT); s.c._noTry = true; const fb = s.e.fallback; s.e = embedOf(s.c); delete s.c._noTry; if (fb || s.e.id) { s.e.tryLive = false; mountVideo(i); try { paintBar(i); } catch {} } };
         if (s.e.tryLive) s.tryT = setTimeout(noLive, 9000);
         s.api = { p, destroy() {} };
+        // 📺 en la tele (de fondo todo el día): si se pausó sola, se quedó cargando o sin arrancar, la retomo / recargo
+        if (Device.mode === 'tv') { let bad = 0; const w = setInterval(() => { if (s.seq !== my) return clearInterval(w);
+          let st; try { st = p.getPlayerState(); } catch { return; }
+          if (st === 2 && !s.userPause && !document.hidden) { try { p.playVideo(); } catch {} }
+          if (st === 3 || st === -1 || st === 5) { if (++bad >= 4) { bad = 0; if (!s.dead) mountVideo(i); } } else bad = 0; }, 15e3); }
         AudioMgr.register(sid, { mute() { try { p.mute(); } catch {} setMutedUI(true); }, unmute() { try { p.unMute(); } catch {} setMutedUI(false); },
           label:() => s.c.name, live:() => { const x = Canales.status[s.c.uid] || {}; return x.st === 'live' && !x.prem; }, prem:() => !!(Canales.status[s.c.uid] || {}).prem && (Canales.status[s.c.uid] || {}).st === 'live',
           paused:() => { try { return p.getPlayerState() !== 1; } catch { return false; } },
-          toggle:() => { try { p.getPlayerState() === 1 ? p.pauseVideo() : p.playVideo(); } catch {} },
+          toggle:() => { try { if (p.getPlayerState() === 1) { s.userPause = true; p.pauseVideo(); } else { s.userPause = false; p.playVideo(); } } catch {} },
           // ⏪ ⏩ (también en los vivos con DVR: YouTube deja volver atrás hasta unas horas) y volver al vivo
           seek:d => { try { const t = p.getCurrentTime(), D = p.getDuration(); p.seekTo(Math.max(0, D ? Math.min(t + d, D - 1) : t + d), true); if (p.getPlayerState() === 2) p.playVideo(); } catch {} },
           behind:() => { try { const x = Canales.status[s.c.uid] || {}; if (x.st !== 'live') return 0; return Math.max(0, p.getDuration() - p.getCurrentTime()); } catch { return 0; } },

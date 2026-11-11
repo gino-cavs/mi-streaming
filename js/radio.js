@@ -92,28 +92,32 @@ const Radio = (() => {
       <button id="rbX" title="Cerrar">✕</button>`;
     $('rbTv').onclick = () => TV.open();
     $('rbStar').onclick = () => Momentos.capture('radio');
-    $('rbPlay').onclick = () => audio.paused ? audio.play().catch(err) : audio.pause();
+    $('rbPlay').onclick = () => audio.paused ? (userPaused = false, audio.play().catch(err)) : (userPaused = true, audio.pause());
     $('rbSnd').onclick = () => AudioMgr.focus('radio');
     $('rbVol').oninput = e => { audio.volume = +e.target.value; };
     $('rbX').onclick = stop;
   }
   function err() { toast(`<b>No pude reproducir ${esc(cur?.name || 'la radio')}</b><small>Puede que esté caída o que no permita escucharse desde otra página. Probá otra versión de la misma radio.</small>`, { cls:'info' }); }
+  let userPaused = false;   // si la pausaste vos, el vigilante no la vuelve a prender
   async function play(r) {
-    cur = r;
+    cur = r; userPaused = false;
     if (hls) { hls.destroy(); hls = null; }
     audio.muted = false;
     const isHls = /\.m3u8(\?|$)/i.test(r.url) || r.hls;
     if (isHls && !audio.canPlayType('application/vnd.apple.mpegurl')) {
       try {
         await loadScript('https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js');
-        hls = new Hls(); hls.loadSource(r.url); hls.attachMedia(audio);
+        // más colchón para los datos móviles (si la señal tiembla, no se corta enseguida)
+        hls = new Hls({ maxBufferLength:40, liveSyncDurationCount:4, liveMaxLatencyDurationCount:12, manifestLoadingMaxRetry:6, levelLoadingMaxRetry:6, fragLoadingMaxRetry:6 });
+        hls.on(Hls.Events.ERROR, (e, d) => { if (d.fatal) { if (d.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad(); else if (d.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError(); } });
+        hls.loadSource(r.url); hls.attachMedia(audio);
       } catch { audio.src = r.url; }
     } else audio.src = r.url;
     audio.play().catch(err);
     bar(); render(); TV.refresh();
     try { InfoBar.forRadio(r); } catch {}
   }
-  function stop() { audio.pause(); audio.removeAttribute('src'); audio.load(); if (hls) { hls.destroy(); hls = null; } cur = null; bar(); if ($('v-radios').dataset.built) render(); TV.refresh(); }
+  function stop() { userPaused = true; audio.pause(); audio.removeAttribute('src'); audio.load(); if (hls) { hls.destroy(); hls = null; } cur = null; bar(); if ($('v-radios').dataset.built) render(); TV.refresh(); }
 
   function init() {
     audio = $('radioAudio');
@@ -122,17 +126,30 @@ const Radio = (() => {
     audio.addEventListener('volumechange', () => {   // solo actualizo el texto (para no cortar el arrastre del volumen)
       const st = $('rbSt'); if (st && cur) st.innerHTML = audio.paused ? 'En pausa' : audio.muted ? '🔇 Silenciada (está sonando otra cosa)' : '<span class="st-live">●</span> Sonando';
     });
-    // 🔁 si una radio en vivo "termina" o se traba, se reconecta sola (hasta 4 veces seguidas)
-    let retries = 0, lastOk = 0;
-    const reconnect = why => { if (!cur || audio.paused && why !== 'ended') return; if (Date.now() - lastOk > 60e3) retries = 0; if (++retries > 4) return err();
-      setTimeout(() => { if (!cur) return; const r = cur; if (hls) { try { hls.destroy(); } catch {} hls = null; } audio.src = ''; play(r); }, 1500 * retries); };
-    audio.addEventListener('playing', () => { lastOk = Date.now(); });
+    // 🔁 si una radio en vivo "termina" o se traba, se reconecta sola. Con datos móviles la señal va y viene:
+    // reintenta con espera creciente (hasta 30 s) y sin rendirse mientras la estés escuchando; solo avisa después de 8 seguidos
+    let retries = 0, lastOk = 0, recT = null;
+    const reconnect = why => { if (!cur || userPaused) return; if (Date.now() - lastOk > 60e3 && retries > 8) retries = 0; retries++;
+      if (retries === 8) err();
+      clearTimeout(recT); recT = setTimeout(() => { if (!cur || userPaused) return; const r = cur; if (hls) { try { hls.destroy(); } catch {} hls = null; } audio.src = ''; play(r); }, Math.min(30e3, 1200 * retries)); };
+    audio.addEventListener('playing', () => { lastOk = Date.now(); retries = 0;
+      // 🎧 que no arranque muda (pasaba con los auriculares: había que mover el volumen para que suene)
+      if (audio.muted && !Player.slots.some(s => s && !s.audio && !s.mutedByApp)) audio.muted = false;
+      if (audio.volume < .05) audio.volume = 1; });
+    // si se pausó sola por falta de datos (o en la tele), la retomo; si fue por sacarte los auriculares, NO (no quiero que suene por el parlante)
+    audio.addEventListener('pause', () => { if (!userPaused && cur && (audio.readyState < 3 || Lite.tv)) setTimeout(() => { if (cur && audio.paused && !userPaused) audio.play().catch(() => reconnect('pause')); }, 1500); });
+    // vigilante: si dice que suena pero el tiempo no avanza (se quedó sin datos), reconecto
+    let lastT = 0, still = 0;
+    setInterval(() => { if (!cur || userPaused || audio.paused) { still = 0; return; }
+      if (audio.currentTime === lastT) { if (++still >= 3) { still = 0; reconnect('trabada'); } } else { still = 0; lastT = audio.currentTime; } }, 5000);
+    addEventListener('online', () => { if (cur && !userPaused) { retries = 0; reconnect('online'); } });
+    try { navigator.connection?.addEventListener('change', () => { if (cur && !userPaused && (audio.paused || audio.readyState < 3)) reconnect('red'); }); } catch {}
     audio.addEventListener('ended', () => reconnect('ended'));
     audio.addEventListener('stalled', () => setTimeout(() => { if (cur && audio.readyState < 3 && !audio.paused) reconnect('stalled'); }, 8000));
     audio.addEventListener('error', () => { if (cur && audio.getAttribute('src')) { if (retries < 2) reconnect('ended'); else err(); } });
     AudioMgr.register('radio', { mute() { audio.muted = true; }, unmute() { audio.muted = false; },
       label:() => cur ? cur.name : '', live:() => !!cur && !audio.paused, radio:true,
-      paused:() => audio.paused, toggle:() => audio.paused ? audio.play().catch(() => {}) : audio.pause(),
+      paused:() => audio.paused, toggle:() => audio.paused ? (userPaused = false, audio.play().catch(() => {})) : (userPaused = true, audio.pause()),
       muted:() => audio.muted, getVol:() => audio.volume, setVol:v => { audio.volume = v; if (v > 0 && audio.muted) AudioMgr.focus('radio'); } });
     onChange(() => { if ($('v-radios').dataset.built) render(); });
   }
