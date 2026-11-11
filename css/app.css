@@ -1828,3 +1828,28 @@ html.lite #negro .ngbar { transition:opacity 2s ease !important; } html.lite #ne
 .t-platino .fgmed { background:radial-gradient(circle at 35% 30%, #ffffff, #bfe6ff 35%, #7aa6c9 70%, #e6f6ff); box-shadow:inset 0 0 0 4px #9cc7e6, 0 0 22px #bfe6ffaa; animation:fgholo 5s ease-in-out infinite; }
 .fgdate { color:#cfe0ff !important; }
 .fgpin { margin-top:10px; } .fgpin.on { background:#1238b5; color:#fff; } #fgZoom { flex-direction:column; } #fgZoom > .fgpin { margin-top:14px; }
+
+/* ---- Colección: Expediciones de Vaca + Licuadora ---- */
+.exnow{display:flex;gap:14px;align-items:center;background:var(--bg2,#0d1630);border:1px solid #1238b5;border-radius:14px;padding:14px;margin:6px 0 14px}
+.exnow>div:nth-child(2){flex:1;display:flex;flex-direction:column;gap:4px}.exnow small{opacity:.75}
+.exnow.done{border-color:#fff;box-shadow:0 0 18px #1238b588}
+.exvaca{font-size:38px}.exvaca.run{animation:exrun 1.2s ease-in-out infinite}
+@keyframes exrun{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}
+.exnow .fgbar{height:8px;background:#ffffff22;border-radius:6px;overflow:hidden}.exnow .fgbar i{display:block;height:100%;background:#fff}
+.extrips{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.extrip{background:#0b0b0b;border:1px solid #ffffff22;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.extrip ul{margin:0;padding-left:18px;font-size:.88em;opacity:.85}.extrip button{margin-top:auto}
+.expost{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.expost>div{aspect-ratio:3/2;border-radius:10px;border:2px dashed #ffffff33;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;font-size:.82em;opacity:.55;padding:6px}
+.expost>div.ok{opacity:1;border:2px solid #fff;background:linear-gradient(135deg,#1238b5,#0b0b0b)}.expost span{font-size:24px}
+.licua{display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:start}
+@media(max-width:700px){.licua{grid-template-columns:1fr}}
+.lcmix{position:sticky;top:8px;display:flex;flex-direction:column;align-items:center;gap:8px;background:#0b0b0b;border:1px solid #1238b5;border-radius:14px;padding:14px}
+.lcjar{width:90px;height:120px;border:3px solid #fff;border-top:none;border-radius:0 0 26px 26px;display:flex;flex-wrap:wrap-reverse;align-content:flex-start;gap:4px;padding:6px;background:#ffffff10}
+.lcjar i{width:34px;height:20px;border-radius:5px;background:#1238b5;border:1px solid #fff}
+.lcmix.full .lcjar{animation:lcspin .6s linear infinite}@keyframes lcspin{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+.lcgrid{grid-template-columns:repeat(auto-fill,minmax(84px,1fr))}
+.lcit{background:none;border:2px solid transparent;border-radius:10px;padding:2px;cursor:pointer}
+.lcit.on{border-color:#fff;box-shadow:0 0 12px #1238b5;transform:scale(.95)}
+.lcparts{display:flex;flex-wrap:wrap;gap:6px}.lcp{display:flex;align-items:center;gap:6px;background:#0d1630;color:#fff;padding:6px 10px;border:1px solid #ffffff33}
+.lcp.on{border-color:#fff}

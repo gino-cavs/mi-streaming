@@ -74,6 +74,7 @@ const Figus = (() => {
     let coins = B.coins || 0; const have = { ...(B.have || {}) }, toks = { ...(B.toks || {}) }, day = {}, dailies = new Set(B.dailies || []), done = new Set(B.done || []);
     let lastSlot = B.lastSlot || 0, earned = { slot:0, daily:0, prode:0, sell:0 }, spent = 0;
     const gar = JSON.parse(JSON.stringify(B.gar || {})), wins = JSON.parse(JSON.stringify(B.wins || {}));
+    const exps = {}, posts = new Set(B.posts || []); let blends = B.blends || 0, expDone = B.expDone || 0;
     for (const e of evs) {
       if (e.ty === 'slot') { const d = ymdOf(e.t); day[d] = (day[d] || 0) + 1; if (day[d] <= ECO.slotCap) { coins++; earned.slot++; } lastSlot = Math.max(lastSlot, e.t); }
       else if (e.ty === 'daily') { coins += e.n; earned.daily += e.n; dailies.add(e.d); }
@@ -89,15 +90,27 @@ const Figus = (() => {
       else if (e.ty === 'done') done.add(e.a);
       else if (e.ty === 'part') { if (coins < e.cost) continue; coins -= e.cost; spent += e.cost; const g = gar[e.m] = gar[e.m] || []; (e.p || []).forEach(x => { if (!g.includes(x)) g.push(x); }); }
       else if (e.ty === 'win') (wins[e.m] = wins[e.m] || []).push(e.gp);
+      else if (e.ty === 'blend') {   // 🌀 licuadora: 5 cosas que sobran → 1 de rareza superior
+        const need = {}; (e.f || []).forEach(k => need[k] = (need[k] || 0) + 1);
+        const okF = Object.entries(need).every(([k, n]) => (have[k] || 0) - n >= 1);
+        const okP = (e.p || []).every(([m, p]) => (gar[m] || []).includes(p) && (gar[m] || []).length < 10);
+        if (!okF || !okP) continue;
+        Object.entries(need).forEach(([k, n]) => have[k] -= n); (e.p || []).forEach(([m, p]) => gar[m] = gar[m].filter(x => x !== p));
+        if (e.out) have[e.out] = (have[e.out] || 0) + 1; blends++;
+      }
+      else if (e.ty === 'exp') exps[e.id] = { ...e };
+      else if (e.ty === 'expok') { const x = exps[e.e]; if (!x || x.ok) continue; x.ok = true; const r = e.rw || {};
+        coins += r.vc || 0; earned.exp = (earned.exp || 0) + (r.vc || 0); if (r.fig) have[r.fig] = (have[r.fig] || 0) + 1;
+        if (r.part) { const g = gar[r.part[0]] = gar[r.part[0]] || []; if (!g.includes(r.part[1])) g.push(r.part[1]); } if (r.post) posts.add(r.post); expDone++; }
     }
-    return D = { coins, have, toks, day, dailies, done, lastSlot, earned, spent, gar, wins };
+    return D = { coins, have, toks, day, dailies, done, lastSlot, earned, spent, gar, wins, exps, posts, blends, expDone };
   }
   // cuando el registro crece mucho, lo viejo (más de 60 días) se resume en una "base" (igual en todos los aparatos)
   function compact() {
     if (st.ev.length < 4000) return;
     const cut = Date.now() - 60 * 864e5, old = st.ev.filter(e => e.t <= cut); if (!old.length) return;
     const keep = st.ev.filter(e => e.t > cut); st.ev = old; D = null; const d = derive();
-    st.base = { upTo:cut, coins:d.coins, have:d.have, toks:d.toks, dailies:[...d.dailies], done:[...d.done], lastSlot:d.lastSlot, gar:d.gar, wins:d.wins };
+    st.base = { upTo:cut, coins:d.coins, have:d.have, toks:d.toks, dailies:[...d.dailies], done:[...d.done], lastSlot:d.lastSlot, gar:d.gar, wins:d.wins, posts:[...d.posts], blends:d.blends, expDone:d.expDone };
     st.ev = keep; saveSt();
   }
   function merge(r) {
@@ -285,7 +298,7 @@ const Figus = (() => {
 
   /* ---------------- 🖥️ pantalla ---------------- */
   let view = { tab:'inicio' }, work = null;
-  const TABS = [['inicio', '🏠 Inicio'], ['albumes', '📚 Álbumes'], ['garage', '🏎️ Garage'], ['trofeos', '🏆 Trofeos'], ['kiosco', '🏪 Kiosco'], ['repes', '🔁 Repetidas'], ['balance', '📒 Balance']];
+  const TABS = [['inicio', '🏠 Inicio'], ['albumes', '📚 Álbumes'], ['garage', '🏎️ Garage'], ['expe', '🦴 Expediciones'], ['licua', '🌀 Licuadora'], ['trofeos', '🏆 Trofeos'], ['kiosco', '🏪 Kiosco'], ['repes', '🔁 Repetidas'], ['balance', '📒 Balance']];
   function header() {
     const d = derive(), hoy = Math.min(ECO.slotCap, d.day[today()] || 0), s = streakFor(today()) + (d.dailies.has(today()) ? 1 : 0);
     return `${bannerHtml()}<div class="fghead"><div class="fgcoins">${coinTxt(d.coins)}</div>
@@ -332,14 +345,18 @@ const Figus = (() => {
       const tot = R.reduce((s, o) => s + (o.n - 1) * ECO.sell[o.x.c.rar || 'c'], 0);
       body = `${R.length ? `<div class="btns"><span class="mut">Vendiendo todas las repetidas (te quedás con una de cada): ${coinTxt(tot)}</span><span class="sp"></span><button data-sellall>Vender todas</button></div>` : ''}
         <div class="fggrid">${R.map(o => `<div class="fgcell">${figHtml(o.x.a, o.x.c, { n:o.n, small:true })}<button data-sell="${esc(o.k)}">Vender 1 · ${coinTxt(ECO.sell[o.x.c.rar || 'c'])}</button></div>`).join('') || '<div class="empty">No tenés repetidas.</div>'}</div>`;
+    } else if (view.tab === 'expe') {
+      body = expeHtml();
+    } else if (view.tab === 'licua') {
+      body = licuaHtml();
     } else if (view.tab === 'trofeos') {
       body = trofeosHtml();
     } else if (view.tab === 'garage') {
       body = garageHtml();
     } else if (view.tab === 'balance') {
       const L = [...st.ev].sort((a, b) => b.t - a.t).filter(e => e.ty !== 'slot').slice(0, 40);
-      const ic = e => e.ty === 'part' ? `🔧 Piezas para el ${esc(modelOf(e.m)?.name || '')} (${(e.p || []).length})` : e.ty === 'win' ? `🏆 ${esc(modelOf(e.m)?.name || '')} ganó ${esc(e.gp)}` : e.ty === 'daily' ? `🎁 Regalo del día (racha ${e.s})${e.off ? ` · +${e.off} mientras no estabas` : ''}` : e.ty === 'prode' ? `🔮 Prode: ${esc(e.m || '')}` : e.ty === 'pack' ? `📦 Sobre de ${esc(st.albums[e.a]?.name || '?')}${e.tok ? ' (regalo)' : ''}` : e.ty === 'buy' ? `🛒 Compraste #${esc(e.k.split(':')[1])} de ${esc(st.albums[e.k.split(':')[0]]?.name || '?')}` : e.ty === 'sell' ? '🔁 Vendiste una repetida' : e.ty === 'tok' ? `🎁 Sobre de ${e.k === 'vaca' ? 'Vaca' : 'Vélez'}: ${esc(e.why || '')}` : e.ty === 'done' ? `🏆 Completaste ${esc(st.albums[e.a]?.name || '')}` : e.ty;
-      const amt = e => e.ty === 'daily' || e.ty === 'prode' ? `+${e.n}` : e.ty === 'sell' ? `+${e.n}` : e.ty === 'pack' && !e.tok || e.ty === 'buy' || e.ty === 'part' ? `−${e.cost}` : '';
+      const ic = e => e.ty === 'exp' ? `🦴 Vaca salió a repartir a ${esc(e.dest)} (${e.h} h)` : e.ty === 'expok' ? `🦴 Volvió del reparto: +${e.rw?.vc || 0}${e.rw?.post ? ' · postal' : ''}${e.rw?.fig ? ' · figu' : ''}${e.rw?.part ? ' · repuesto' : ''}` : e.ty === 'blend' ? '🌀 Licuadora: 5 → 1 de rareza superior' : e.ty === 'ach' ? '🏅 Trofeo nuevo' : e.ty === 'part' ? `🔧 Piezas para el ${esc(modelOf(e.m)?.name || '')} (${(e.p || []).length})` : e.ty === 'win' ? `🏆 ${esc(modelOf(e.m)?.name || '')} ganó ${esc(e.gp)}` : e.ty === 'daily' ? `🎁 Regalo del día (racha ${e.s})${e.off ? ` · +${e.off} mientras no estabas` : ''}` : e.ty === 'prode' ? `🔮 Prode: ${esc(e.m || '')}` : e.ty === 'pack' ? `📦 Sobre de ${esc(st.albums[e.a]?.name || '?')}${e.tok ? ' (regalo)' : ''}` : e.ty === 'buy' ? `🛒 Compraste #${esc(e.k.split(':')[1])} de ${esc(st.albums[e.k.split(':')[0]]?.name || '?')}` : e.ty === 'sell' ? '🔁 Vendiste una repetida' : e.ty === 'tok' ? `🎁 Sobre de ${e.k === 'vaca' ? 'Vaca' : 'Vélez'}: ${esc(e.why || '')}` : e.ty === 'done' ? `🏆 Completaste ${esc(st.albums[e.a]?.name || '')}` : e.ty;
+      const amt = e => e.ty === 'expok' ? `+${e.rw?.vc || 0}` : e.ty === 'daily' || e.ty === 'prode' ? `+${e.n}` : e.ty === 'sell' ? `+${e.n}` : e.ty === 'pack' && !e.tok || e.ty === 'buy' || e.ty === 'part' ? `−${e.cost}` : '';
       body = `<div class="psstats"><div><b>${d.earned.slot}</b><small>por estar</small></div><div><b>${d.earned.daily}</b><small>regalos</small></div><div><b>${d.earned.prode}</b><small>Prode</small></div><div><b>${d.earned.sell}</b><small>ventas</small></div><div><b>${d.spent}</b><small>gastadas</small></div></div>
         <div class="tdlist">${L.map(e => `<div class="tdrow"><div><b>${ic(e)}</b><small>${new Date(e.t).toLocaleString('es-AR', { day:'numeric', month:'numeric', hour:'2-digit', minute:'2-digit' })}</small></div><b class="fgamt">${amt(e)}</b></div>`).join('') || '<div class="empty">Todavía no hay movimientos.</div>'}</div>`;
     }
@@ -347,6 +364,7 @@ const Figus = (() => {
     bindCommon(v); v.querySelectorAll('.fgbn-it .fig[data-k]').forEach(f => f.onclick = () => zoom(f));
     v.querySelectorAll('[data-alb]').forEach(b => b.onclick = () => { view = { tab:view.tab, alb:b.dataset.alb }; render(); });
     v.querySelectorAll('[data-new]').forEach(b => b.onclick = newAlbum);
+    bindExpe(v); bindLicua(v);
     v.querySelectorAll('[data-gs]').forEach(b => b.onclick = () => { view.gs = b.dataset.gs; render(); });
     v.querySelectorAll('[data-gbox]').forEach(b => b.onclick = () => buyBox(b.dataset.gbox));
     v.querySelectorAll('[data-gmod]').forEach(b => b.onclick = () => modelZoom(b.dataset.gmod));
@@ -589,6 +607,84 @@ const Figus = (() => {
     return `<div class="fgbanner"><div class="fgbn-t">🏛️ MI COLECCIÓN</div><div class="fgbn-row">${L.map(it).join('')}</div></div>`;
   }
 
+  /* ---------------- 🦴 EXPEDICIONES: Vaca reparte huesos a domicilio ----------------
+     Sale 2, 4 u 8 horas reales (sigue aunque cierres FUNVS). Vuelve con vaccoins y, según el viaje, una postal del lugar,
+     una figu o un repuesto para tus maquetas. El premio sale "sorteado" con el número del viaje: es el mismo en todos tus aparatos. */
+  const DEST = ['Monte Grande centro', 'Luis Guillón', 'El Jagüel', '9 de Abril', 'Canning', 'Ezeiza', 'Tristán Suárez', 'Lomas de Zamora', 'Adrogué', 'Temperley', 'Constitución', 'Liniers (Amalfitani)'];
+  const TRIPS = { 2:{ vc:[6, 10], post:.25, fig:0, part:0, txt:'Unas cuadras por el barrio' }, 4:{ vc:[14, 22], post:.5, fig:.35, part:0, txt:'Reparto por la zona sur' }, 8:{ vc:[34, 46], post:1, fig:.6, part:.5, txt:'Viaje largo, hasta Liniers' } };
+  const rng = seed => { let h = 1779033703; for (const c of seed) h = Math.imul(h ^ c.charCodeAt(0), 3432918353), h = h << 13 | h >>> 19; return () => { h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); return ((h ^= h >>> 16) >>> 0) / 4294967296; }; };
+  const activeExp = () => Object.values(derive().exps).find(x => !x.ok);
+  function startExp(h) {
+    if (activeExp()) return toast('<b>Vaca ya está repartiendo</b>', { cls:'info' });
+    const r = rng('d' + Date.now()), dest = h === 8 ? DEST[DEST.length - 1 - Math.floor(r() * 4)] : DEST[Math.floor(r() * (h === 2 ? 4 : 8))];
+    add({ id:'e' + uid() + Date.now().toString(36), ty:'exp', h, dest, end:Date.now() + h * 3600e3 }); pushSoon(); render();
+  }
+  function rewardOf(x) {   // sorteo fijo según el viaje
+    const r = rng(x.id), T = TRIPS[x.h], d = derive(), out = { vc:Math.round(T.vc[0] + r() * (T.vc[1] - T.vc[0])) };
+    if (r() < T.post) out.post = x.dest;
+    if (r() < T.fig) { const pool = albums().filter(a => a.kind !== 'vaca').flatMap(a => ready(a).filter(c => (c.rar || 'c') !== 'l' || r() < .15).map(c => a.id + ':' + c.n)); if (pool.length) out.fig = pool[Math.floor(r() * pool.length)]; }
+    if (r() < T.part) { const inc = Object.keys(GARAGE).flatMap(models).filter(m => (d.gar[m.key] || []).length < 10 && (d.gar[m.key] || []).length > 0);
+      const m = inc.length ? inc[Math.floor(r() * inc.length)] : null; if (m) { const left = GARAGE[m.s].parts.map(p => p[0]).filter(p => !(d.gar[m.key] || []).includes(p)); out.part = [m.key, left[Math.floor(r() * left.length)]]; } }
+    return out;
+  }
+  function claimExp() {
+    const x = activeExp(); if (!x || Date.now() < x.end) return;
+    const rw = rewardOf(x); add({ id:'ok-' + x.id, ty:'expok', e:x.id, rw }); pushSoon();
+    const bits = [`${VC} +${rw.vc}`, rw.post ? `📮 postal de ${esc(rw.post)}` : '', rw.fig ? '🃏 una figu' : '', rw.part ? `🔧 ${esc(GARAGE[modelOf(rw.part[0]).s].parts.find(p => p[0] === rw.part[1])[1])} para el ${esc(modelOf(rw.part[0]).name)}` : ''].filter(Boolean);
+    toast(`<b>🦴 ¡Vaca volvió del reparto!</b><small>${bits.join(' · ')}</small>`, { cls:'info', ms:7000 }); render();
+  }
+  const left = ms => { const m = Math.max(0, Math.ceil(ms / 60e3)); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`; };
+  function expeHtml() {
+    const x = activeExp(), d = derive();
+    const now = x ? (Date.now() >= x.end
+      ? `<div class="exnow done"><div class="exvaca">🐶🦴</div><div><b>¡Vaca volvió de ${esc(x.dest)}!</b><small>Viaje de ${x.h} h</small></div><button class="pri" data-exclaim>🎁 Cobrar</button></div>`
+      : `<div class="exnow"><div class="exvaca run">🐶💨</div><div><b>Repartiendo huesos en ${esc(x.dest)}</b><small>Vuelve en ${left(x.end - Date.now())} (${new Date(x.end).toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hour12:false })} h)</small><div class="fgbar"><i style="width:${Math.min(100, (1 - (x.end - Date.now()) / (x.h * 3600e3)) * 100)}%"></i></div></div></div>`)
+      : `<div class="exnow idle"><div class="exvaca">🐶</div><div><b>Vaca está en casa, lista para repartir</b><small>Elegí cuánto tiempo sale. Sigue aunque cierres FUNVS.</small></div></div>`;
+    return `${now}
+      <div class="extrips">${[2, 4, 8].map(h => { const T = TRIPS[h]; return `<div class="extrip"><b>${h} horas</b><small>${T.txt}</small>
+        <ul><li>${VC} ${T.vc[0]}–${T.vc[1]}</li><li>📮 postal: ${Math.round(T.post * 100)}%</li>${T.fig ? `<li>🃏 figu: ${Math.round(T.fig * 100)}%</li>` : ''}${T.part ? `<li>🔧 repuesto de maqueta: ${Math.round(T.part * 100)}%</li>` : ''}</ul>
+        <button data-exgo="${h}" ${x ? 'disabled' : ''}>🦴 Salir ${h} h</button></div>`; }).join('')}</div>
+      <h2 class="sec">📮 Postales de los repartos (${d.posts.size}/${DEST.length})</h2>
+      <div class="expost">${DEST.map(p => `<div class="${d.posts.has(p) ? 'ok' : ''}"><span>${d.posts.has(p) ? '📮' : '❔'}</span><b>${d.posts.has(p) ? esc(p) : '???'}</b></div>`).join('')}</div>
+      <p class="mut">El repuesto va para una maqueta que ya empezaste. Vaca reparte de a un viaje por vez.</p>`;
+  }
+  function bindExpe(v) { v.querySelectorAll('[data-exgo]').forEach(b => b.onclick = () => startExp(+b.dataset.exgo)); v.querySelector('[data-exclaim]')?.addEventListener('click', claimExp); }
+
+  /* ---------------- 🌀 LICUADORA: 5 que te sobran → 1 de rareza superior ----------------
+     Entran figus repetidas (te queda siempre una) y piezas de maquetas sin terminar. Sale una figu sorteada
+     de una rareza más (común/pieza → rara, rara → legendaria, legendaria → legendaria). */
+  let pick = [];
+  const RANK = { c:1, r:2, l:3 };
+  function blendOut(sel) {
+    const avg = sel.reduce((a, x) => a + (x.t === 'f' ? RANK[keyCard(x.k)?.c?.rar || 'c'] : 1), 0) / sel.length, want = Math.min(3, Math.floor(avg) + 1);
+    const pool = r => albums().filter(a => a.kind !== 'vaca').flatMap(a => ready(a).filter(c => RANK[c.rar || 'c'] === r).map(c => a.id + ':' + c.n));
+    for (let r = want; r >= 1; r--) { const p = pool(r); if (p.length) return { k:p[Math.floor(Math.random() * p.length)], r }; }
+    return null;
+  }
+  function licuaHtml() {
+    const d = derive(), dup = Object.entries(d.have).filter(([k, n]) => n > 1 && keyCard(k)?.c).flatMap(([k, n]) => Array.from({ length:n - 1 }, (_, i) => ({ t:'f', k, i })));
+    const parts = Object.entries(d.gar).filter(([, p]) => p.length && p.length < 10).flatMap(([m, P]) => P.map(p => ({ t:'p', m, p, k:m + '|' + p })));
+    const sel = id => pick.includes(id), want = pick.length ? Math.min(3, Math.floor(pick.reduce((a, id) => { const [t, k] = id.split('§'); return a + (t === 'f' ? RANK[keyCard(k)?.c?.rar || 'c'] : 1); }, 0) / pick.length) + 1) : 0;
+    return `<div class="licua"><div class="lcmix ${pick.length === 5 ? 'full' : ''}"><div class="lcjar">${pick.map(() => '<i></i>').join('')}</div><b>${pick.length}/5</b>
+        ${pick.length ? `<small>Sale: ${want === 3 ? '★ Legendaria' : want === 2 ? '◆ Rara' : 'Común'}</small>` : '<small>Elegí 5 cosas que te sobren</small>'}
+        <button class="pri" data-lcgo ${pick.length === 5 ? '' : 'disabled'}>🌀 Licuar</button>${pick.length ? '<button data-lcclr>Vaciar</button>' : ''}</div>
+      <div><h3>🔁 Figus repetidas</h3><div class="fggrid lcgrid">${dup.map(x => { const id = 'f§' + x.k + '§' + x.i, c = keyCard(x.k); return `<button class="lcit ${sel(id) ? 'on' : ''}" data-lc="${esc(id)}">${figHtml(c.a, c.c, { small:true })}</button>`; }).join('') || '<div class="empty">No tenés repetidas.</div>'}</div>
+      <h3>🔧 Piezas de maquetas sin terminar</h3><div class="lcparts">${parts.map(x => { const id = 'p§' + x.k, m = modelOf(x.m); return `<button class="lcit lcp ${sel(id) ? 'on' : ''}" data-lc="${esc(id)}" style="--t1:${m.c1}"><span class="gnum" style="background:${m.c1};color:${ink(m.c1)}">${m.num}</span>${esc(GARAGE[m.s].parts.find(p => p[0] === x.p)[1])}</button>`; }).join('') || '<div class="empty">No tenés piezas sueltas.</div>'}</div></div></div>`;
+  }
+  function bindLicua(v) {
+    v.querySelectorAll('[data-lc]').forEach(b => b.onclick = () => { const id = b.dataset.lc; if (pick.includes(id)) pick = pick.filter(x => x !== id); else if (pick.length < 5) pick.push(id); render(); });
+    v.querySelector('[data-lcclr]')?.addEventListener('click', () => { pick = []; render(); });
+    v.querySelector('[data-lcgo]')?.addEventListener('click', () => {
+      const sel = pick.map(id => { const [t, a, b] = id.split('§'); return t === 'f' ? { t, k:a } : { t, m:a.split('|')[0], p:a.split('|')[1] }; });
+      const out = blendOut(sel.map(x => x.t === 'f' ? x : { t:'p' }));
+      if (!out) return toast('<b>No hay figus con imagen para que salga algo</b>', { cls:'info' });
+      if (!confirm('¿Licuar estas 5? No vuelven.')) return;
+      const before = { ...derive().have };
+      add({ id:'l' + uid() + Date.now().toString(36), ty:'blend', f:sel.filter(x => x.t === 'f').map(x => x.k), p:sel.filter(x => x.t === 'p').map(x => [x.m, x.p]), out:out.k }); pushSoon(); pick = [];
+      const x = keyCard(out.k); showPack(x.a, [out.k], before);
+    });
+  }
+
   /* ---------------- 🏆 Estante de trofeos (hitos) ---------------- */
   const ACH = [
     ['sobre1', '📦', 'Primer sobre', 'Abriste tu primer sobre', d => d.packs >= 1, 'bronce'],
@@ -608,6 +704,10 @@ const Figus = (() => {
     ['racha30', '📅', 'Un mes seguido', 'Racha de 30 días', d => d.bestStreak >= 30, 'oro', d => [d.bestStreak, 30]],
     ['racha100', '💯', 'Cien días', 'Racha de 100 días', d => d.bestStreak >= 100, 'platino', d => [d.bestStreak, 100]],
     ['prode', '🔮', 'Pronosticador', '500 vaccoins ganados con el Prode', d => d.earned.prode >= 500, 'plata', d => [d.earned.prode, 500]],
+    ['exp1', '🦴', 'Primer reparto', 'Vaca volvió de su primera expedición', d => d.expDone >= 1, 'bronce'],
+    ['exp50', '🚚', 'Delivery profesional', '50 expediciones', d => d.expDone >= 50, 'oro', d => [d.expDone, 50]],
+    ['post', '📮', 'Todas las postales', `Las ${12} postales de los repartos`, d => d.posts.size >= 12, 'platino', d => [d.posts.size, 12]],
+    ['blend1', '🌀', 'Primer licuado', 'Usaste la licuadora', d => d.blends >= 1, 'bronce'],
     ['vc1k', '🪙', 'Primeros 1.000', '1.000 vaccoins acumulados', d => d.totalEarned >= 1e3, 'bronce', d => [d.totalEarned, 1e3]],
     ['vc10k', '💰', 'Ahorrista', '10.000 vaccoins acumulados', d => d.totalEarned >= 1e4, 'plata', d => [d.totalEarned, 1e4]],
     ['vc100k', '🐮', 'Magnate de los vaccoins', '100.000 vaccoins acumulados', d => d.totalEarned >= 1e5, 'platino', d => [d.totalEarned, 1e5]],
@@ -623,7 +723,7 @@ const Figus = (() => {
     const days = [...d.dailies].sort(); let best = 0, run = 0, prev = null;
     for (const x of days) { const t = Date.parse(x + 'T12:00:00'); run = prev && t - prev < 1.5 * 864e5 ? run + 1 : 1; best = Math.max(best, run); prev = t; }
     return { ...d, packs, legs, cars:full.length, teams, grids, vaca, bestStreak:best, winsN:Object.values(d.wins).flat().length,
-      totalEarned:d.earned.slot + d.earned.daily + d.earned.prode + d.earned.sell };
+      totalEarned:d.earned.slot + d.earned.daily + d.earned.prode + d.earned.sell + (d.earned.exp || 0) };
   }
   function achList() { const d = stats(); return ACH.map(([id, ic, n, txt, test, tier, prog]) => ({ id, ic, n, txt, tier, ok:test(d), prog:prog ? prog(d) : null, at:st.ev.find(e => e.id === 'ach-' + id)?.t })); }
   function achCheck() {   // anoto cuándo ganaste cada trofeo (para el recuerdo) y aviso
@@ -664,6 +764,9 @@ const Figus = (() => {
     if (!st.since) { st.since = Date.now(); saveSt(); }
     setInterval(slotTick, 60e3); setTimeout(slotTick, 5000);
     setInterval(() => { try { prode(); } catch {} velezTok(); try { wins(); } catch {} try { achCheck(); } catch {} }, 10 * 60e3);
+    let avisado = '';   // 🦴 cuando Vaca vuelve del reparto, aviso (una vez)
+    setInterval(() => { const x = activeExp(); if (!tvDev() && x && Date.now() >= x.end && avisado !== x.id) { avisado = x.id; toast('<b>🦴 ¡Vaca volvió del reparto!</b><small>Tocá para cobrar.</small>', { cls:'info', ms:9000, onclick:() => { Nav.go('figus'); view = { tab:'expe' }; render(); } }); }
+      if (Nav.current === 'figus' && view.tab === 'expe' && !document.hidden) render(); }, 60e3);
     setTimeout(async () => {
       await pull();
       try { prode(); } catch {} velezTok(); try { wins(); } catch {}
