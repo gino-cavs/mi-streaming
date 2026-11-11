@@ -407,7 +407,7 @@ const Player = (() => {
 
   let prevC = null;
   function play(c, opts = {}) {
-    if (!c?.humor || c.humor !== 'dormir') document.body.classList.remove('oscuro');
+    if (!c?.humor) document.body.classList.remove('oscuro');   // otro canal: chau pantalla negra (pasar a otro video del modo dormir la mantiene)
     const r = c.ref?.video && !c.t247 && !c.noResume && opts.start == null && db.resume?.[c.ref.video];
     if (r && r.t > 30) { opts = { ...opts, start:Math.max(0, r.t - 5) }; toast(`⏯ Seguís desde ${Math.floor(r.t / 60)}:${String(r.t % 60).padStart(2, '0')}`, { ms:2500 }); }
     const e = embedOf(c), st = Canales.status[c.uid] || {};

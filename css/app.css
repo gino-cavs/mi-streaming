@@ -1653,3 +1653,11 @@ body.gs-depo .hud-br { font-style:italic; clip-path:polygon(12px 0, 100% 0, 100%
 .dmopts { display:flex; flex-direction:column; gap:8px; margin:6px 0; }
 .dmopts button { display:flex; align-items:center; gap:10px; text-align:left; font-size:18px; padding:12px 14px; }
 .dmopts button small { margin-left:auto; color:var(--mut); font-size:13px; }
+/* ⬛ pantalla negra del modo dormir: tapa todo */
+#negro { position:fixed; inset:0; z-index:2147483600; background:#000; cursor:none; display:none; }
+body.oscuro #negro { display:block; }
+#negro.wake { cursor:default; }
+#negro .ngbar { position:absolute; left:50%; bottom:6%; transform:translateX(-50%); display:flex; align-items:center; gap:8px; background:#0b0f1e; border:1px solid #ffffff22; border-radius:30px; padding:6px 8px 6px 16px; color:#9aa3b8; opacity:0; transition:opacity .4s; pointer-events:none; font-size:15px; }
+#negro.wake .ngbar { opacity:.75; pointer-events:auto; }
+#negro .ngbar button { background:#ffffff14; color:#cfd6e6; border:0; border-radius:20px; padding:6px 12px; }
+#negro .ngbar button:focus { outline:2px solid #2f6bff; }

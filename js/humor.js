@@ -56,12 +56,32 @@ const Humor = (() => {
     seen.add(v.id); S.set('humorSeen', [...seen].slice(-400));
     cur = id;
     Player.play({ uid:'humor-' + id, name:`${M.ic} ${v.t}`, platform:'youtube', ref:{ video:v.id }, cat:M.n, humor:id });
-    if (dark) { if (!document.body.classList.contains('tvlock')) TV.open(); document.body.classList.add('oscuro'); return; }   // 🌙 sin carteles ni brillo
+    if (dark) { if (!document.body.classList.contains('tvlock')) TV.open(); negro(`${M.ic} ${M.n}`); return; }   // 🌙 todo negro, sin carteles ni brillo
     document.body.classList.remove('oscuro');
     toast(`<b>${M.ic} ${esc(v.t)}</b><small>${esc(v.by)} · ▲▼ para otro</small>`, { cls:'info zapt', ms:4000 });
   }
   // ▲▼ mientras suena un humor: otro video del mismo
   function step(d) { const s = Player.slots[Player.sel ?? 0] || Player.slots.find(Boolean); if (!s?.c?.humor) return false; play(s.c.humor, d, document.body.classList.contains('oscuro')); return true; }
+  /* ⬛ Pantalla negra de verdad: una capa negra que tapa TODA la pantalla. Si tocás, movés el mouse o apretás una tecla,
+     aparece unos segundos una barrita tenue para pasar a otro, ver el video o salir. Atrás / Esc también salen. */
+  let wakeT = null;
+  function negro(lbl) {
+    document.body.classList.add('oscuro');
+    let el = $('negro');
+    if (!el) {
+      el = document.createElement('div'); el.id = 'negro';
+      const wake = () => { el.classList.add('wake'); clearTimeout(wakeT); wakeT = setTimeout(() => el.classList.remove('wake'), 5000); };
+      el.addEventListener('pointermove', wake); el.addEventListener('pointerdown', wake);
+      document.addEventListener('keydown', e => { if (!document.body.classList.contains('oscuro')) return; const was = el.classList.contains('wake'); wake();
+        if (!was && !/^Arrow|Escape|Backspace/.test(e.key)) { e.preventDefault(); e.stopImmediatePropagation(); el.querySelector('button')?.focus(); } }, true);
+      el.onclick = e => { const b = e.target.closest('[data-ng]'); if (!b) return; const a = b.dataset.ng;
+        if (a === 'x') salirNegro(); else if (a === 'ver') { document.body.classList.remove('oscuro'); } else step(1); };
+    }
+    el.innerHTML = `<div class="ngbar"><span>🌙 ${esc(lbl || 'Dormir')}</span><button data-ng="otro">⏭ Otro</button><button data-ng="ver">🎬 Ver el video</button><button data-ng="x">✕ Salir</button></div>`;
+    (document.fullscreenElement || document.body).appendChild(el);
+    el.classList.remove('wake');
+  }
+  function salirNegro() { document.body.classList.remove('oscuro'); try { Player.closeAll(); } catch {} try { TV.close(); } catch {} }
   // 🌙 Dormir: elegís lluvia para vos o música para que duerma Vaca (con pantalla negra o con el video)
   function dormir() {
     let d = $('dlgDormir'); if (!d) { d = document.createElement('dialog'); d.id = 'dlgDormir'; document.body.appendChild(d); }
@@ -85,5 +105,5 @@ const Humor = (() => {
         db.humor.comedians = v.split(/[,\s]+/).map(x => x.replace(/^@/, '').trim()).filter(Boolean); save(); delete pools.reir; S.set('humorPool', pools); Inicio.render();
       };
     } });
-  return { play, step, dormir, MOODS };
+  return { play, step, dormir, salirNegro, MOODS };
 })();

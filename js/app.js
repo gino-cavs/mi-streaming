@@ -75,6 +75,7 @@ const FUNVSApp = (() => {
 
   /** Botón Atrás del celu / control: cierra lo que esté abierto, de a una cosa por vez. */
   function back() {
+    if (document.body.classList.contains('oscuro')) { Humor.salirNegro(); return true; }   // 🌙 Atrás sale del modo dormir
     if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); return true; }
     const d = [...document.querySelectorAll('dialog[open]')].pop(); if (d) { d.close(); return true; }
     const p = $('player');
