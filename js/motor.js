@@ -191,10 +191,12 @@ const Motor = (() => {
     return CATS.flatMap(([id, n]) => (data.cats[id]?.next?.sessions || []).filter(s => !s.dayOnly && sState(id, s) === 'pre' && (s.key || s.race)).map(s => ({ cat:n, name:s.name, t:Date.parse(s.start) })))
       .sort((a, b) => a.t - b.t)[0] || null;
   }
-  // 🏁 ¿es fin de semana de carrera? (desde 18 h antes de la primera sesión hasta 6 h después de la última) — para el Garage de Figus
+  // 🏁 ¿es fin de semana de carrera? desde las 00:00 del primer día (hora de acá) hasta las 23:59 del último — para el Garage de Figus
   function weekend(id) {
     const c = data?.cats?.[id], n = c?.next; if (!n?.sessions?.length) return { open:false };
-    const t = n.sessions.map(x => Date.parse(x.start)).filter(Boolean).sort((a, b) => a - b), from = t[0] - 18 * 3600e3, to = t[t.length - 1] + 6 * 3600e3;
+    const t = n.sessions.map(x => Date.parse(x.start)).filter(Boolean).sort((a, b) => a - b);
+    const d0 = new Date(t[0]); d0.setHours(0, 0, 0, 0); const d1 = new Date(t[t.length - 1]); d1.setHours(23, 59, 59, 999);
+    const from = +d0, to = +d1;
     return { open:Date.now() >= from && Date.now() <= to, name:n.name, from, to };
   }
   const lastRace = id => data?.cats?.[id]?.last || null;
