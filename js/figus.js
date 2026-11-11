@@ -159,11 +159,24 @@ const Figus = (() => {
   /* ---------------- 🪙 cómo se ganan ---------------- */
   let lastInput = Date.now();
   ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(ev => addEventListener(ev, () => lastInput = Date.now(), { passive:true, capture:true }));
+  // ¿está sonando algo de verdad? (video, solo audio, radio o música; no cuenta si está en pausa)
+  const sonando = () => { try { const id = AudioMgr.active; if (!id) return false; const k = AudioMgr.sink(id); return !!k && !(k.paused && k.paused()); } catch { return false; } };
+  const slotAt = n => add({ id:'s' + n, ty:'slot', t:n * ECO.slotMs + 1000 });
   function slotTick() {   // un "turno" de 5 min compartido entre aparatos (mismo id en todos → cuenta una vez)
-    if (document.hidden) return;
-    const playing = !!AudioMgr.active, active = tvDev() ? playing : (playing || Date.now() - lastInput < 10 * 60e3);
+    const playing = sonando();
+    if (document.hidden && !playing) return;   // de fondo cuenta solo si está sonando (solo audio, radio, ventanita)
+    const active = tvDev() ? playing : (playing || Date.now() - lastInput < 10 * 60e3);
     if (!active) return;
-    const n = Math.floor(Date.now() / ECO.slotMs); add({ id:'s' + n, ty:'slot', t:n * ECO.slotMs + 1000 });
+    slotAt(Math.floor(Date.now() / ECO.slotMs));
+  }
+  // 🎧 de fondo (pantalla apagada, ventanita, otra app): el celu frena FUNVS, así que anoto desde cuándo sonaba
+  // y al volver, si sigue sonando, sumo esos turnos de una (máx. 4 h por vez; el tope de 60 por día sigue igual)
+  function bgHide() { if (sonando()) S.set('figBg', Date.now()); else S.set('figBg', 0); }
+  function bgShow() {
+    const from = S.get('figBg', 0); S.set('figBg', 0); if (!from || !sonando()) return;
+    const a = Math.floor(Math.max(from, Date.now() - 4 * 3600e3) / ECO.slotMs), b = Math.floor(Date.now() / ECO.slotMs);
+    let n = 0; for (let k = a; k <= b; k++) if (slotAt(k)) n++;
+    if (n >= 3 && !tvDev()) toast(`<b>🎧 +${n} turnos mientras sonaba de fondo</b><small>Se sumaron a tus vaccoins (con el tope del día).</small>`, { cls:'info', ms:4000 });
   }
   function streakFor(d) { const ds = derive().dailies; let n = 0; const t = new Date(d + 'T12:00:00'); for (;;) { t.setDate(t.getDate() - 1); if (ds.has(ymdOf(t))) n++; else break; if (n > 400) break; } return n; }
   function daily() {   // regalo del día: 20 + racha (hasta +35) + lo de mientras no estabas (2 por hora, hasta 30)
@@ -424,7 +437,8 @@ const Figus = (() => {
       if (!tvDev()) { const g = daily(); if (g) { pushSoon(); toast(`<b>🎁 Regalo del día: +${g.n} vaccoins</b><small>Racha de ${g.s} día${g.s === 1 ? '' : 's'}${g.off ? ` · +${g.off} de mientras no estabas` : ''}. Están en 🃏 Figus.</small>`, { cls:'info', ms:6000, onclick:() => Nav.go('figus') }); } }
     }, 6000);
     setInterval(pull, tvDev() ? 30 * 60e3 : 5 * 60e3);
-    document.addEventListener('visibilitychange', () => { if (document.hidden) { if (pushT) pushNow(); } else pull(); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { bgHide(); if (pushT) pushNow(); } else { bgShow(); pull(); } });
+    addEventListener('pagehide', bgHide);
   }
   return { init, render, paseo, ECO, get coins() { return derive().coins; } };
 })();
