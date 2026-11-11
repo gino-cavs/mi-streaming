@@ -60,7 +60,7 @@ const Figus = (() => {
   const modelOf = key => { const [s] = key.split(':'); return models(s).find(m => m.key === key); };
 
   /* ---------------- estado (registro de movimientos) ---------------- */
-  const blank = () => ({ v:1, since:Date.now(), albums:{}, ev:[], base:null });
+  const blank = () => ({ v:1, since:Date.now(), albums:{}, ev:[], base:null, prefs:{ banner:[], upd:0 } });
   let st = S.get('figus', null) || blank();
   let D = null;   // estado calculado
   const saveSt = () => { S.set('figus', st); D = null; };
@@ -108,6 +108,7 @@ const Figus = (() => {
     if (st.base) { const n = st.ev.length; st.ev = st.ev.filter(e => e.t > st.base.upTo); if (st.ev.length !== n) ch = true; }
     Object.entries(r.albums || {}).forEach(([id, a]) => { const m = st.albums[id]; if (!m || (a.upd || 0) > (m.upd || 0)) { st.albums[id] = a; ch = true; } });
     if (r.since && r.since < st.since) st.since = r.since;
+    if (r.prefs && (r.prefs.upd || 0) > (st.prefs?.upd || 0)) { st.prefs = r.prefs; ch = true; }
     if (ch) saveSt();
     return ch;
   }
@@ -130,7 +131,7 @@ const Figus = (() => {
       let need = !f || dirtyImg.size > 0;
       if (f) { const r = JSON.parse(f.truncated ? await (await fetch(f.raw_url)).text() : f.content); if (merge(r) && Nav.current === 'figus') render();
         // ¿tengo algo que allá no está? (movimientos o álbumes más nuevos) → subo
-        const rid = new Set((r.ev || []).map(e => e.id)); need = need || st.ev.some(e => !rid.has(e.id)) || Object.values(st.albums).some(a => (a.upd || 0) > ((r.albums || {})[a.id]?.upd || 0)); }
+        const rid = new Set((r.ev || []).map(e => e.id)); need = need || (st.prefs?.upd || 0) > (r.prefs?.upd || 0) || st.ev.some(e => !rid.has(e.id)) || Object.values(st.albums).some(a => (a.upd || 0) > ((r.albums || {})[a.id]?.upd || 0)); }
       if (need) await pushNow(true);
     } catch {} busy = false;
   }
@@ -236,7 +237,7 @@ const Figus = (() => {
       if (/v[eé]lez/i.test(`${p.home} ${p.away}`)) c *= ECO.velezX;
       add({ id:'p-' + p.id, ty:'prode', n:c, m:`${p.home} ${r.hs}-${r.as} ${p.away}` }); if (c) n += c;
     });
-    if (n && !tvDev()) toast(`<b>${VC} +${n} vaccoins del Prode</b><small>Se sumaron a Figus.</small>`, { cls:'info', ms:4000, onclick:() => Nav.go('figus') });
+    if (n && !tvDev()) toast(`<b>${VC} +${n} vaccoins del Prode</b><small>Se sumaron a tu Colección.</small>`, { cls:'info', ms:4000, onclick:() => Nav.go('figus') });
   }
   function velezTok() {   // 💙 los días que juega Vélez: un sobre de Vélez de regalo
     let m = null; try { m = Partido.match(); } catch {} if (!m || new Date(m.date).toDateString() !== new Date().toDateString()) return false;
@@ -244,7 +245,7 @@ const Figus = (() => {
   }
   const velezDay = () => { try { const m = Partido.match(); return !!m && new Date(m.date).toDateString() === new Date().toDateString(); } catch { return false; } };
   // 🐶 Paseo completado → 1 sobre de Vaca (5 figus)
-  function paseo(p) { if (!p || p.min < 15) return; if (add({ id:'v-' + p.s, ty:'tok', k:'vaca', why:`Paseo de ${p.min} min` })) toast('<b>🐶 ¡Sobre de Vaca!</b><small>Por el paseo. Abrilo en Figus.</small>', { cls:'info', ms:6000, onclick:() => { Nav.go('figus'); view = { tab:'inicio' }; render(); } }); }
+  function paseo(p) { if (!p || p.min < 15) return; if (add({ id:'v-' + p.s, ty:'tok', k:'vaca', why:`Paseo de ${p.min} min` })) toast('<b>🐶 ¡Sobre de Vaca!</b><small>Por el paseo. Abrilo en 🏛️ Colección.</small>', { cls:'info', ms:6000, onclick:() => { Nav.go('figus'); view = { tab:'inicio' }; render(); } }); }
 
   /* ---------------- 📦 sobres ---------------- */
   const albums = () => Object.values(st.albums).filter(a => !a.del).sort((a, b) => (a.ord ?? a.cr) - (b.ord ?? b.cr));
@@ -284,11 +285,11 @@ const Figus = (() => {
 
   /* ---------------- 🖥️ pantalla ---------------- */
   let view = { tab:'inicio' }, work = null;
-  const TABS = [['inicio', '🏠 Inicio'], ['albumes', '📚 Álbumes'], ['garage', '🏎️ Garage'], ['kiosco', '🏪 Kiosco'], ['repes', '🔁 Repetidas'], ['balance', '📒 Balance']];
+  const TABS = [['inicio', '🏠 Inicio'], ['albumes', '📚 Álbumes'], ['garage', '🏎️ Garage'], ['trofeos', '🏆 Trofeos'], ['kiosco', '🏪 Kiosco'], ['repes', '🔁 Repetidas'], ['balance', '📒 Balance']];
   function header() {
     const d = derive(), hoy = Math.min(ECO.slotCap, d.day[today()] || 0), s = streakFor(today()) + (d.dailies.has(today()) ? 1 : 0);
-    return `<div class="fghead"><div class="fgcoins">${coinTxt(d.coins)}</div>
-      <div class="fgstat"><span>Hoy por estar: <b>${hoy}/${ECO.slotCap}</b></span><span>🔥 Racha: <b>${s} día${s === 1 ? '' : 's'}</b></span><span>🏆 <b>${d.done.size}</b> completo${d.done.size === 1 ? '' : 's'}</span></div></div>
+    return `${bannerHtml()}<div class="fghead"><div class="fgcoins">${coinTxt(d.coins)}</div>
+      <div class="fgstat"><span>Hoy por estar: <b>${hoy}/${ECO.slotCap}</b></span><span>🔥 Racha: <b>${s} día${s === 1 ? '' : 's'}</b></span><span>🏅 <b>${achList().filter(a => a.ok).length}</b>/${ACH.length} trofeos</span></div></div>
       <div class="fgtabs">${TABS.map(([k, t]) => `<button data-tab="${k}" class="${view.tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
   }
   function progress(a) { const h = derive().have, tot = (a.cards || []).length || a.size || 0, got = (a.cards || []).filter(c => h[a.id + ':' + c.n]).length; return { got, tot, pct:tot ? Math.round(got / tot * 100) : 0 }; }
@@ -301,7 +302,8 @@ const Figus = (() => {
   }
   function render() {
     const v = $('v-figus'); if (!v) return;
-    if (tvDev()) { v.innerHTML = '<div class="empty">🃏 Figus se juega desde el celu o la compu. Acá en la tele igual vas sumando vaccoins.</div>'; return; }
+    if (!tvDev()) try { achCheck(); } catch {}
+    if (tvDev()) { v.innerHTML = '<div class="empty">🃏 La Colección se juega desde el celu o la compu. Acá en la tele igual vas sumando vaccoins.</div>'; return; }
     if (view.alb) return renderAlbum(v);
     const d = derive(), A = albums(); let body = '';
     if (view.tab === 'inicio') {
@@ -330,6 +332,8 @@ const Figus = (() => {
       const tot = R.reduce((s, o) => s + (o.n - 1) * ECO.sell[o.x.c.rar || 'c'], 0);
       body = `${R.length ? `<div class="btns"><span class="mut">Vendiendo todas las repetidas (te quedás con una de cada): ${coinTxt(tot)}</span><span class="sp"></span><button data-sellall>Vender todas</button></div>` : ''}
         <div class="fggrid">${R.map(o => `<div class="fgcell">${figHtml(o.x.a, o.x.c, { n:o.n, small:true })}<button data-sell="${esc(o.k)}">Vender 1 · ${coinTxt(ECO.sell[o.x.c.rar || 'c'])}</button></div>`).join('') || '<div class="empty">No tenés repetidas.</div>'}</div>`;
+    } else if (view.tab === 'trofeos') {
+      body = trofeosHtml();
     } else if (view.tab === 'garage') {
       body = garageHtml();
     } else if (view.tab === 'balance') {
@@ -340,7 +344,7 @@ const Figus = (() => {
         <div class="tdlist">${L.map(e => `<div class="tdrow"><div><b>${ic(e)}</b><small>${new Date(e.t).toLocaleString('es-AR', { day:'numeric', month:'numeric', hour:'2-digit', minute:'2-digit' })}</small></div><b class="fgamt">${amt(e)}</b></div>`).join('') || '<div class="empty">Todavía no hay movimientos.</div>'}</div>`;
     }
     v.innerHTML = header() + body;
-    bindCommon(v);
+    bindCommon(v); v.querySelectorAll('.fgbn-it .fig[data-k]').forEach(f => f.onclick = () => zoom(f));
     v.querySelectorAll('[data-alb]').forEach(b => b.onclick = () => { view = { tab:view.tab, alb:b.dataset.alb }; render(); });
     v.querySelectorAll('[data-new]').forEach(b => b.onclick = newAlbum);
     v.querySelectorAll('[data-gs]').forEach(b => b.onclick = () => { view.gs = b.dataset.gs; render(); });
@@ -418,7 +422,7 @@ const Figus = (() => {
   }
   function zoom(f) { let o = $('fgZoom'); if (!o) { o = document.createElement('div'); o.id = 'fgZoom'; o.onclick = () => o.remove(); }
     const x = keyCard(f.dataset.k || '');
-    o.innerHTML = `<div class="fgzwrap">${f.outerHTML}${x?.c ? fichaHtml(x.a, x.c) : ''}</div>`; document.body.appendChild(o); o.querySelector('.fig').classList.add('big'); hydrate(o); }
+    o.innerHTML = `<div class="fgzwrap">${f.outerHTML}${x?.c ? fichaHtml(x.a, x.c) : ''}</div>${x?.c ? pinBtn('fig', f.dataset.k) : ''}`; document.body.appendChild(o); o.querySelector('.fig').classList.add('big'); bindPin(o); hydrate(o); }
 
   function renderEdit(v, a) {
     if (!work) work = JSON.parse(JSON.stringify(a));
@@ -530,7 +534,7 @@ const Figus = (() => {
     const all = models(s), done = all.filter(m => (d.gar[m.key] || []).length >= 10).length;
     return `<div class="fgtabs">${Object.entries(GARAGE).map(([k, g]) => `<button data-gs="${k}" class="${k === s ? 'on' : ''}">${g.ic} ${g.n}</button>`).join('')}</div>
       <div class="gwk ${w.open ? 'on' : ''}">${w.open ? `🟢 <b>Fin de semana de carrera: ${esc(w.name)}</b> · cajas abiertas hasta el ${dt(w.to)}` : w.from ? `🔴 Cajas cerradas · abren el ${dt(w.from)} para el <b>${esc(w.name)}</b>` : '🔴 Cajas cerradas hasta el próximo fin de semana de carrera'}</div>
-      <p class="mut">Temporada 2026 · escala 1:43 · ${done}/${all.length} modelos completos. Cada caja trae 2 piezas del piloto que elijas (sin repetir) por ${G.price} vaccoins.</p>
+      <p class="mut">Temporada 2026 · escala 1:18 · ${done}/${all.length} modelos completos. Cada caja trae 2 piezas del piloto que elijas (sin repetir) por ${G.price} vaccoins.</p>
       ${G.teams.map(([team, c1, c2]) => `<div class="gteam" style="--t1:${c1};--t2:${c2}"><h3>${esc(team)}</h3><div class="gmods">${all.filter(m => m.team === team).map(m => { const got = d.gar[m.key] || [], full = got.length >= 10, wn = d.wins[m.key] || [];
         return `<div class="gmod ${full ? 'full' : ''}" style="--t1:${m.c1};--t2:${m.c2}"><button class="gview" data-gmod="${esc(m.key)}">${carSvg(m, got)}</button>
           <div class="ginfo"><span class="gnum" style="background:${m.c1};color:${ink(m.c1)};box-shadow:inset 0 -4px 0 ${m.c3}">${m.num}</span><b>${esc(m.name)}</b><small>${full ? '✅ Modelo completo' : `${got.length}/10 piezas`}${wn.length ? ` · 🏆×${wn.length}` : ''}</small></div>
@@ -554,11 +558,11 @@ const Figus = (() => {
     const m = modelOf(key), G = GARAGE[m.s], got = derive().gar[key] || [], wn = derive().wins[key] || [];
     let o = $('fgZoom'); if (!o) { o = document.createElement('div'); o.id = 'fgZoom'; o.onclick = e => { if (e.target === o) o.remove(); }; }
     o.innerHTML = `<div class="gzoom" style="--t1:${m.c1};--t2:${m.c2}"><div class="gbig ${got.length >= 10 ? 'full' : ''}">${carSvg(m, got)}</div>
-      <h2><span class="gnum big" style="background:${m.c1};color:${ink(m.c1)};box-shadow:inset 0 -5px 0 ${m.c3}">${m.num}</span> ${esc(m.name)}</h2><p class="mut">${esc(m.team)} · ${G.n} · Temporada 2026 · escala 1:43</p>
+      <h2><span class="gnum big" style="background:${m.c1};color:${ink(m.c1)};box-shadow:inset 0 -5px 0 ${m.c3}">${m.num}</span> ${esc(m.name)}</h2><p class="mut">${esc(m.team)} · ${G.n} · Temporada 2026 · escala 1:18</p>
       <div class="gparts">${G.parts.map(([id, n]) => `<span class="${got.includes(id) ? 'ok' : ''}">${got.includes(id) ? '✓' : '·'} ${n}</span>`).join('')}</div>
       ${wn.length ? `<div class="gwins">${wn.map(g => `<span>🏆 ${esc(g)}</span>`).join('')}</div>` : ''}
-      <button data-x>Cerrar</button></div>`;
-    document.body.appendChild(o); o.querySelector('[data-x]').onclick = () => o.remove();
+      <div class="btns">${got.length >= 10 ? pinBtn('car', key) : ''}<button data-x>Cerrar</button></div></div>`;
+    document.body.appendChild(o); o.querySelector('[data-x]').onclick = () => o.remove(); bindPin(o);
   }
   // 🏆 cuando gana uno de la grilla, queda la plaquita en su modelo (para el recuerdo)
   function wins() {
@@ -568,6 +572,69 @@ const Figus = (() => {
       const tk = norm(w.name).split(' '), m = models(s).find(m => norm(m.name).split(' ').every(x => tk.includes(x)));   // "Kimi Antonelli" ⊂ "Andrea Kimi Antonelli"; Marc ≠ Álex Márquez
       if (m) add({ id:`w-${s}-${norm(L.name).replace(/\s+/g, '')}-${L.date.slice(0, 10)}`, ty:'win', m:m.key, gp:L.name });
     }
+  }
+
+  /* ---------------- 📌 Portada: tus 3 favoritas (figus o maquetas completas) fijas arriba ---------------- */
+  const banner = () => (st.prefs?.banner || []);
+  const pinned = (t, k) => banner().some(b => b.t === t && b.k === k);
+  const pinBtn = (t, k) => `<button class="fgpin ${pinned(t, k) ? 'on' : ''}" data-pin="${t}|${esc(k)}">${pinned(t, k) ? '📌 Sacar de la portada' : '📌 Fijar en la portada'}</button>`;
+  function bindPin(o) { o.querySelectorAll('[data-pin]').forEach(b => b.onclick = e => { e.stopPropagation(); const [t, k] = b.dataset.pin.split('|');
+    st.prefs = st.prefs || { banner:[] }; let L = banner().filter(x => !(x.t === t && x.k === k));
+    if (L.length === banner().length) { if (L.length >= 3) return toast('<b>Ya tenés 3 en la portada</b><small>Sacá una primero.</small>', { cls:'info' }); L = [...L, { t, k }]; }
+    st.prefs.banner = L; st.prefs.upd = Date.now(); saveSt(); pushSoon(); b.outerHTML = pinBtn(t, k); bindPin(o); if (Nav.current === 'figus') render(); }); }
+  function bannerHtml() {
+    const L = banner(); if (!L.length) return '';
+    const it = b => { if (b.t === 'fig') { const x = keyCard(b.k); return x?.c && derive().have[b.k] ? `<div class="fgbn-it">${figHtml(x.a, x.c)}</div>` : ''; }
+      const m = modelOf(b.k); return m ? `<div class="fgbn-it car" style="--t1:${m.c1}">${carSvg(m, GARAGE[m.s].parts.map(p => p[0]))}<span class="gnum" style="background:${m.c1};color:${ink(m.c1)}">${m.num}</span></div>` : ''; };
+    return `<div class="fgbanner"><div class="fgbn-t">🏛️ MI COLECCIÓN</div><div class="fgbn-row">${L.map(it).join('')}</div></div>`;
+  }
+
+  /* ---------------- 🏆 Estante de trofeos (hitos) ---------------- */
+  const ACH = [
+    ['sobre1', '📦', 'Primer sobre', 'Abriste tu primer sobre', d => d.packs >= 1, 'bronce'],
+    ['leg1', '✨', 'Primera legendaria', 'Te salió tu primera figu legendaria', d => d.legs >= 1, 'plata'],
+    ['leg10', '🌟', 'Cazador de legendarias', '10 figus legendarias', d => d.legs >= 10, 'oro', d => [d.legs, 10]],
+    ['alb1', '📗', 'Primer álbum completado', 'Completaste tu primer álbum', d => d.done.size >= 1, 'plata'],
+    ['alb5', '📚', 'Biblioteca', '5 álbumes completos', d => d.done.size >= 5, 'oro', d => [d.done.size, 5]],
+    ['alb10', '🏛️', 'Museo propio', '10 álbumes completos', d => d.done.size >= 10, 'platino', d => [d.done.size, 10]],
+    ['car1', '🔧', 'Primera maqueta', 'Armaste tu primera maqueta 1:18', d => d.cars >= 1, 'bronce'],
+    ['car10', '🏎️', 'Coleccionista de 10 maquetas 1:18', '10 maquetas completas', d => d.cars >= 10, 'oro', d => [d.cars, 10]],
+    ['team', '🤝', 'Equipo completo', 'Los dos autos o motos de un mismo equipo', d => d.teams >= 1, 'plata'],
+    ['grid', '🏁', 'Grilla completa', 'Los 22 de F1 o las 22 de MotoGP', d => d.grids >= 1, 'platino'],
+    ['win1', '🏆', 'Plaquita de campeón', 'Uno de tus modelos ganó un GP', d => d.winsN >= 1, 'bronce'],
+    ['vaca10', '🐶', 'Paseadora de Vaca', '10 sobres de Vaca (10 paseos)', d => d.vaca >= 10, 'plata', d => [d.vaca, 10]],
+    ['vaca50', '🦮', 'Mejor amiga de Vaca', '50 sobres de Vaca', d => d.vaca >= 50, 'oro', d => [d.vaca, 50]],
+    ['racha7', '🔥', 'Una semana seguida', 'Racha de 7 días', d => d.bestStreak >= 7, 'bronce', d => [d.bestStreak, 7]],
+    ['racha30', '📅', 'Un mes seguido', 'Racha de 30 días', d => d.bestStreak >= 30, 'oro', d => [d.bestStreak, 30]],
+    ['racha100', '💯', 'Cien días', 'Racha de 100 días', d => d.bestStreak >= 100, 'platino', d => [d.bestStreak, 100]],
+    ['prode', '🔮', 'Pronosticador', '500 vaccoins ganados con el Prode', d => d.earned.prode >= 500, 'plata', d => [d.earned.prode, 500]],
+    ['vc1k', '🪙', 'Primeros 1.000', '1.000 vaccoins acumulados', d => d.totalEarned >= 1e3, 'bronce', d => [d.totalEarned, 1e3]],
+    ['vc10k', '💰', 'Ahorrista', '10.000 vaccoins acumulados', d => d.totalEarned >= 1e4, 'plata', d => [d.totalEarned, 1e4]],
+    ['vc100k', '🐮', 'Magnate de los vaccoins', '100.000 vaccoins acumulados', d => d.totalEarned >= 1e5, 'platino', d => [d.totalEarned, 1e5]],
+  ];
+  function stats() {
+    const d = derive(), evs = st.ev;
+    const packs = evs.filter(e => e.ty === 'pack').length + (st.base?.packs || 0);
+    const legs = Object.entries(d.have).filter(([k]) => keyCard(k)?.c?.rar === 'l').length;
+    const full = Object.entries(d.gar).filter(([, p]) => p.length >= 10).map(([k]) => k);
+    const teams = Object.keys(GARAGE).reduce((n, s) => n + GARAGE[s].teams.filter(([t, , , , ds]) => ds.every(([num]) => full.includes(s + ':' + num))).length, 0);
+    const grids = Object.keys(GARAGE).filter(s => models(s).every(m => full.includes(m.key))).length;
+    const vaca = evs.filter(e => e.ty === 'tok' && e.k === 'vaca').length;
+    const days = [...d.dailies].sort(); let best = 0, run = 0, prev = null;
+    for (const x of days) { const t = Date.parse(x + 'T12:00:00'); run = prev && t - prev < 1.5 * 864e5 ? run + 1 : 1; best = Math.max(best, run); prev = t; }
+    return { ...d, packs, legs, cars:full.length, teams, grids, vaca, bestStreak:best, winsN:Object.values(d.wins).flat().length,
+      totalEarned:d.earned.slot + d.earned.daily + d.earned.prode + d.earned.sell };
+  }
+  function achList() { const d = stats(); return ACH.map(([id, ic, n, txt, test, tier, prog]) => ({ id, ic, n, txt, tier, ok:test(d), prog:prog ? prog(d) : null, at:st.ev.find(e => e.id === 'ach-' + id)?.t })); }
+  function achCheck() {   // anoto cuándo ganaste cada trofeo (para el recuerdo) y aviso
+    for (const a of achList()) if (a.ok && !has('ach-' + a.id)) { add({ id:'ach-' + a.id, ty:'ach' }); if (!tvDev()) toast(`<b>🏆 Trofeo: ${esc(a.n)}</b><small>${esc(a.txt)}</small>`, { cls:'info', ms:6000, onclick:() => { Nav.go('figus'); view = { tab:'trofeos' }; render(); } }); }
+  }
+  function trofeosHtml() {
+    const L = achList(), ok = L.filter(a => a.ok).length;
+    return `<p class="mut">${ok}/${L.length} trofeos. Para la portada: abrí una figu pegada o una maqueta completa y tocá "📌 Fijar en la portada" (hasta 3).</p>
+      <div class="fgshelf">${L.map(a => `<div class="fgtr ${a.ok ? 'ok t-' + a.tier : ''}" title="${esc(a.txt)}">
+        <div class="fgmed">${a.ic}</div><b>${esc(a.n)}</b><small>${esc(a.txt)}</small>
+        ${a.ok ? `<small class="fgdate">${a.at ? new Date(a.at).toLocaleDateString('es-AR') : ''}</small>` : a.prog ? `<div class="fgbar"><i style="width:${Math.min(100, a.prog[0] / a.prog[1] * 100)}%"></i></div><small>${Math.min(a.prog[0], a.prog[1]).toLocaleString('es-AR')} / ${a.prog[1].toLocaleString('es-AR')}</small>` : '<small>🔒</small>'}</div>`).join('')}</div>`;
   }
 
   /* ---------------- 🎉 abrir el sobre y completar ---------------- */
@@ -596,11 +663,11 @@ const Figus = (() => {
   function init() {
     if (!st.since) { st.since = Date.now(); saveSt(); }
     setInterval(slotTick, 60e3); setTimeout(slotTick, 5000);
-    setInterval(() => { try { prode(); } catch {} velezTok(); try { wins(); } catch {} }, 10 * 60e3);
+    setInterval(() => { try { prode(); } catch {} velezTok(); try { wins(); } catch {} try { achCheck(); } catch {} }, 10 * 60e3);
     setTimeout(async () => {
       await pull();
       try { prode(); } catch {} velezTok(); try { wins(); } catch {}
-      if (!tvDev()) { const g = daily(); if (g) { pushSoon(); toast(`<b>🎁 Regalo del día: +${g.n} vaccoins</b><small>Racha de ${g.s} día${g.s === 1 ? '' : 's'}${g.off ? ` · +${g.off} de mientras no estabas` : ''}. Están en 🃏 Figus.</small>`, { cls:'info', ms:6000, onclick:() => Nav.go('figus') }); } }
+      if (!tvDev()) { const g = daily(); if (g) { pushSoon(); toast(`<b>🎁 Regalo del día: +${g.n} vaccoins</b><small>Racha de ${g.s} día${g.s === 1 ? '' : 's'}${g.off ? ` · +${g.off} de mientras no estabas` : ''}. Están en 🏛️ Colección.</small>`, { cls:'info', ms:6000, onclick:() => Nav.go('figus') }); } }
     }, 6000);
     setInterval(pull, tvDev() ? 30 * 60e3 : 5 * 60e3);
     document.addEventListener('visibilitychange', () => { if (document.hidden) { bgHide(); if (pushT) pushNow(); } else { bgShow(); pull(); } });
