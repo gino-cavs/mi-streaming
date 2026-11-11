@@ -1807,3 +1807,6 @@ html.lite #negro .ngbar { transition:opacity 2s ease !important; } html.lite #ne
 .gzoom { background:#0b1530; border-radius:18px; padding:16px; max-width:94vw; color:#fff; display:flex; flex-direction:column; gap:8px; align-items:center; text-align:center; }
 .gparts { display:grid; grid-template-columns:repeat(2, minmax(140px, 1fr)); gap:4px 14px; text-align:left; } .gparts span { color:#ffffff55; } .gparts span.ok { color:#fff; }
 .gwins { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; } .gwins span { background:#c9a227; color:#1a1300; border-radius:10px; padding:2px 10px; font-weight:700; font-size:13px; }
+.ginfo { display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto; column-gap:10px; align-items:center; } .ginfo .gnum { grid-row:span 2; }
+.gnum { display:inline-grid; place-items:center; min-width:46px; height:40px; padding:0 8px; border-radius:8px; font:italic 900 24px/1 Oswald, Impact, system-ui, sans-serif; letter-spacing:-.5px; }
+.gnum.big { min-width:60px; height:52px; font-size:32px; vertical-align:middle; }

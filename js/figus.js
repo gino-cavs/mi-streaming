@@ -490,20 +490,25 @@ const Figus = (() => {
 
   /* ---------------- 🏎️ el Garage: dibujo 2D (SVG, liviano), cajas y vitrina ---------------- */
   // cada pieza es una parte del dibujo: si la tenés va pintada con los colores del equipo; si no, solo el contorno
+  // el número tiene que leerse siempre: blanco o negro según lo claro que sea el fondo
+  const ink = hex => { const h = hex.replace('#', ''), n = parseInt(h.length === 3 ? h.split('').map(x => x + x).join('') : h, 16), r = n >> 16 & 255, g = n >> 8 & 255, b = n & 255; return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? '#0b0b0b' : '#ffffff'; };
+  const NUM = (x, y, size, fill, n, extra = '') => `<text x="${x}" y="${y}" fill="${fill}" font-size="${size}" font-weight="900" font-family="Oswald, Impact, system-ui, sans-serif" font-style="italic" text-anchor="middle" ${extra}>${n}</text>`;
   function carSvg(m, got) {
     const has = id => got.includes(id), P = (id, d, fill, extra = '') => has(id) ? `<path d="${d}" fill="${fill}" ${extra}/>` : `<path d="${d}" fill="none" stroke="#ffffff38" stroke-width="1.5" stroke-dasharray="4 3"/>`;
     const W = (id, cx, cy, r) => has(id) ? `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#121212"/><circle cx="${cx}" cy="${cy}" r="${r * .55}" fill="${m.c3}"/><circle cx="${cx}" cy="${cy}" r="${r * .2}" fill="#bbb"/>` : `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#ffffff38" stroke-width="1.5" stroke-dasharray="4 3"/>`;
     if (m.s === 'f1') return `<svg viewBox="0 0 400 124" class="gsvg">
       ${P('alerona', 'M328 26 L388 22 L390 38 L330 42 Z', m.c3)}${P('alerona', 'M352 40 L361 40 L350 68 L341 68 Z', m.c1)}
       ${P('chasis', 'M36 88 L60 79 L150 71 L190 59 L252 57 L302 61 L348 67 L352 86 L60 96 Z', m.c1)}
+      ${has('chasis') ? `<path d="M60 85 L150 77 L190 66 L250 64 L300 67 L347 72 L348 77 L300 72 L250 70 L190 72 L150 82 L60 90 Z" fill="${m.c3}"/><path d="M36 88 L54 81 L58 95 L40 96 Z" fill="${m.c2}"/>` : ''}
       ${P('pontones', 'M174 73 L232 65 L302 67 L306 84 L180 88 Z', m.c2)}
       ${P('motor', 'M214 57 L234 33 L256 33 L302 59 L250 59 Z', m.c3)}
+      ${has('motor') ? NUM(254, 54, 19, ink(m.c3), m.num) : ''}
       ${P('halo', 'M168 58 Q195 38 228 52 L224 55 Q196 44 172 60 Z', '#2a2a2a')}
       ${P('volante', 'M181 55 L193 55 L193 61 L181 61 Z', '#3a3a3a')}
       ${P('casco', 'M196 52 a11 11 0 1 1 22 0 L218 58 L196 58 Z', m.c2, `stroke="${m.c3}" stroke-width="2"`)}${has('casco') ? '<path d="M206 50 L218 50 L218 54 L206 54 Z" fill="#0b0b0b"/>' : ''}
       ${P('alerond', 'M6 94 L72 94 L68 102 L2 102 Z', m.c3)}${P('alerond', 'M8 82 L15 82 L13 102 L6 102 Z', m.c2)}
       ${W('ruedad', 96, 92, 22)}${W('ruedat', 318, 90, 25)}
-      ${has('chasis') ? `<text x="130" y="88" fill="${m.c2}" font-size="15" font-weight="900" font-family="Oswald, system-ui, sans-serif" font-style="italic">${m.num}</text>` : ''}</svg>`;
+      ${has('chasis') ? NUM(146, 87, 13, ink(m.c1), m.num) : ''}</svg>`;
     // 🏍️ moto de perfil (de frente a la izquierda): ruedas, basculante y chasis, motor, escape, horquilla, carenado con burbuja, tanque y colín, alerones y el casco apoyado en el asiento
     return `<svg viewBox="0 0 300 210" class="gsvg">
       ${W('ruedad', 70, 160, 34)}${W('ruedat', 232, 160, 36)}
@@ -512,11 +517,11 @@ const Figus = (() => {
       ${P('escape', 'M188 106 L246 82 L252 92 L194 116 Z', '#b3b6bb')}
       ${has('horquilla') ? '<path d="M70 160 L102 78" stroke="#d7d9dd" stroke-width="8" stroke-linecap="round"/><path d="M70 160 L102 78" stroke="#ffd34d" stroke-width="3" stroke-linecap="round" opacity=".7"/>' : '<path d="M70 160 L102 78" stroke="#ffffff38" stroke-width="1.5" stroke-dasharray="4 3"/>'}
       ${P('carenado', 'M94 70 C102 52 126 44 150 48 L180 56 L192 92 L178 120 L120 124 C104 118 92 106 90 92 Z', m.c1)}
-      ${has('carenado') ? '<path d="M104 64 C112 50 130 46 146 48 L140 57 C126 55 114 59 108 68 Z" fill="#bcd3e6" opacity=".55"/>' : ''}
+      ${has('carenado') ? `<path d="M118 120 L182 66 L190 78 L134 124 Z" fill="${m.c3}"/><path d="M104 64 C112 50 130 46 146 48 L140 57 C126 55 114 59 108 68 Z" fill="#bcd3e6" opacity=".55"/><ellipse cx="114" cy="64" rx="12" ry="10" fill="${ink(m.c1) === '#ffffff' ? '#ffffff' : '#0b0b0b'}"/>${NUM(114, 69, 13, m.c1, m.num)}` : ''}
       ${P('tanque', 'M150 50 C170 42 192 44 208 54 L252 62 L256 74 L210 78 L186 70 Z', m.c2)}
       ${P('alerones', 'M100 80 L78 74 L80 86 L102 92 Z', m.c3)}
       ${P('casco', 'M206 44 a15 15 0 1 1 30 0 L236 52 L206 52 Z', m.c2, `stroke="${m.c3}" stroke-width="2"`)}${has('casco') ? '<path d="M216 40 L236 40 L236 46 L216 46 Z" fill="#0b0b0b"/>' : ''}
-      ${has('carenado') ? `<text x="120" y="102" fill="${m.c2}" font-size="22" font-weight="900" font-family="Oswald, system-ui, sans-serif" font-style="italic">${m.num}</text>` : ''}</svg>`;
+      ${has('carenado') ? NUM(148, 106, 30, ink(m.c1), m.num, `stroke="${m.c3}" stroke-width="1.2" paint-order="stroke"`) : ''}${has('tanque') ? NUM(232, 72, 13, ink(m.c2), m.num) : ''}</svg>`;
   }
   const weekend = s => { try { return Motor.weekend(s); } catch { return { open:false }; } };
   const dt = t => new Date(t).toLocaleString('es-AR', { weekday:'short', day:'numeric', month:'numeric', hour:'2-digit', minute:'2-digit' });
@@ -528,7 +533,7 @@ const Figus = (() => {
       <p class="mut">Temporada 2026 · escala 1:43 · ${done}/${all.length} modelos completos. Cada caja trae 2 piezas del piloto que elijas (sin repetir) por ${G.price} vaccoins.</p>
       ${G.teams.map(([team, c1, c2]) => `<div class="gteam" style="--t1:${c1};--t2:${c2}"><h3>${esc(team)}</h3><div class="gmods">${all.filter(m => m.team === team).map(m => { const got = d.gar[m.key] || [], full = got.length >= 10, wn = d.wins[m.key] || [];
         return `<div class="gmod ${full ? 'full' : ''}" style="--t1:${m.c1};--t2:${m.c2}"><button class="gview" data-gmod="${esc(m.key)}">${carSvg(m, got)}</button>
-          <div class="ginfo"><b>#${m.num} ${esc(m.name)}</b><small>${full ? '✅ Modelo completo' : `${got.length}/10 piezas`}${wn.length ? ` · 🏆×${wn.length}` : ''}</small></div>
+          <div class="ginfo"><span class="gnum" style="background:${m.c1};color:${ink(m.c1)};box-shadow:inset 0 -4px 0 ${m.c3}">${m.num}</span><b>${esc(m.name)}</b><small>${full ? '✅ Modelo completo' : `${got.length}/10 piezas`}${wn.length ? ` · 🏆×${wn.length}` : ''}</small></div>
           ${full ? '' : `<button data-gbox="${esc(m.key)}" ${w.open && d.coins >= G.price ? '' : 'disabled'}>📦 Caja · ${coinTxt(G.price)}</button>`}</div>`; }).join('')}</div></div>`).join('')}`;
   }
   function buyBox(key) {
@@ -549,7 +554,7 @@ const Figus = (() => {
     const m = modelOf(key), G = GARAGE[m.s], got = derive().gar[key] || [], wn = derive().wins[key] || [];
     let o = $('fgZoom'); if (!o) { o = document.createElement('div'); o.id = 'fgZoom'; o.onclick = e => { if (e.target === o) o.remove(); }; }
     o.innerHTML = `<div class="gzoom" style="--t1:${m.c1};--t2:${m.c2}"><div class="gbig ${got.length >= 10 ? 'full' : ''}">${carSvg(m, got)}</div>
-      <h2>#${m.num} ${esc(m.name)}</h2><p class="mut">${esc(m.team)} · ${G.n} · Temporada 2026 · escala 1:43</p>
+      <h2><span class="gnum big" style="background:${m.c1};color:${ink(m.c1)};box-shadow:inset 0 -5px 0 ${m.c3}">${m.num}</span> ${esc(m.name)}</h2><p class="mut">${esc(m.team)} · ${G.n} · Temporada 2026 · escala 1:43</p>
       <div class="gparts">${G.parts.map(([id, n]) => `<span class="${got.includes(id) ? 'ok' : ''}">${got.includes(id) ? '✓' : '·'} ${n}</span>`).join('')}</div>
       ${wn.length ? `<div class="gwins">${wn.map(g => `<span>🏆 ${esc(g)}</span>`).join('')}</div>` : ''}
       <button data-x>Cerrar</button></div>`;
