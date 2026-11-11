@@ -2,13 +2,13 @@
    Navegación entre secciones, ajustes y arranque
    ========================================================= */
 const Nav = (() => {
-  const SECS = [['inicio', '🏠 Ahora'], ['canales', '📺 Canales'], ['radios', '📻 Radios'], ['calendario', '📅 Calendario'], ['fulbito', '⚽ Fulbito'], ['prode', '🎯 Prode'], ['motor', '🏁 Automovilismo'], ['boxeo', '🥊 Boxeo'], ['series', '📼 Series'], ['peliculas', '🎬 Películas'], ['musica', '🎵 Música'], ['rap', '🎤 Rap Battle'], ['420', '🍃 420 time'], ['mg', '📍 MG News'], ['tandas', '📼 Tandas'], ['novelas', '📺 Novelas'], ['porteno', '🎻 Modo porteño'], ['paseo', '🐶 Paseo de Vaca'], ['fechas', '🎂 Fechas'], ['momentos', '⭐ Momentos'], ['noticias', '📰 Noticias'], ['velez', '💙 Mundo Vélez'], ['juegos', '🎮 Juegos'], ['wrapped', '✨ Wrapped']];
+  const SECS = [['inicio', '🏠 Ahora'], ['canales', '📺 Canales'], ['radios', '📻 Radios'], ['calendario', '📅 Calendario'], ['fulbito', '⚽ Fulbito'], ['prode', '🎯 Prode'], ['motor', '🏁 Automovilismo'], ['boxeo', '🥊 Boxeo'], ['series', '📼 Series'], ['peliculas', '🎬 Películas'], ['musica', '🎵 Música'], ['rap', '🎤 Rap Battle'], ['420', '🍃 420 time'], ['mg', '📍 MG News'], ['tandas', '📼 Tandas'], ['novelas', '📺 Novelas'], ['porteno', '🎻 Modo porteño'], ['paseo', '🐶 Paseo de Vaca'], ['figus', '🃏 Figus'], ['fechas', '🎂 Fechas'], ['momentos', '⭐ Momentos'], ['noticias', '📰 Noticias'], ['velez', '💙 Mundo Vélez'], ['juegos', '🎮 Juegos'], ['wrapped', '✨ Wrapped']];
   /* Menú corto: arriba van pocas pestañas; las secciones parecidas viven juntas adentro de un grupo (con pestañitas). */
   const GROUPS = { deportes:['🏟️ Deportes', ['fulbito', 'velez', 'motor', 'boxeo']], tv247:['📼 24/7', ['series', 'peliculas', 'novelas', 'tandas']], sonido:['🎧 Música y Radios', ['musica', 'radios']],
     mas:['➕ Más', ['mg', 'paseo', 'fechas', 'porteno', 'calendario', 'noticias', 'prode', 'rap', '420', 'momentos', 'juegos', 'wrapped']] };
-  const TOP = ['inicio', 'canales', 'deportes', 'tv247', 'sonido', 'mas'];
+  const TOP = ['inicio', 'canales', 'deportes', 'tv247', 'sonido', 'figus', 'mas'];
   let current = null;
-  const renderers = { inicio:() => Inicio.render(), canales:() => Canales.render(), radios:() => Radio.render(), calendario:() => Calendario.render(), motor:() => Motor.render(), boxeo:() => Boxeo.render(), musica:() => Musica.render(), series:() => Series.render(), peliculas:() => Peliculas.render(), rap:() => Rap.render(), '420':() => T420.render(), mg:() => MG.render(), tandas:() => Tanda.render(), novelas:() => Novelas.render(), porteno:() => Porteno.render(), paseo:() => Paseo.render(), fechas:() => Fechas.render(), prode:() => Prode.render(), momentos:() => Momentos.render(), wrapped:() => Stats.render(), fulbito:() => Fulbito.render(), noticias:() => Noticias.render(), velez:() => Velez.render(), juegos:() => Juegos.render() };
+  const renderers = { inicio:() => Inicio.render(), canales:() => Canales.render(), radios:() => Radio.render(), calendario:() => Calendario.render(), motor:() => Motor.render(), boxeo:() => Boxeo.render(), musica:() => Musica.render(), series:() => Series.render(), peliculas:() => Peliculas.render(), rap:() => Rap.render(), '420':() => T420.render(), mg:() => MG.render(), tandas:() => Tanda.render(), novelas:() => Novelas.render(), porteno:() => Porteno.render(), paseo:() => Paseo.render(), figus:() => Figus.render(), fechas:() => Fechas.render(), prode:() => Prode.render(), momentos:() => Momentos.render(), wrapped:() => Stats.render(), fulbito:() => Fulbito.render(), noticias:() => Noticias.render(), velez:() => Velez.render(), juegos:() => Juegos.render() };
   const hidden = () => db.nav?.hidden || [];
   const members = g => { const def = GROUPS[g][1], o = (db.nav?.grp || {})[g] || []; return [...o.filter(x => def.includes(x)), ...def.filter(x => !o.includes(x))]; };
   const visMembers = g => members(g).filter(x => !hidden().includes(x) || x === current);
@@ -16,7 +16,7 @@ const Nav = (() => {
   const label = id => GROUPS[id] ? db.nav?.labels?.[id] || GROUPS[id][0] : T247[id] ? T247[id].label() : db.nav?.labels?.[id] || (SECS.find(x => x[0] === id) || [, id])[1];
   function tops() {
     const o = (db.nav?.top || []).filter(x => TOP.includes(x)), ids = [...o, ...TOP.filter(x => !o.includes(x))];
-    return ids.filter(id => GROUPS[id] ? visMembers(id).length && !hidden().includes(id) : !hidden().includes(id) || id === current);
+    return ids.filter(id => !(id === 'figus' && Device.mode === 'tv')).filter(id => GROUPS[id] ? visMembers(id).length && !hidden().includes(id) : !hidden().includes(id) || id === current);
   }
   function go(s) {
     if (GROUPS[s]) s = visMembers(s).includes(S.get('grpLast', {})[s]) ? S.get('grpLast', {})[s] : visMembers(s)[0] || 'canales';
@@ -185,7 +185,7 @@ document.addEventListener('visibilitychange', () => {
 /* ---------- Arranque ---------- */
 if (location.protocol === 'file:') warn('Estás abriendo el archivo desde la compu: Twitch y algunos datos solo andan con la página publicada (GitHub Pages).');
 Player.build(); TV.build(); Reloj.init(); Dia.init();
-  Franja.init(); MG.init(); Buscar.init(); Partido.init(); Grafismo.init(); Tanda.init(); Zap.init(); Teclado.init(); Zocalos.init(); Paseo.init(); Fechas.init(); Calidad.init(); Canales.init(); Radio.init(); Fulbito.init(); Noticias.init(); Velez.init(); Calendario.init(); Motor.init(); Musica.init(); Prode.init(); Momentos.init(); Stats.init(); Rap.init(); T420.init(); Likes.init(); Boxeo.init(); Series.init(); Peliculas.init(); Juegos.init(); Ver.init(); Diario.init(); Resumenes.init(); Clasicos.init(); Actualidad.init();
+  Franja.init(); MG.init(); Buscar.init(); Partido.init(); Grafismo.init(); Tanda.init(); Zap.init(); Teclado.init(); Zocalos.init(); Paseo.init(); Fechas.init(); Figus.init(); Calidad.init(); Canales.init(); Radio.init(); Fulbito.init(); Noticias.init(); Velez.init(); Calendario.init(); Motor.init(); Musica.init(); Prode.init(); Momentos.init(); Stats.init(); Rap.init(); T420.init(); Likes.init(); Boxeo.init(); Series.init(); Peliculas.init(); Juegos.init(); Ver.init(); Diario.init(); Resumenes.init(); Clasicos.init(); Actualidad.init();
 $('btnGuia').onclick = () => { S.set('canView', S.get('canView', 'cards') === 'guia' ? 'cards' : 'guia'); Canales.render(); };
 setInterval(() => { if (Nav.current === 'canales' && S.get('canView', 'cards') === 'guia' && !document.hidden) Canales.render(); }, 60e3);
 $('btnLikeSetup').onclick = () => { $('dlgSet').close(); Likes.openSetup(); };

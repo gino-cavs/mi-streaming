@@ -103,7 +103,7 @@ const Paseo = (() => {
     if (!cur) return;
     const min = Math.max(1, Math.round((Math.min(Date.now(), cur.s + 3 * 3600e3) - cur.s) / 60e3));
     list().unshift({ s:cur.s, min, km:Math.round(cur.km * 10) / 10, T:cur.T, c:cur.c, auto:!!auto }); db.paseos = list().slice(0, 200); save();
-    geo(false); cur = null; S.set('paseoCur', null); run();
+    geo(false); try { Figus.paseo(list()[0]); } catch {} cur = null; S.set('paseoCur', null); run();
     if (Player.slots.some(s => s?.audio)) Player.closeAll();
     toast(`<b>🏠 ¡Bienvenidos!</b><small>Paseo de ${min} min${list()[0].km ? ` · ${list()[0].km} km` : ''}. Agua para Vaca 💧</small>`, { cls:'info', ms:6000 });
     if (Nav.current === 'paseo') render();

@@ -30,7 +30,7 @@ const REPO = (() => {
 
 /* ---------- Datos ---------- */
 const DEVICE = S.get('deviceId', null) || (() => { const d = 'd' + Math.random().toString(36).slice(2, 8); S.set('deviceId', d); return d; })();
-const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music', 'prode', 'moments', 'stats', 'rap', 'oauth', 'boxeo', 'series', 'juegos', 'diario', 'tg', 'servicios', 'nav', 'peliculas', 'retro', 'radEdit', 'radPedido', 'secUse', 'secUseSince', 'resume', 'recs', 'remote', 'flashSeen', 'radGeo', 'geo', 'estGeo', 'resWidgets', 'grillaIcal', 't420m', 'humor', 'ytq', 'ytShare', 'plan', 'tandas', 'vacaFotos', 'grafStyle', 'paseos', 'vaca', 'fechas'];
+const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music', 'prode', 'moments', 'stats', 'rap', 'oauth', 'boxeo', 'series', 'juegos', 'diario', 'tg', 'servicios', 'nav', 'peliculas', 'retro', 'radEdit', 'radPedido', 'secUse', 'secUseSince', 'resume', 'recs', 'remote', 'flashSeen', 'radGeo', 'geo', 'estGeo', 'resWidgets', 'grillaIcal', 't420m', 'humor', 'ytq', 'ytShare', 'plan', 'tandas', 'vacaFotos', 'grafStyle', 'paseos', 'vaca', 'fechas', 'figusGist'];
 const DEFAULTS = () => ({
   cats:['Fútbol', 'Streamers'], chans:[], key:'', refresh:5,
   radios:[], radEdit:{}, radPedido:0, radGeo:{}, geo:{}, estGeo:{},
