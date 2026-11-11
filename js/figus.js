@@ -13,7 +13,8 @@ const Figus = (() => {
   // ⚖️ la economía (si se siente lenta o rápida, se toca acá)
   const ECO = { slotMs:5 * 60e3, slotCap:60, daily:20, streakStep:5, streakMax:7, offPerH:2, offMax:30,
     prodeWin:15, prodeExact:40, prodeScorer:10, velezX:2,
-    pack:40, packVelez:60, packSize:5, buy:{ c:60, r:150, l:400 }, sell:{ c:3, r:10, l:40 }, odds:{ c:.70, r:.25, l:.05 } };
+    pack:40, packVelez:60, packSize:5, buy:{ c:60, r:150, e:250, l:400 }, sell:{ c:3, r:10, e:20, l:40 }, odds:{ c:.62, r:.25, e:.09, l:.04 }, perfect:{ c:5, r:5, e:10, l:10 },
+    covers:{ clasica:0, cuero:300, retro:300, neon:500 } };
   const STYLES = { panini:'🟨 Clásico Panini', retro:'📼 Retro 90s', neon:'💡 Neón', diario:'📰 Diario de papel', holo:'🌈 Holográfico' };
   // cómo se consiguen los sobres (independiente de qué trata el álbum)
   const KINDS = { canal:'🏪 Sobres en el kiosco', vaca:'🐶 Sobres solo paseando a Vaca', velez:'💙 Kiosco (más barato los días que juega Vélez)' };
@@ -33,7 +34,13 @@ const Figus = (() => {
   const FTY = { text:'Texto corto', long:'Texto largo', quote:'Frase (entre comillas)', scale:'Escala de 0 a 5', area:'Área (deportes, política…)' };
   const themeOf = a => THEMES[a.theme] ? a.theme : a.kind === 'vaca' ? 'vaca' : a.kind === 'velez' ? 'velez' : 'programa';
   const fieldsOf = a => a.fields || ((a.cards || []).some(c => c.ficha && Object.values(c.ficha).some(Boolean)) ? F_PROG : THEMES[themeOf(a)].fields);
-  const RAR = { c:'Común', r:'Rara', l:'Legendaria' };
+  const RAR = { c:'Común', r:'Rara', e:'Épica', l:'Legendaria' };
+  const RARL = { r:'◆ RARA', e:'✦ ÉPICA', l:'★ LEGENDARIA' };
+  // 🎨 tapas para comprar con vaccoins (sirven para cualquier álbum, una vez compradas)
+  const COVERS = { clasica:'📕 Clásica', cuero:'📜 Libro antiguo de cuero', retro:'📼 Retro de los 90', neon:'🌃 Neón cyberpunk' };
+  const STK = ['⭐', '💙', '🐶', '🦴', '⚽', '🏆', '🔥', '👑', '✨', '🎸', '📺', '🏎️', '🏍️', '❤️', '🌙', '☀️', '💥', '🎉', '🍀', '🎙️', '📼', '🌈', '🐾', '😎'];
+  const STICK_SINCE = Date.UTC(2026, 10, 11, 18, 0);   // lo que ya tenías antes de esto cuenta como pegado
+  const pcDev = () => Device.mode !== 'tv' && Device.mode !== 'celu' && matchMedia('(pointer:fine)').matches;
   const ROLES = { '':'Figu común', conductor:'🎙️ Conducción', panel:'💬 Panelista', invitado:'⭐ Invitado' };
   const AREAS = { '':'—', deportes:'⚽ Deportes', politica:'🏛️ Política', espectaculos:'🎬 Espectáculos', humor:'😂 Humor', economia:'💼 Economía', policiales:'🚨 Policiales', musica:'🎸 Música', tecnologia:'💻 Tecnología', otra:'📌 Otra' };
   const tvDev = () => Device.mode === 'tv';
@@ -92,7 +99,10 @@ const Figus = (() => {
     let lastSlot = B.lastSlot || 0, earned = { slot:0, daily:0, prode:0, sell:0 }, spent = 0;
     const gar = JSON.parse(JSON.stringify(B.gar || {})), wins = JSON.parse(JSON.stringify(B.wins || {}));
     const exps = {}, posts = new Set(B.posts || []); let blends = B.blends || 0, expDone = B.expDone || 0;
+    const stuck = new Set(B.stuck || []), covers = new Set(B.covers || ['clasica']); let perfects = B.perfects || 0, snap = (B.upTo || 0) >= STICK_SINCE;
+    const sticks = [], snapNow = () => { Object.keys(have).forEach(k => have[k] > 0 && stuck.add(k)); snap = true; };
     for (const e of evs) {
+      if (!snap && e.t >= STICK_SINCE) snapNow();
       if (e.ty === 'slot') { const d = ymdOf(e.t); day[d] = (day[d] || 0) + 1; if (day[d] <= ECO.slotCap) { coins++; earned.slot++; } lastSlot = Math.max(lastSlot, e.t); }
       else if (e.ty === 'daily') { coins += e.n; earned.daily += e.n; dailies.add(e.d); }
       else if (e.ty === 'prode') { coins += e.n; earned.prode += e.n; }
@@ -119,15 +129,19 @@ const Figus = (() => {
       else if (e.ty === 'expok') { const x = exps[e.e]; if (!x || x.ok) continue; x.ok = true; const r = e.rw || {};
         coins += r.vc || 0; earned.exp = (earned.exp || 0) + (r.vc || 0); if (r.fig) have[r.fig] = (have[r.fig] || 0) + 1;
         if (r.part) { const g = gar[r.part[0]] = gar[r.part[0]] || []; if (!g.includes(r.part[1])) g.push(r.part[1]); } if (r.post) posts.add(r.post); expDone++; }
+      else if (e.ty === 'stick') sticks.push(e);   // se resuelven al final (por si el reloj de un aparato anda atrasado)
+      else if (e.ty === 'cover') { if (covers.has(e.d) || coins < e.cost) continue; coins -= e.cost; spent += e.cost; covers.add(e.d); }
     }
-    return D = { coins, have, toks, day, dailies, done, lastSlot, earned, spent, gar, wins, exps, posts, blends, expDone };
+    if (!snap) snapNow();
+    for (const e of sticks) { if (!(have[e.k] > 0) || stuck.has(e.k)) continue; stuck.add(e.k); const n = Math.min(10, e.n || 0); if (n) { coins += n; earned.stick = (earned.stick || 0) + n; perfects++; } }
+    return D = { coins, have, toks, day, dailies, done, lastSlot, earned, spent, gar, wins, exps, posts, blends, expDone, stuck, covers, perfects };
   }
   // cuando el registro crece mucho, lo viejo (más de 60 días) se resume en una "base" (igual en todos los aparatos)
   function compact() {
     if (st.ev.length < 4000) return;
     const cut = Date.now() - 60 * 864e5, old = st.ev.filter(e => e.t <= cut); if (!old.length) return;
     const keep = st.ev.filter(e => e.t > cut); st.ev = old; D = null; const d = derive();
-    st.base = { upTo:cut, coins:d.coins, have:d.have, toks:d.toks, dailies:[...d.dailies], done:[...d.done], lastSlot:d.lastSlot, gar:d.gar, wins:d.wins, posts:[...d.posts], blends:d.blends, expDone:d.expDone };
+    st.base = { upTo:cut, coins:d.coins, have:d.have, toks:d.toks, dailies:[...d.dailies], done:[...d.done], lastSlot:d.lastSlot, gar:d.gar, wins:d.wins, posts:[...d.posts], blends:d.blends, expDone:d.expDone, stuck:[...d.stuck], covers:[...d.covers], perfects:d.perfects };
     st.ev = keep; saveSt();
   }
   function merge(r) {
@@ -284,8 +298,8 @@ const Figus = (() => {
   function draw(a) {
     const R = ready(a), out = [];
     for (let i = 0; i < ECO.packSize; i++) {
-      const x = Math.random(), want = x < ECO.odds.l ? 'l' : x < ECO.odds.l + ECO.odds.r ? 'r' : 'c';
-      const pool = [want, 'c', 'r', 'l'].map(r => R.filter(c => (c.rar || 'c') === r)).find(p => p.length);
+      const x = Math.random(), O = ECO.odds, want = x < O.l ? 'l' : x < O.l + O.e ? 'e' : x < O.l + O.e + O.r ? 'r' : 'c';
+      const pool = [want, 'c', 'r', 'e', 'l'].map(r => R.filter(c => (c.rar || 'c') === r)).find(p => p.length);
       if (pool) out.push(a.id + ':' + pool[Math.floor(Math.random() * pool.length)].n);
     }
     return out;
@@ -306,10 +320,11 @@ const Figus = (() => {
   function figHtml(a, c, { n = 0, back = false, small = false, ghost = false } = {}) {
     const r = c?.rar || 'c';
     if (ghost || !c) return `<div class="fig ghost st-${a.style || 'panini'} ${small ? 'sm' : ''}" style="${cv(a)}"><span class="fnum">${c ? c.n : '?'}</span>${c?.name ? `<small>${esc(c.name)}</small>` : ''}</div>`;
-    return `<div class="fig st-${a.style || 'panini'} rar-${r} ${small ? 'sm' : ''} ${back ? 'back' : ''}" style="${cv(a)}" data-k="${esc(a.id + ':' + c.n)}">
+    const gold = derive().done.has(a.id);
+    return `<div class="fig st-${a.style || 'panini'} rar-${r} ${gold ? 'gold' : ''} ${small ? 'sm' : ''} ${back ? 'back' : ''}" style="${cv(a)}" data-k="${esc(a.id + ':' + c.n)}"${tvDev() ? ' tabindex="0"' : ''}>
       <div class="fin"><div class="fimg" data-img="${esc(c.img || '')}"></div>
       <div class="fband"><span class="fnum">${c.n}</span><b>${esc(c.name || '')}</b></div>
-      <span class="falb">${esc(a.name)}</span>${r !== 'c' ? `<span class="frar">${r === 'l' ? '★ LEGENDARIA' : '◆ RARA'}</span>` : ''}</div>
+      <span class="falb">${esc(a.name)}</span>${gold ? '<span class="frar fgold">👑 GOLDEN</span>' : r !== 'c' ? `<span class="frar">${RARL[r]}</span>` : ''}</div>
       ${n > 1 ? `<span class="fdup">×${n}</span>` : ''}</div>`;
   }
 
@@ -333,7 +348,14 @@ const Figus = (() => {
   function render() {
     const v = $('v-figus'); if (!v) return;
     if (!tvDev()) try { achCheck(); } catch {}
-    if (tvDev()) { v.innerHTML = '<div class="empty">🃏 La Colección se juega desde el celu o la compu. Acá en la tele igual vas sumando vaccoins.</div>'; return; }
+    v.classList.toggle('fgstatic', tvDev());
+    if (tvDev()) {   // 📺 en la tele: solo mirar álbumes, pasar hojas y ver las fichas (sin animaciones)
+      if (view.alb) return renderAlbum(v);
+      v.innerHTML = `<div class="fghead tvh"><h2>🏛️ Colección</h2><small class="mut">En la tele se miran los álbumes. Para abrir sobres y pegar figus, usá la compu o el celu.</small></div>
+        <div class="fgalbs">${albums().map(albumTile).join('') || '<div class="empty">Todavía no hay álbumes.</div>'}</div>`;
+      v.querySelectorAll('[data-alb]').forEach(b => b.onclick = () => { view = { tab:'albumes', alb:b.dataset.alb }; render(); });
+      hydrate(v); return;
+    }
     if (view.nuevo) return renderNew(v);
     if (view.alb) return renderAlbum(v);
     const d = derive(), A = albums(); let body = '';
@@ -352,7 +374,7 @@ const Figus = (() => {
       body = `<div class="fgalbs">${A.map(albumTile).join('')}<button class="fgalb fgnew" data-new>＋ Nuevo álbum</button></div>`;
     } else if (view.tab === 'kiosco') {
       const L = A.filter(a => a.kind !== 'vaca');
-      body = `<p class="mut">Cada sobre trae ${ECO.packSize} figus del álbum que elijas. Rara: 1 de cada 4 · legendaria: 1 de cada 20.</p>
+      body = `<p class="mut">Cada sobre trae ${ECO.packSize} figus del álbum que elijas. Rara: 1 de cada 4 · épica: 1 de cada 11 · legendaria: 1 de cada 25. Completá un álbum y todas sus figus pasan a 👑 Golden.</p>
         <div class="fgkiosco">${L.map(a => { const pr = priceFor(a), ok = ready(a).length; return `<div class="fgsobre st-${a.style || 'panini'}" style="${cv(a)}">
           <div class="fgsob"><span>FIGUS</span><b>${esc(a.name)}</b><small>${ECO.packSize} figuritas</small></div>
           <button class="pri" data-buy="${esc(a.id)}" ${ok && d.coins >= pr ? '' : 'disabled'}>${coinTxt(pr)}</button>
@@ -373,8 +395,8 @@ const Figus = (() => {
       body = garageHtml();
     } else if (view.tab === 'balance') {
       const L = [...st.ev].sort((a, b) => b.t - a.t).filter(e => e.ty !== 'slot').slice(0, 40);
-      const ic = e => e.ty === 'exp' ? `🦴 Vaca salió a repartir a ${esc(e.dest)} (${e.h} h)` : e.ty === 'expok' ? `🦴 Volvió del reparto: +${e.rw?.vc || 0}${e.rw?.post ? ' · postal' : ''}${e.rw?.fig ? ' · figu' : ''}${e.rw?.part ? ' · repuesto' : ''}` : e.ty === 'blend' ? '🌀 Licuadora: 5 → 1 de rareza superior' : e.ty === 'ach' ? '🏅 Trofeo nuevo' : e.ty === 'part' ? `🔧 Piezas para el ${esc(modelOf(e.m)?.name || '')} (${(e.p || []).length})` : e.ty === 'win' ? `🏆 ${esc(modelOf(e.m)?.name || '')} ganó ${esc(e.gp)}` : e.ty === 'daily' ? `🎁 Regalo del día (racha ${e.s})${e.off ? ` · +${e.off} mientras no estabas` : ''}` : e.ty === 'prode' ? `🔮 Prode: ${esc(e.m || '')}` : e.ty === 'pack' ? `📦 Sobre de ${esc(st.albums[e.a]?.name || '?')}${e.tok ? ' (regalo)' : ''}` : e.ty === 'buy' ? `🛒 Compraste #${esc(e.k.split(':')[1])} de ${esc(st.albums[e.k.split(':')[0]]?.name || '?')}` : e.ty === 'sell' ? '🔁 Vendiste una repetida' : e.ty === 'tok' ? `🎁 Sobre de ${e.k === 'vaca' ? 'Vaca' : 'Vélez'}: ${esc(e.why || '')}` : e.ty === 'done' ? `🏆 Completaste ${esc(st.albums[e.a]?.name || '')}` : e.ty;
-      const amt = e => e.ty === 'expok' ? `+${e.rw?.vc || 0}` : e.ty === 'daily' || e.ty === 'prode' ? `+${e.n}` : e.ty === 'sell' ? `+${e.n}` : e.ty === 'pack' && !e.tok || e.ty === 'buy' || e.ty === 'part' ? `−${e.cost}` : '';
+      const ic = e => e.ty === 'stick' ? `🎯 ¡Pegado perfecto! (${e.acc}%)` : e.ty === 'cover' ? `🎨 Tapa nueva: ${COVERS[e.d] || e.d}` : e.ty === 'exp' ? `🦴 Vaca salió a repartir a ${esc(e.dest)} (${e.h} h)` : e.ty === 'expok' ? `🦴 Volvió del reparto: +${e.rw?.vc || 0}${e.rw?.post ? ' · postal' : ''}${e.rw?.fig ? ' · figu' : ''}${e.rw?.part ? ' · repuesto' : ''}` : e.ty === 'blend' ? '🌀 Licuadora: 5 → 1 de rareza superior' : e.ty === 'ach' ? '🏅 Trofeo nuevo' : e.ty === 'part' ? `🔧 Piezas para el ${esc(modelOf(e.m)?.name || '')} (${(e.p || []).length})` : e.ty === 'win' ? `🏆 ${esc(modelOf(e.m)?.name || '')} ganó ${esc(e.gp)}` : e.ty === 'daily' ? `🎁 Regalo del día (racha ${e.s})${e.off ? ` · +${e.off} mientras no estabas` : ''}` : e.ty === 'prode' ? `🔮 Prode: ${esc(e.m || '')}` : e.ty === 'pack' ? `📦 Sobre de ${esc(st.albums[e.a]?.name || '?')}${e.tok ? ' (regalo)' : ''}` : e.ty === 'buy' ? `🛒 Compraste #${esc(e.k.split(':')[1])} de ${esc(st.albums[e.k.split(':')[0]]?.name || '?')}` : e.ty === 'sell' ? '🔁 Vendiste una repetida' : e.ty === 'tok' ? `🎁 Sobre de ${e.k === 'vaca' ? 'Vaca' : 'Vélez'}: ${esc(e.why || '')}` : e.ty === 'done' ? `🏆 Completaste ${esc(st.albums[e.a]?.name || '')}` : e.ty;
+      const amt = e => e.ty === 'stick' ? `+${e.n || 0}` : e.ty === 'cover' ? `−${e.cost}` : e.ty === 'expok' ? `+${e.rw?.vc || 0}` : e.ty === 'daily' || e.ty === 'prode' ? `+${e.n}` : e.ty === 'sell' ? `+${e.n}` : e.ty === 'pack' && !e.tok || e.ty === 'buy' || e.ty === 'part' ? `−${e.cost}` : '';
       body = `<div class="psstats"><div><b>${d.earned.slot}</b><small>por estar</small></div><div><b>${d.earned.daily}</b><small>regalos</small></div><div><b>${d.earned.prode}</b><small>Prode</small></div><div><b>${d.earned.sell}</b><small>ventas</small></div><div><b>${d.spent}</b><small>gastadas</small></div></div>
         <div class="tdlist">${L.map(e => `<div class="tdrow"><div><b>${ic(e)}</b><small>${new Date(e.t).toLocaleString('es-AR', { day:'numeric', month:'numeric', hour:'2-digit', minute:'2-digit' })}</small></div><b class="fgamt">${amt(e)}</b></div>`).join('') || '<div class="empty">Todavía no hay movimientos.</div>'}</div>`;
     }
@@ -420,7 +442,7 @@ const Figus = (() => {
       const id = 'a' + uid(), k = albums().length, pages = T.pages.map(([t, lay]) => ({ t, txt:'', ...(lay ? { lay } : {}) }));
       const a = st.albums[id] = { id, name:N.name.trim() || T.t.replace(/^\S+\s/, ''), theme:N.th, kind:N.kind || T.kind, style:Object.keys(STYLES)[k % 5], colors:['#1238b5', '#ffffff'], per:6,
         story:'', pages, fields:JSON.parse(JSON.stringify(T.fields)), cards:[], cr:Date.now(), upd:Date.now() };
-      for (let i = 1; i <= N.n; i++) a.cards.push({ n:i, name:'', page:Math.min(pages.length - 1, Math.floor((i - 1) * pages.length / N.n)), rar:i % 10 === 0 ? 'l' : i % 4 === 0 ? 'r' : 'c', img:'' });
+      for (let i = 1; i <= N.n; i++) a.cards.push({ n:i, name:'', page:Math.min(pages.length - 1, Math.floor((i - 1) * pages.length / N.n)), rar:i % 10 === 0 ? 'l' : i % 7 === 0 ? 'e' : i % 4 === 0 ? 'r' : 'c', img:'' });
       saveSt(); schedule(); view = { tab:'albumes', alb:id, edit:true }; work = null; render(); });
   }
   function checkDone(a) {
@@ -429,12 +451,16 @@ const Figus = (() => {
   }
   /* ---------------- 📖 el álbum de papel: hojas que se pasan ---------------- */
   const narrow = () => innerWidth < 820;
-  const cellHtml = (a, c, h) => { const n = h[a.id + ':' + c.n] || 0; return `<div class="fgcell ${c.role ? 'r-' + c.role : ''}">${n ? figHtml(a, c, { n }) : figHtml(a, c, { ghost:true })}${!n && c.img && a.kind !== 'vaca' ? `<button class="fgbuy1" data-buy1="${c.n}">Comprar · ${coinTxt(ECO.buy[c.rar || 'c'])}</button>` : ''}</div>`; };
+  // en la compu, la figu nueva no se pega sola: queda la silueta hasta que la arrastrás
+  const cellHtml = (a, c, h) => { const k = a.id + ':' + c.n, n = h[k] || 0, toStick = n && pcDev() && !derive().stuck.has(k);
+    const ghost = figHtml(a, c, { ghost:true }).replace('<div class="fig ghost', `<div data-slotk="${esc(k)}" class="fig ghost${toStick ? ' tostick' : ''}`);
+    return `<div class="fgcell ${c.role ? 'r-' + c.role : ''}">${n && !toStick ? figHtml(a, c, { n }) : ghost}${!n && c.img && a.kind !== 'vaca' && !tvDev() ? `<button class="fgbuy1" data-buy1="${c.n}">Comprar · ${coinTxt(ECO.buy[c.rar || 'c'])}</button>` : ''}</div>`; };
+  const stkHtml = a => `<div class="bkstk">${(a.stk || []).map((x, i) => `<span data-si="${i}" style="left:${x.x}%;top:${x.y}%;--r:${x.r || 0}deg;--s:${x.s || 1}">${esc(x.e)}</span>`).join('')}</div>`;
   function leaves(a) {   // todas las hojas, en orden: tapa, presentación, páginas, contratapa
     const h = derive().have, p = progress(a), per = Math.max(1, +a.per || 6), pages = a.pages?.length ? a.pages : [{ t:'', txt:'' }];
     const L = [], idx = []; let num = 1;
-    L.push({ kind:'cover', html:`<div class="bkcover"><div class="fgalogo big" data-img="${esc(a.logo || '')}">${a.logo ? '' : esc((a.name || '?').slice(0, 2).toUpperCase())}</div>
-      <h1>${esc(a.name)}</h1><span class="bkstamp">ÁLBUM DE FIGURITAS</span><small>${(a.cards || []).length} figus · ${p.got} pegadas${derive().done.has(a.id) ? ' · 🏆 COMPLETO' : ''}</small></div>` });
+    L.push({ kind:'cover', html:`<div class="bkcover cv-${esc(a.cover || 'clasica')} ${derive().done.has(a.id) ? 'golden' : ''}">${stkHtml(a)}<div class="fgalogo big" data-img="${esc(a.logo || '')}">${a.logo ? '' : esc((a.name || '?').slice(0, 2).toUpperCase())}</div>
+      <h1>${esc(a.name)}</h1><span class="bkstamp">ÁLBUM DE FIGURITAS</span><small>${(a.cards || []).length} figus · ${p.got} pegadas${derive().done.has(a.id) ? ' · 👑 COMPLETO' : ''}</small></div>` });
     const intro = { kind:'page', n:num++ }; L.push(intro);
     pages.forEach((pg, i) => { const cards = (a.cards || []).filter(c => (c.page || 0) === i); if (!cards.length) return;
       idx.push({ t:pg.t || 'Página ' + (i + 1), n:num, got:cards.filter(c => h[a.id + ':' + c.n]).length, tot:cards.length, leaf:L.length });
@@ -476,51 +502,181 @@ const Figus = (() => {
   }
   function renderAlbum(v) {
     const a = st.albums[view.alb]; if (!a) { view = { tab:'albumes' }; return render(); }
-    if (view.edit) return renderEdit(v, a);
-    const L = leaves(a), S = spreads(L); let si = Math.max(0, S.findIndex(sp => [sp.one, sp.solo, sp.wide, sp.l, sp.r].includes(view.leaf ?? 0)));
-    v.innerHTML = header() + `<div class="fgbook st-${a.style || 'panini'}" style="${cv(a)}">
-      <div class="btns"><button data-back>← Volver</button><span class="sp"></span><button data-edit>✎ Editar álbum</button></div>
-      <div class="bkstage"><button class="bknav" data-bk="-1" aria-label="Hoja anterior">‹</button><div class="bkview"></div><button class="bknav" data-bk="1" aria-label="Hoja siguiente">›</button></div>
-      <div class="bkfoot"><input type="range" min="0" max="${S.length - 1}" value="${si}" data-bkr><small data-bkn></small></div></div>`;
-    bindCommon(v);
+    if (view.edit && !tvDev()) return renderEdit(v, a);
+    const TV = tvDev(), PC = pcDev(), L = leaves(a), SP = spreads(L);
+    let si = Math.max(0, SP.findIndex(sp => [sp.one, sp.solo, sp.wide, sp.l, sp.r].includes(view.leaf ?? 0)));
+    const d = derive(), inv = PC ? (a.cards || []).filter(c => d.have[a.id + ':' + c.n] && !d.stuck.has(a.id + ':' + c.n)) : [];
+    v.innerHTML = (TV ? `<div class="fghead tvh"><h2>🏛️ ${esc(a.name)}</h2><small class="mut">◀ ▶ pasan las hojas · ☰ Menú vuelve</small></div>` : header()) + `<div class="fgbook st-${a.style || 'panini'} ${PC ? 'pc' : ''}" style="${cv(a)}">
+      <div class="btns"><button data-back>← Volver</button><span class="sp"></span>${PC ? `<button data-snd title="Sonidos">${S.get('figusSnd', true) ? '🔊' : '🔇'}</button><button data-cov>🎨 Tapa</button>` : ''}${TV ? '' : '<button data-edit>✎ Editar álbum</button>'}</div>
+      <div class="bkstage"><button class="bknav" data-bk="-1" aria-label="Hoja anterior">‹</button><div class="bkview"></div><button class="bknav" data-bk="1" aria-label="Hoja siguiente">›</button>
+      ${inv.length ? `<div class="bktray" title="Agarrala y soltala sobre su silueta. Justo encima = ¡pegado perfecto! y vaccoins. Un toque te lleva a su página."><b>✋ Para pegar</b><small>${inv.length} figu${inv.length === 1 ? '' : 's'} · arrastralas a su silueta</small>
+        <div class="bktrayl">${inv.map(c => `<div class="bktit" data-drag="${esc(a.id + ':' + c.n)}">${figHtml(a, c, { small:true })}<small>#${c.n}</small></div>`).join('')}</div></div>` : ''}</div>
+      <div class="bkfoot"><input type="range" min="0" max="${SP.length - 1}" value="${si}" data-bkr ${TV ? 'tabindex="-1"' : ''}><small data-bkn></small></div>
+      <div class="bkcovp" hidden></div></div>`;
+    if (!TV) bindCommon(v);
     const vw = v.querySelector('.bkview'), rng = v.querySelector('[data-bkr]');
-    const paint = () => { vw.innerHTML = spreadHtml(L, S[si]); bindPage(vw); hydrate(vw); rng.value = si; view.leaf = leafOf(S[si]);
-      v.querySelector('[data-bkn]').textContent = si === 0 ? 'Tapa' : si === S.length - 1 ? 'Contratapa' : `Hoja ${si} de ${S.length - 2}`;
-      v.querySelector('[data-bk="-1"]').disabled = si === 0; v.querySelector('[data-bk="1"]').disabled = si === S.length - 1; };
+    const paint = () => { vw.innerHTML = spreadHtml(L, SP[si]); bindPage(vw); hydrate(vw); rng.value = si; view.leaf = leafOf(SP[si]);
+      v.querySelector('[data-bkn]').textContent = si === 0 ? 'Tapa' : si === SP.length - 1 ? 'Contratapa' : `Hoja ${si} de ${SP.length - 2}`;
+      v.querySelector('[data-bk="-1"]').disabled = si === 0; v.querySelector('[data-bk="1"]').disabled = si === SP.length - 1; };
     const bindPage = root => {
       root.querySelectorAll('.fig[data-k]').forEach(f => f.onclick = () => zoom(f));
-      root.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => { const t = S.findIndex(sp => [sp.one, sp.solo, sp.wide, sp.l, sp.r].includes(+b.dataset.goto)); if (t >= 0) turn(t); });
+      root.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => { const t = SP.findIndex(sp => [sp.one, sp.solo, sp.wide, sp.l, sp.r].includes(+b.dataset.goto)); if (t >= 0) turn(t); });
       root.querySelectorAll('[data-buy1]').forEach(b => b.onclick = () => {
         const c = a.cards.find(x => String(x.n) === b.dataset.buy1), cost = ECO.buy[c.rar || 'c'];
         if (derive().coins < cost) return toast(`<b>Te faltan vaccoins</b><small>Necesitás ${cost}.</small>`, { cls:'info' });
         if (!confirm(`¿Comprar la #${c.n}${c.name ? ' (' + c.name + ')' : ''} por ${cost} vaccoins?`)) return;
         add({ id:'b' + uid(), ty:'buy', k:a.id + ':' + c.n, cost }); pushSoon(); checkDone(a); render(); }); };
+    const spreadOf = leaf => SP.findIndex(sp => [sp.one, sp.solo, sp.wide, sp.l, sp.r].includes(leaf));
     let busy = false;
-    function turn(to) {   // pasar la hoja (con la hoja que gira, como en un álbum de verdad)
-      if (to < 0 || to >= S.length || to === si || busy) return;
-      const from = S[si], dir = to > si ? 1 : -1, nx = S[to]; si = to;
-      const calm = matchMedia('(prefers-reduced-motion: reduce)').matches; if (calm) return paint();
+    function turn(to) {   // pasar la hoja
+      if (to < 0 || to >= SP.length || to === si || busy) return;
+      const from = SP[si], dir = to > si ? 1 : -1, nx = SP[to]; si = to;
+      if (TV || matchMedia('(prefers-reduced-motion: reduce)').matches) return paint();   // 📺 la tele: sin animaciones
+      if (!PC) {   // 📱 celu: un deslizamiento simple y liviano
+        paint(); const sp = vw.firstElementChild; sp.classList.add(dir > 0 ? 'in-r' : 'in-l'); return;
+      }
+      // 🖥️ compu: la hoja se levanta, se curva y cae, con su sombra y el ruido del papel
       const two = from.l !== undefined && nx.l !== undefined;
-      paint(); busy = true;
-      const flap = document.createElement('div');
-      if (two) {   // la hoja que gira: de un lado la que estabas viendo, del otro la nueva
+      paint(); busy = true; SND.flip();
+      const sp = vw.querySelector('.bkspread'), flap = document.createElement('div');
+      if (two) {
         const keep = vw.querySelector(dir > 0 ? '.bkp.l' : '.bkp.r'); keep.outerHTML = pageBox(L, dir > 0 ? from.l : from.r, dir > 0 ? 'l' : 'r');
-        flap.className = 'bkflap half ' + (dir > 0 ? 'fwd' : 'bwd');
-        flap.innerHTML = `<div class="bkf">${pageBox(L, dir > 0 ? from.r : from.l, dir > 0 ? 'r' : 'l')}</div><div class="bkf backf">${pageBox(L, dir > 0 ? nx.l : nx.r, dir > 0 ? 'l' : 'r')}</div>`;
-      } else { flap.className = 'bkflap full ' + (dir > 0 ? 'fwd' : 'bwd'); flap.innerHTML = `<div class="bkf">${spreadHtml(L, from)}</div>`; }
-      vw.querySelector(".bkspread").appendChild(flap); hydrate(vw);
-      requestAnimationFrame(() => requestAnimationFrame(() => flap.classList.add('go')));
-      setTimeout(() => { busy = false; paint(); }, 620);
+        flap.className = 'bkflap half pc ' + (dir > 0 ? 'fwd' : 'bwd');
+        flap.innerHTML = `<div class="bkf">${pageBox(L, dir > 0 ? from.r : from.l, dir > 0 ? 'r' : 'l')}<i class="bkshade"></i><i class="bkgloss"></i></div><div class="bkf backf">${pageBox(L, dir > 0 ? nx.l : nx.r, dir > 0 ? 'l' : 'r')}<i class="bkshade"></i><i class="bkgloss"></i></div>`;
+        sp.insertAdjacentHTML('beforeend', `<i class="bkcast ${dir > 0 ? 'fwd' : 'bwd'}"></i>`);
+      } else { flap.className = 'bkflap full pc ' + (dir > 0 ? 'fwd' : 'bwd'); flap.innerHTML = `<div class="bkf">${spreadHtml(L, from)}<i class="bkshade"></i></div>`; }
+      sp.appendChild(flap); hydrate(vw);
+      setTimeout(() => { busy = false; paint(); }, two ? 900 : 560);
     }
     v.querySelectorAll('[data-bk]').forEach(b => b.onclick = () => turn(si + +b.dataset.bk));
     rng.oninput = () => { si = +rng.value; paint(); };
     let x0 = null; vw.addEventListener('touchstart', e => x0 = e.touches[0].clientX, { passive:true });
     vw.addEventListener('touchend', e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 50) turn(si + (dx < 0 ? 1 : -1)); });
-    bookKeys = e => { if (Nav.current !== 'figus' || !document.body.contains(vw) || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)) return;
-      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); e.stopImmediatePropagation(); turn(si + (e.key === 'ArrowRight' ? 1 : -1)); } };
+    bookKeys = e => { if (Nav.current !== 'figus' || !document.body.contains(vw) || $('fgZoom') || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)) return;
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      if (TV && vw.contains(document.activeElement)) return;   // 📺 parado sobre una figu: las flechas se mueven entre figus
+      e.preventDefault(); e.stopImmediatePropagation(); turn(si + (e.key === 'ArrowRight' ? 1 : -1)); };
     v.querySelector('[data-back]').onclick = () => { view = { tab:view.tab || 'albumes' }; render(); };
-    v.querySelector('[data-edit]').onclick = () => { view.edit = true; work = null; render(); };
+    v.querySelector('[data-edit]')?.addEventListener('click', () => { view.edit = true; work = null; render(); });
+    if (PC) {
+      v.querySelector('[data-snd]').onclick = e => { const on = !S.get('figusSnd', true); S.set('figusSnd', on); e.target.textContent = on ? '🔊' : '🔇'; };
+      tilt(vw); dragStick(v, a, vw, leaf => { const t = spreadOf(leaf); if (t >= 0) turn(t); }, () => SP[si]);
+      v.querySelector('[data-cov]').onclick = () => { if (si !== 0) { si = 0; paint(); } coverPanel(v, a, vw); };
+      if (view.cov) { view.cov = false; coverPanel(v, a, vw); }
+    }
     wasNarrow = narrow(); paint(); ensureImgs(a.id);
+    if (TV) setTimeout(() => v.querySelector('[data-bk="1"]')?.focus(), 50);
+  }
+
+  /* ---------------- 🔊 sonidos de papel (se generan acá mismo, sin archivos) ---------------- */
+  let AC = null;
+  const ac = () => { try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); return AC; } catch { return null; } };
+  function noise(dur, { f0 = 800, f1 = 3000, q = 1, vol = .2, crackle = 0, delay = 0 } = {}) {
+    if (!S.get('figusSnd', true) || !pcDev()) return; const c = ac(); if (!c) return;
+    const n = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, n, c.sampleRate), x = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) { const env = Math.sin(Math.PI * i / n) ** 1.2; x[i] = (Math.random() * 2 - 1) * env * (crackle && Math.random() > 1 - crackle ? 3 : crackle ? .35 : 1); }
+    const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(), t = c.currentTime + delay;
+    src.buffer = buf; f.type = 'bandpass'; f.Q.value = q; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur); g.gain.value = vol;
+    src.connect(f).connect(g).connect(c.destination); src.start(t);
+  }
+  function tone(fr, dur, vol = .15, delay = 0, type = 'sine') {
+    if (!S.get('figusSnd', true) || !pcDev()) return; const c = ac(); if (!c) return;
+    const o = c.createOscillator(), g = c.createGain(), t = c.currentTime + delay; o.type = type; o.frequency.setValueAtTime(fr, t); o.frequency.exponentialRampToValueAtTime(fr * .5, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur); o.connect(g).connect(c.destination); o.start(t); o.stop(t + dur);
+  }
+  const SND = {
+    flip:() => { noise(.42, { f0:500, f1:2600, q:.6, vol:.22 }); noise(.12, { f0:2500, f1:1200, q:.8, vol:.12, delay:.36 }); },
+    peel:() => noise(.38, { f0:1800, f1:6000, q:1.4, vol:.2, crackle:.04 }),
+    snap:() => { tone(1700, .05, .25, 0, 'triangle'); noise(.06, { f0:3000, f1:1500, q:1, vol:.25 }); },
+    perfect:() => [880, 1109, 1319, 1760].forEach((f, i) => tone(f, .22, .1, i * .07)),
+    nope:() => tone(220, .18, .12, 0, 'square') };
+
+  /* ---------------- ✨ figu que se inclina siguiendo el mouse (brillo de cromo) ---------------- */
+  function tilt(root) {
+    let cur = null, raf = 0, ev = null;
+    const reset = f => { f.classList.remove('tilting'); f.style.removeProperty('--rx'); f.style.removeProperty('--ry'); };
+    root.addEventListener('mousemove', e => { ev = e; if (raf) return; raf = requestAnimationFrame(() => { raf = 0;
+      const f = ev.target.closest?.('.fig:not(.ghost)'); if (cur && cur !== f) reset(cur); cur = f; if (!f) return;
+      const r = f.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width - .5, py = (ev.clientY - r.top) / r.height - .5;
+      f.classList.add('tilting'); f.style.setProperty('--rx', (-py * 16).toFixed(2) + 'deg'); f.style.setProperty('--ry', (px * 18).toFixed(2) + 'deg');
+      f.style.setProperty('--gx', ((px + .5) * 100).toFixed(1) + '%'); f.style.setProperty('--gy', ((py + .5) * 100).toFixed(1) + '%'); }); });
+    root.addEventListener('mouseleave', () => { if (cur) reset(cur); cur = null; });
+  }
+
+  /* ---------------- ✋ pegar a mano: arrastrar de la pila a la silueta ---------------- */
+  function dragStick(v, a, vw, goLeaf, curSp) {
+    const tray = v.querySelector('.bktray'); if (!tray) return;
+    tray.addEventListener('pointerdown', e => {
+      const it = e.target.closest('[data-drag]'); if (!it || e.button !== 0) return; e.preventDefault();
+      const k = it.dataset.drag, c = keyCard(k).c, x0 = e.clientX, y0 = e.clientY;
+      let fl = null, moved = false, w = 0, h = 0, px = x0, py = y0, vx = 0, raf = 0, rot = 0;
+      const start = () => {
+        const sl = vw.querySelector('.fig.ghost[data-slotk]'), r = (sl || it).getBoundingClientRect(); w = r.width; h = r.height;
+        fl = document.createElement('div'); fl.className = 'fgfloat'; fl.style.cssText = `width:${w}px;height:${h}px`;
+        fl.innerHTML = figHtml(a, c); document.body.appendChild(fl); hydrate(fl); it.classList.add('away'); SND.peel(); moved = true; place(); };
+      const place = () => { rot += (Math.max(-14, Math.min(14, vx * .9)) - rot) * .25; vx *= .8;
+        fl.style.transform = `translate(${px - w / 2}px, ${py - h / 2}px) rotate(${rot.toFixed(2)}deg) scale(1.06)`;
+        const tgt = vw.querySelector(`[data-slotk="${CSS.escape(k)}"]`); vw.querySelectorAll('.tostick.near').forEach(x => x !== tgt && x.classList.remove('near'));
+        if (tgt) { const r = tgt.getBoundingClientRect(); tgt.classList.toggle('near', Math.abs(r.left + r.width / 2 - px) < r.width && Math.abs(r.top + r.height / 2 - py) < r.height); }
+        if (Math.abs(rot) > .2 || Math.abs(vx) > .1) raf = requestAnimationFrame(place); else raf = 0; };
+      const mv = m => { if (!moved && Math.hypot(m.clientX - x0, m.clientY - y0) < 6) return; if (!moved) start(); vx = m.clientX - px; px = m.clientX; py = m.clientY; if (!raf) raf = requestAnimationFrame(place); };
+      const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); cancelAnimationFrame(raf);
+        if (!moved) { const leaf = leaves(a).findIndex(x => x.html?.includes(`data-slotk="${esc(k)}"`)); if (leaf >= 0) goLeaf(leaf); return; }
+        const tgt = vw.querySelector(`[data-slotk="${CSS.escape(k)}"]`), back = () => { const r = it.getBoundingClientRect();
+          fl.style.transition = 'transform .35s cubic-bezier(.3,1.4,.5,1)'; fl.style.transform = `translate(${r.left}px, ${r.top}px) scale(${r.width / w})`; setTimeout(() => { fl.remove(); it.classList.remove('away'); }, 360); };
+        const under = document.elementsFromPoint(px, py).find(x => x.matches?.('[data-slotk]'));
+        if (!tgt) { SND.nope(); back(); return toast(`<b>Su lugar está en otra hoja</b><small>Tocá la figu (sin arrastrar) y te llevo a su página.</small>`, { cls:'info', ms:3000 }); }
+        const r = tgt.getBoundingClientRect(), dx = px - (r.left + r.width / 2), dy = py - (r.top + r.height / 2), dist = Math.hypot(dx, dy);
+        if (under && under !== tgt) { SND.nope(); back(); return toast('<b>Esa no va ahí</b><small>Fijate el número de la silueta.</small>', { cls:'info', ms:2200 }); }
+        if (dist > r.width * .55) { SND.nope(); return back(); }
+        const acc = Math.max(0, Math.min(100, Math.round(100 - dist / r.width * 40))), perfect = acc >= 99, bonus = perfect ? ECO.perfect[c.rar || 'c'] : 0;
+        fl.style.transition = 'transform .16s cubic-bezier(.2,.9,.3,1.2)'; fl.style.transform = `translate(${r.left}px, ${r.top}px) scale(${r.width / w})`;
+        setTimeout(() => { SND.snap(); if (perfect) SND.perfect();
+          add({ id:'st-' + k, ty:'stick', k, acc, n:bonus }); pushSoon();
+          const badge = document.createElement('div'); badge.className = 'fgacc' + (perfect ? ' perf' : '');
+          badge.innerHTML = perfect ? `<b>¡PEGADO PERFECTO!</b><small>${acc}% · +${bonus} ${VC}</small>` : `<b>${acc}%</b><small>${acc >= 95 ? '¡Casi perfecto!' : acc >= 85 ? 'Bien pegada' : 'Medio torcida, pero entró'}</small>`;
+          badge.style.cssText = `left:${r.left + r.width / 2}px;top:${r.top + r.height / 2}px`; document.body.appendChild(badge); setTimeout(() => badge.remove(), perfect ? 2200 : 1400);
+          fl.remove(); checkDone(a); render();
+          const nf = $('v-figus').querySelector(`.bkview .fig[data-k="${CSS.escape(k)}"]`); nf?.classList.add('justin'); }, 170); };
+      addEventListener('pointermove', mv); addEventListener('pointerup', up);
+    });
+  }
+
+  /* ---------------- 🎨 la tapa: diseños que se compran y stickers que se pegan donde quieras ---------------- */
+  function coverPanel(v, a, vw) {
+    const P = v.querySelector('.bkcovp'), d = derive(), cur = a.cover || 'clasica';
+    const saveA = () => { a.upd = Date.now(); st.albums[a.id] = a; saveSt(); pushSoon(); };
+    P.hidden = false;
+    P.innerHTML = `<div class="btns"><b>🎨 La tapa de «${esc(a.name)}»</b><span class="sp"></span><button data-cx>Listo</button></div>
+      <div class="cvgrid">${Object.entries(COVERS).map(([k, t]) => { const own = d.covers.has(k), cost = ECO.covers[k];
+        return `<div class="cvopt ${cur === k ? 'on' : ''}"><div class="cvsw cv-${k}"><span>Aa</span></div><b>${t}</b>${own ? `<button data-cuse="${k}" ${cur === k ? 'disabled' : ''}>${cur === k ? 'Puesta' : 'Usar'}</button>` : `<button data-cbuy="${k}">Comprar · ${coinTxt(cost)}</button>`}</div>`; }).join('')}</div>
+      <p class="mut">Stickers: arrastralos a la tapa. Arriba de uno: la ruedita lo gira, Shift + ruedita lo agranda, doble clic lo saca.</p>
+      <div class="cvstk">${STK.map(e => `<span data-snew="${e}">${e}</span>`).join('')}</div>`;
+    P.querySelector('[data-cx]').onclick = () => { P.hidden = true; };
+    P.querySelectorAll('[data-cuse]').forEach(b => b.onclick = () => { a.cover = b.dataset.cuse; saveA(); view.cov = true; render(); });
+    P.querySelectorAll('[data-cbuy]').forEach(b => b.onclick = () => { const k = b.dataset.cbuy, cost = ECO.covers[k];
+      if (derive().coins < cost) return toast(`<b>Te faltan vaccoins</b><small>Esa tapa sale ${cost}.</small>`, { cls:'info' });
+      if (!confirm(`¿Comprar la tapa «${COVERS[k]}» por ${cost} vaccoins? Después la podés usar en todos tus álbumes.`)) return;
+      add({ id:'cv-' + k, ty:'cover', d:k, cost }); a.cover = k; saveA(); view.cov = true; render(); });
+    const coverRect = () => vw.querySelector('.bkcover')?.getBoundingClientRect();
+    const drag = (e, emoji, idx) => { e.preventDefault(); const fl = document.createElement('div'); fl.className = 'fgstkfl'; fl.textContent = emoji; document.body.appendChild(fl);
+      const sz = idx !== undefined ? a.stk[idx].s || 1 : 1; fl.style.fontSize = 44 * sz + 'px';
+      const mv = m => fl.style.transform = `translate(${m.clientX}px, ${m.clientY}px) translate(-50%,-50%)`; mv(e);
+      const up = u => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); fl.remove(); const r = coverRect(); a.stk = a.stk || [];
+        const inside = r && u.clientX > r.left && u.clientX < r.right && u.clientY > r.top && u.clientY < r.bottom;
+        const pos = inside ? { x:+((u.clientX - r.left) / r.width * 100).toFixed(1), y:+((u.clientY - r.top) / r.height * 100).toFixed(1) } : null;
+        if (idx !== undefined) { if (pos) Object.assign(a.stk[idx], pos); else a.stk.splice(idx, 1); }
+        else if (pos) { if (a.stk.length >= 40) return toast('<b>Máximo 40 stickers por tapa</b>', { cls:'info' }); a.stk.push({ e:emoji, ...pos, r:Math.round(Math.random() * 30 - 15), s:1 }); SND.snap(); }
+        else return;
+        saveA(); view.cov = true; render(); };
+      addEventListener('pointermove', mv); addEventListener('pointerup', up); };
+    P.querySelectorAll('[data-snew]').forEach(s => s.onpointerdown = e => drag(e, s.dataset.snew));
+    vw.querySelectorAll('.bkstk [data-si]').forEach(s => {
+      s.onpointerdown = e => { const i = +s.dataset.si; s.style.opacity = .2; drag(e, a.stk[i].e, i); };
+      s.ondblclick = () => { a.stk.splice(+s.dataset.si, 1); saveA(); view.cov = true; render(); };
+      s.onwheel = e => { e.preventDefault(); const x = a.stk[+s.dataset.si]; if (e.shiftKey) x.s = Math.max(.5, Math.min(3, +(((x.s || 1) - Math.sign(e.deltaY) * .1).toFixed(2)))); else x.r = ((x.r || 0) + Math.sign(e.deltaY) * 8) % 360;
+        s.style.setProperty('--r', x.r + 'deg'); s.style.setProperty('--s', x.s || 1); clearTimeout(s._t); s._t = setTimeout(saveA, 600); }; });
+    vw.querySelector('.bkcover')?.classList.add('editing');
   }
   let bookKeys = null, wasNarrow = null, pasteFn = null, pasteTo = null, hoverSlot = null;
   addEventListener('paste', e => Nav.current === 'figus' && pasteFn && pasteFn(e));
@@ -554,7 +710,8 @@ const Figus = (() => {
   }
   function zoom(f) { let o = $('fgZoom'); if (!o) { o = document.createElement('div'); o.id = 'fgZoom'; o.onclick = () => o.remove(); }
     const x = keyCard(f.dataset.k || '');
-    o.innerHTML = `<div class="fgzwrap">${f.outerHTML}${x?.c ? fichaHtml(x.a, x.c) : ''}</div>${x?.c ? pinBtn('fig', f.dataset.k) : ''}`; document.body.appendChild(o); o.querySelector('.fig').classList.add('big'); bindPin(o); hydrate(o); }
+    o.className = tvDev() ? 'fgstatic' : ''; o.innerHTML = `<div class="fgzwrap">${f.outerHTML}${x?.c ? fichaHtml(x.a, x.c) : ''}</div>${x?.c && !tvDev() ? pinBtn('fig', f.dataset.k) : ''}`; document.body.appendChild(o);
+    const big = o.querySelector('.fig'); big.classList.add('big'); big.classList.remove('tilting', 'justin'); big.removeAttribute('tabindex'); bindPin(o); hydrate(o); if (pcDev()) tilt(o); }
 
   function renderEdit(v, a) {
     if (!work) work = JSON.parse(JSON.stringify(a));
@@ -792,9 +949,9 @@ const Figus = (() => {
      Entran figus repetidas (te queda siempre una) y piezas de maquetas sin terminar. Sale una figu sorteada
      de una rareza más (común/pieza → rara, rara → legendaria, legendaria → legendaria). */
   let pick = [];
-  const RANK = { c:1, r:2, l:3 };
+  const RANK = { c:1, r:2, e:3, l:4 };
   function blendOut(sel) {
-    const avg = sel.reduce((a, x) => a + (x.t === 'f' ? RANK[keyCard(x.k)?.c?.rar || 'c'] : 1), 0) / sel.length, want = Math.min(3, Math.floor(avg) + 1);
+    const avg = sel.reduce((a, x) => a + (x.t === 'f' ? RANK[keyCard(x.k)?.c?.rar || 'c'] : 1), 0) / sel.length, want = Math.min(4, Math.floor(avg) + 1);
     const pool = r => albums().filter(a => a.kind !== 'vaca').flatMap(a => ready(a).filter(c => RANK[c.rar || 'c'] === r).map(c => a.id + ':' + c.n));
     for (let r = want; r >= 1; r--) { const p = pool(r); if (p.length) return { k:p[Math.floor(Math.random() * p.length)], r }; }
     return null;
@@ -802,9 +959,9 @@ const Figus = (() => {
   function licuaHtml() {
     const d = derive(), dup = Object.entries(d.have).filter(([k, n]) => n > 1 && keyCard(k)?.c).flatMap(([k, n]) => Array.from({ length:n - 1 }, (_, i) => ({ t:'f', k, i })));
     const parts = Object.entries(d.gar).filter(([, p]) => p.length && p.length < 10).flatMap(([m, P]) => P.map(p => ({ t:'p', m, p, k:m + '|' + p })));
-    const sel = id => pick.includes(id), want = pick.length ? Math.min(3, Math.floor(pick.reduce((a, id) => { const [t, k] = id.split('§'); return a + (t === 'f' ? RANK[keyCard(k)?.c?.rar || 'c'] : 1); }, 0) / pick.length) + 1) : 0;
+    const sel = id => pick.includes(id), want = pick.length ? Math.min(4, Math.floor(pick.reduce((a, id) => { const [t, k] = id.split('§'); return a + (t === 'f' ? RANK[keyCard(k)?.c?.rar || 'c'] : 1); }, 0) / pick.length) + 1) : 0;
     return `<div class="licua"><div class="lcmix ${pick.length === 5 ? 'full' : ''}"><div class="lcjar">${pick.map(() => '<i></i>').join('')}</div><b>${pick.length}/5</b>
-        ${pick.length ? `<small>Sale: ${want === 3 ? '★ Legendaria' : want === 2 ? '◆ Rara' : 'Común'}</small>` : '<small>Elegí 5 cosas que te sobren</small>'}
+        ${pick.length ? `<small>Sale: ${['', 'Común', '◆ Rara', '✦ Épica', '★ Legendaria'][want]}</small>` : '<small>Elegí 5 cosas que te sobren</small>'}
         <button class="pri" data-lcgo ${pick.length === 5 ? '' : 'disabled'}>🌀 Licuar</button>${pick.length ? '<button data-lcclr>Vaciar</button>' : ''}</div>
       <div><h3>🔁 Figus repetidas</h3><div class="fggrid lcgrid">${dup.map(x => { const id = 'f§' + x.k + '§' + x.i, c = keyCard(x.k); return `<button class="lcit ${sel(id) ? 'on' : ''}" data-lc="${esc(id)}">${figHtml(c.a, c.c, { small:true })}</button>`; }).join('') || '<div class="empty">No tenés repetidas.</div>'}</div>
       <h3>🔧 Piezas de maquetas sin terminar</h3><div class="lcparts">${parts.map(x => { const id = 'p§' + x.k, m = modelOf(x.m); return `<button class="lcit lcp ${sel(id) ? 'on' : ''}" data-lc="${esc(id)}" style="--t1:${m.c1}"><span class="gnum" style="background:${m.c1};color:${ink(m.c1)}">${m.num}</span>${esc(GARAGE[m.s].parts.find(p => p[0] === x.p)[1])}</button>`; }).join('') || '<div class="empty">No tenés piezas sueltas.</div>'}</div></div></div>`;
@@ -845,6 +1002,9 @@ const Figus = (() => {
     ['exp1', '🦴', 'Primer reparto', 'Vaca volvió de su primera expedición', d => d.expDone >= 1, 'bronce'],
     ['exp50', '🚚', 'Delivery profesional', '50 expediciones', d => d.expDone >= 50, 'oro', d => [d.expDone, 50]],
     ['post', '📮', 'Todas las postales', `Las ${12} postales de los repartos`, d => d.posts.size >= 12, 'platino', d => [d.posts.size, 12]],
+    ['perf1', '🎯', 'Pulso de cirujano', 'Tu primer pegado perfecto', d => d.perfects >= 1, 'bronce'],
+    ['perf25', '🎯', 'Mano de relojero', '25 pegados perfectos', d => d.perfects >= 25, 'oro', d => [d.perfects, 25]],
+    ['gold1', '👑', 'Golden', 'Completaste un álbum y sus figus pasaron a Golden', d => d.done.size >= 1, 'platino'],
     ['blend1', '🌀', 'Primer licuado', 'Usaste la licuadora', d => d.blends >= 1, 'bronce'],
     ['vc1k', '🪙', 'Primeros 1.000', '1.000 vaccoins acumulados', d => d.totalEarned >= 1e3, 'bronce', d => [d.totalEarned, 1e3]],
     ['vc10k', '💰', 'Ahorrista', '10.000 vaccoins acumulados', d => d.totalEarned >= 1e4, 'plata', d => [d.totalEarned, 1e4]],
@@ -900,6 +1060,7 @@ const Figus = (() => {
   /* ---------------- arranque ---------------- */
   function init() {
     if (!st.since) { st.since = Date.now(); saveSt(); }
+    document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('#v-figus .fig[data-k]')) { e.preventDefault(); zoom(e.target); } });
     setInterval(slotTick, 60e3); setTimeout(slotTick, 5000);
     setInterval(() => { try { prode(); } catch {} velezTok(); try { wins(); } catch {} try { achCheck(); } catch {} }, 10 * 60e3);
     let avisado = '';   // 🦴 cuando Vaca vuelve del reparto, aviso (una vez)
@@ -914,5 +1075,11 @@ const Figus = (() => {
     document.addEventListener('visibilitychange', () => { if (document.hidden) { bgHide(); if (pushT) pushNow(); } else { bgShow(); pull(); } });
     addEventListener('pagehide', bgHide);
   }
-  return { init, render, paseo, ECO, get coins() { return derive().coins; } };
+  // ☰ / Atrás: primero cierra la ficha, después sale del álbum
+  function back() {
+    if ($('fgZoom')) { $('fgZoom').remove(); return true; }
+    if (Nav.current === 'figus' && view.alb && !view.edit) { view = { tab:view.tab || 'albumes' }; render(); setTimeout(() => $('v-figus')?.querySelector('[data-alb]')?.focus(), 50); return true; }
+    return false;
+  }
+  return { init, render, paseo, back, ECO, get coins() { return derive().coins; } };
 })();

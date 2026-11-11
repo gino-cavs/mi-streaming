@@ -16,7 +16,7 @@ const Nav = (() => {
   const label = id => GROUPS[id] ? db.nav?.labels?.[id] || GROUPS[id][0] : T247[id] ? T247[id].label() : db.nav?.labels?.[id] || (SECS.find(x => x[0] === id) || [, id])[1];
   function tops() {
     const o = (db.nav?.top || []).filter(x => TOP.includes(x)), ids = [...o, ...TOP.filter(x => !o.includes(x))];
-    return ids.filter(id => !(id === 'figus' && Device.mode === 'tv')).filter(id => GROUPS[id] ? visMembers(id).length && !hidden().includes(id) : !hidden().includes(id) || id === current);
+    return ids.filter(id => GROUPS[id] ? visMembers(id).length && !hidden().includes(id) : !hidden().includes(id) || id === current);
   }
   function go(s) {
     if (GROUPS[s]) s = visMembers(s).includes(S.get('grpLast', {})[s]) ? S.get('grpLast', {})[s] : visMembers(s)[0] || 'canales';

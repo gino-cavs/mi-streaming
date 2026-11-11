@@ -82,6 +82,7 @@ const FUNVSApp = (() => {
     if (p?.classList.contains('tvmode') && Zap.open && Lite.tv) { Zap.listOpen(false); return true; }
     if (p?.classList.contains('tvmode')) { TV.close(); return true; }
     if (p?.classList.contains('show') && Player.slots.some(Boolean)) { Player.closeAll(); return true; }
+    if (typeof Figus !== 'undefined' && Figus.back?.()) return true;   // 🏛️ ficha abierta / adentro de un álbum
     const first = document.querySelector('#sections [data-s]')?.dataset.s;
     if (first && Nav.current && Nav.current !== first) { Nav.go(first); return true; }
     return false;
