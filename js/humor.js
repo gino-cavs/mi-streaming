@@ -63,7 +63,7 @@ const Humor = (() => {
   // ▲▼ mientras suena un humor: otro video del mismo
   function step(d) { const s = Player.slots[Player.sel ?? 0] || Player.slots.find(Boolean); if (!s?.c?.humor) return false; play(s.c.humor, d, document.body.classList.contains('oscuro')); return true; }
   /* ⬛ Pantalla negra de verdad: una capa negra que tapa TODA la pantalla. Si tocás, movés el mouse o apretás una tecla,
-     aparece unos segundos una barrita tenue para pasar a otro, ver el video o salir. Atrás / Esc también salen. */
+     aparece unos segundos una barrita tenue para pasar a otro, ver el video o salir. ☰ Menú (Fire Stick: el Atrás está roto) / Esc también salen. */
   let wakeT = null;
   function negro(lbl) {
     document.body.classList.add('oscuro');
@@ -77,7 +77,7 @@ const Humor = (() => {
       el.onclick = e => { const b = e.target.closest('[data-ng]'); if (!b) return; const a = b.dataset.ng;
         if (a === 'x') salirNegro(); else if (a === 'ver') { document.body.classList.remove('oscuro'); } else step(1); };
     }
-    el.innerHTML = `<div class="ngbar"><span>🌙 ${esc(lbl || 'Dormir')}</span><button data-ng="otro">⏭ Otro</button><button data-ng="ver">🎬 Ver el video</button><button data-ng="x">✕ Salir</button></div>`;
+    el.innerHTML = `<div class="ngbar"><span>🌙 ${esc(lbl || "Dormir")}<small>${Lite.tv ? " · ☰ para salir" : " · Esc para salir"}</small></span><button data-ng="otro">⏭ Otro</button><button data-ng="ver">🎬 Ver el video</button><button data-ng="x">✕ Salir</button></div>`;
     (document.fullscreenElement || document.body).appendChild(el);
     el.classList.remove('wake');
   }
