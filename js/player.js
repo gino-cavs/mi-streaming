@@ -262,7 +262,7 @@ const Player = (() => {
     if (!slots[focus]) { const f = slots.findIndex(Boolean); if (f >= 0) focus = f; }
     const s = slots[focus];
     if (!s) { box.innerHTML = ''; return; }
-    const pip = PIP_OK || ANDROID || NATIVE() ? `<button data-a="pip" title="Ventana flotante">⧉ Flotante</button>` : '';
+    const pip = Device.mode !== 'tv' && (PIP_OK || ANDROID || NATIVE()) ? `<button data-a="pip" title="Ventana flotante">⧉ Flotante</button>` : '';
     box.innerHTML = `${layout > 1 ? `<span class="pa-lbl">Pantalla ${focus + 1}:</span>` : ''}
       <button data-a="snd" class="${AudioMgr.current === 'slot' + focus ? 'on' : ''}" title="Escuchar esta pantalla">🔊</button>
       ${s.e.kind === 'youtube' && s.e.id ? Likes.btn(s.e.id, s.c.name) : ''}

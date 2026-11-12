@@ -150,7 +150,7 @@ const Musica = (() => {
             try { p.nextVideo(); } catch {}
           }
         } } });
-    clearInterval(poll); poll = setInterval(upd, 1000);
+    clearInterval(poll); poll = setInterval(upd, Device.mode === 'tv' ? 2000 : 1000);   // en el Fire Stick, más tranqui
     if (Nav.current === 'musica') render();
   }
   /* Temas de una playlist (con tu clave de YouTube; 1 unidad cada 50 temas). Guardados un rato para no gastar. */

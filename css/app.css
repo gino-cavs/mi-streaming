@@ -2288,3 +2288,4 @@ body.pipmode { overflow:hidden !important; background:#000 !important; }
 .fdprev { background:#fff; color:#111; border-radius:10px; padding:16px 20px; margin:8px 0; } .fdprev h2 { color:#1238b5; margin:16px 0 0; font-size:20px; border-bottom:2px solid #1238b5; } .fdprev section:first-child h2 { margin-top:0; }
 .fdprev h3 { margin:10px 0 2px; font-size:14px; } .fdprev h4 { margin:8px 0 0; color:#1238b5; } .fdprev p { margin:2px 0; } .fdsub { color:#555; font-style:italic; } .fdbig { font-weight:800; } .fdsmall { color:#666; font-size:11px; margin-top:8px !important; }
 .fdsrc { font-size:12px; }
+.tvapp #musicbar .museek { display:none; }   /* en la tele los controles de la música van en la barra de abajo */
