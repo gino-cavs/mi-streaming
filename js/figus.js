@@ -437,27 +437,34 @@ const Figus = (() => {
   function bindCommon(v) { v.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { view = { tab:b.dataset.tab }; render(); }); }
 
   /* ---------------- 📖 un álbum: verlo y editarlo ---------------- */
-  function newAlbum() { view = { tab:'albumes', nuevo:{ th:'', n:20, name:'', kind:'' } }; render(); }
+  function newAlbum() { view = { tab:'albumes', nuevo:{ th:'', n:20, name:'', kind:'', pages:[] } }; render(); }
   // ✨ asistente: de qué es, cómo se llama, cuántas figus y cómo se consiguen
   function renderNew(v) {
     const N = view.nuevo, T = THEMES[N.th];
     v.innerHTML = header() + `<div class="fgnuevo"><div class="btns"><button data-back>← Volver</button></div>
       <h2>📖 Álbum nuevo</h2><h3>1 · ¿De qué es?</h3>
       <div class="fgths">${Object.entries(THEMES).map(([k, t]) => `<button class="fgth ${N.th === k ? 'on' : ''}" data-th="${k}"><b>${t.t}</b><small>${t.d}</small></button>`).join('')}</div>
-      ${T ? `<p class="mut">Arranca con las páginas ${T.pages.map(p => '«' + esc(p[0]) + '»').join(', ')} y una ficha con ${fieldsOf({ theme:N.th, cards:[] }).map(f => f.l.replace(/^\S+\s/, '')).join(', ').toLowerCase()}. Todo se cambia después.</p>
-      <h3>2 · ¿Cómo se llama?</h3><input data-nn value="${esc(N.name)}" placeholder="${esc(T.t.replace(/^\S+\s/, ''))}" maxlength="40">
-      <h3>3 · ¿Cuántas figus?</h3><div class="fgnn">${[10, 20, 30, 50, 100].map(n => `<button data-nc="${n}" class="${N.n === n ? 'on' : ''}">${n}</button>`).join('')}<input type="number" min="1" max="150" data-nc2 value="${N.n}"></div>
-      <h3>4 · ¿Cómo se consiguen los sobres?</h3><select data-nk>${Object.entries(KINDS).map(([k, t]) => `<option value="${k}" ${(N.kind || T.kind) === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      ${T ? `<h3>2 · Secciones del álbum <small class="mut">(son ideas: sacá las que no quieras, cambiales el nombre o agregá las tuyas)</small></h3>
+      <div class="fgsecs">${N.pages.map((p, i) => `<div class="fgsec"><input data-sn="${i}" value="${esc(p[0])}" maxlength="40" placeholder="Nombre de la sección">${p[1] === 'mesa' ? '<small class="mut">🎙️ mesa</small>' : ''}<button type="button" data-sd="${i}" title="Sacar" ${N.pages.length > 1 ? '' : 'disabled'}>✕</button></div>`).join('')}
+        <button type="button" data-sa>＋ Agregar sección</button></div>
+      <p class="mut">La ficha de cada figu trae ${fieldsOf({ theme:N.th, cards:[] }).map(f => f.l.replace(/^\S+\s/, '')).join(', ').toLowerCase() || 'un dato'}; también se cambia después.</p>
+      <p class="mut" hidden>Arranca con las páginas ${T.pages.map(p => '«' + esc(p[0]) + '»').join(', ')} y una ficha con ${fieldsOf({ theme:N.th, cards:[] }).map(f => f.l.replace(/^\S+\s/, '')).join(', ').toLowerCase()}. Todo se cambia después.</p>
+      <h3>3 · ¿Cómo se llama?</h3><input data-nn value="${esc(N.name)}" placeholder="${esc(T.t.replace(/^\S+\s/, ''))}" maxlength="40">
+      <h3>4 · ¿Cuántas figus?</h3><div class="fgnn">${[10, 20, 30, 50, 100].map(n => `<button data-nc="${n}" class="${N.n === n ? 'on' : ''}">${n}</button>`).join('')}<input type="number" min="1" max="150" data-nc2 value="${N.n}"></div>
+      <h3>5 · ¿Cómo se consiguen los sobres?</h3><select data-nk>${Object.entries(KINDS).map(([k, t]) => `<option value="${k}" ${(N.kind || T.kind) === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
       <div class="btns" style="margin-top:16px"><span class="sp"></span><button class="pri" data-mk>Crear y cargar las figus →</button></div>` : ''}</div>`;
     bindCommon(v);
     v.querySelector('[data-back]').onclick = () => { view = { tab:'albumes' }; render(); };
-    v.querySelectorAll('[data-th]').forEach(b => b.onclick = () => { N.th = b.dataset.th; N.kind = ''; render(); });
+    v.querySelectorAll('[data-th]').forEach(b => b.onclick = () => { N.th = b.dataset.th; N.kind = ''; N.pages = THEMES[N.th].pages.map(p => [...p]); render(); });
+    v.querySelectorAll('[data-sn]').forEach(x => x.oninput = () => { N.pages[+x.dataset.sn][0] = x.value; });
+    v.querySelectorAll('[data-sd]').forEach(b => b.onclick = () => { if (N.pages.length > 1) N.pages.splice(+b.dataset.sd, 1); render(); });
+    v.querySelector('[data-sa]')?.addEventListener('click', () => { N.pages.push(['']); render(); setTimeout(() => v.querySelector(`[data-sn="${N.pages.length - 1}"]`)?.focus(), 30); });
     v.querySelector('[data-nn]')?.addEventListener('input', e => N.name = e.target.value);
     v.querySelectorAll('[data-nc]').forEach(b => b.onclick = () => { N.n = +b.dataset.nc; render(); });
     v.querySelector('[data-nc2]')?.addEventListener('change', e => { N.n = Math.max(1, Math.min(150, +e.target.value || 20)); render(); });
     v.querySelector('[data-nk]')?.addEventListener('change', e => N.kind = e.target.value);
     v.querySelector('[data-mk]')?.addEventListener('click', () => {
-      const id = 'a' + uid(), k = albums().length, pages = T.pages.map(([t, lay]) => ({ t, txt:'', ...(lay ? { lay } : {}) }));
+      const id = 'a' + uid(), k = albums().length, chosen = N.pages.filter(p => p[0].trim()), pages = (chosen.length ? chosen : [['Página 1']]).map(([t, lay]) => ({ t:t.trim(), txt:'', ...(lay ? { lay } : {}) }));
       const a = st.albums[id] = { id, name:N.name.trim() || T.t.replace(/^\S+\s/, ''), theme:N.th, kind:N.kind || T.kind, style:Object.keys(STYLES)[k % 5], colors:['#1238b5', '#ffffff'], per:6,
         story:'', pages, fields:JSON.parse(JSON.stringify(T.fields)), cards:[], cr:Date.now(), upd:Date.now() };
       for (let i = 1; i <= N.n; i++) a.cards.push({ n:i, name:'', page:Math.min(pages.length - 1, Math.floor((i - 1) * pages.length / N.n)), rar:i % 10 === 0 ? 'l' : i % 7 === 0 ? 'e' : i % 4 === 0 ? 'r' : 'c', img:'' });
@@ -947,12 +954,13 @@ const Figus = (() => {
           <div class="fgprev">${figHtml(W, W.cards.find(c => c.img) || { n:1, name:'Así se ve', rar:'r', img:'' })}${figHtml(W, { n:2, name:'Legendaria', rar:'l', img:W.cards.find(c => c.img && c.rar === 'l')?.img || '' })}</div>
         </div>
         <div class="box"><h3>La historia</h3><textarea data-f="story" rows="6" placeholder="${esc(THEMES[themeOf(W)].story || 'La presentación del álbum (va en la primera hoja)')}">${esc(W.story || '')}</textarea>
-          <h3>Páginas <small class="mut">(cada una ocupa las hojas que necesite)</small></h3>
-          <div class="fgpages">${pages.map((p, i) => `<div class="fgpg"><input data-pt="${i}" value="${esc(p.t)}" placeholder="Nombre de la página (ej: el programa)"><textarea data-px="${i}" rows="2" placeholder="Texto de esa página (opcional)">${esc(p.txt || '')}</textarea>
+          <h3>Secciones del álbum <small class="mut">(renombralas, sacalas, ordenalas o agregá las tuyas; cada una ocupa las hojas que necesite)</small></h3>
+          <div class="fgpages">${pages.map((p, i) => `<div class="fgpg"><input data-pt="${i}" value="${esc(p.t)}" placeholder="Nombre de la sección"><textarea data-px="${i}" rows="2" placeholder="Texto de esa página (opcional)">${esc(p.txt || '')}</textarea>
             <div class="fgpgopt"><select data-pl="${i}">${Object.entries(LAYS).map(([k, t]) => `<option value="${k}" ${(p.lay || '') === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
               ${p.lay === 'mesa' ? `<label class="petadd fgbgup ${pasteTo === 'pbg:' + i ? 'tgt' : ''}" data-img="${esc(p.bg || '')}" data-slot="pbg:${i}"><input type="file" accept="image/*" data-pbg="${i}" hidden>🖼️ Escenografía</label><button type="button" class="petadd" data-paste="pbg:${i}">📋</button><input type="color" data-pc="${i}" value="${/^#[0-9a-f]{6}$/i.test(p.col || '') ? p.col : '#1238b5'}" title="Color de la mesa">` : ''}</div>
-            ${pages.length > 1 ? `<button data-pdel="${i}" title="Borrar página">✕</button>` : ''}</div>`).join('')}</div>
-          <button data-padd>＋ Página</button>
+            <span class="fgpgmv"><button type="button" data-pmv="${i}|-1" ${i ? '' : 'disabled'} title="Subir">▲</button><button type="button" data-pmv="${i}|1" ${i < pages.length - 1 ? '' : 'disabled'} title="Bajar">▼</button></span>
+            ${pages.length > 1 ? `<button data-pdel="${i}" title="Sacar sección (sus figus pasan a la anterior)">✕</button>` : ''}</div>`).join('')}</div>
+          <button data-padd>＋ Sección</button>
           <h3>📝 La ficha de cada figu <small class="mut">(lo que aparece al tocarla)</small></h3>
           <div class="fgflds">${FS.map((x, i) => `<div class="fgfld"><input data-fl="${i}" value="${esc(x.l)}" placeholder="Nombre del dato"><select data-ft="${i}">${Object.entries(FTY).map(([k, t]) => `<option value="${k}" ${x.ty === k ? 'selected' : ''}>${t}</option>`).join('')}</select>${x.ty === 'scale' ? `<input data-fi="${i}" value="${esc(x.ic || '⭐')}" maxlength="4" title="Emoji de la escala" class="fgfic">` : ''}<button data-fdel="${i}" title="Sacar">✕</button></div>`).join('')}</div>
           <button data-fadd>＋ Dato</button></div>
@@ -998,8 +1006,12 @@ const Figus = (() => {
     v.querySelectorAll('[data-ci]').forEach(x => x.oninput = () => { W.colors[+x.dataset.ci] = x.value; v.querySelector(`[data-ch="${x.dataset.ci}"]`).value = x.value; v.querySelectorAll('.fgprev .fig').forEach(f => f.setAttribute('style', cv(W))); dirty(); });
     v.querySelectorAll('[data-pt]').forEach(x => x.oninput = () => { pages[+x.dataset.pt].t = x.value; dirty(); });
     v.querySelectorAll('[data-px]').forEach(x => x.oninput = () => { pages[+x.dataset.px].txt = x.value; dirty(); });
-    v.querySelectorAll('[data-pdel]').forEach(x => x.onclick = () => { const i = +x.dataset.pdel; pages.splice(i, 1); W.cards.forEach(c => { if ((c.page || 0) === i) c.page = 0; else if (c.page > i) c.page--; }); re(); });
-    v.querySelector('[data-padd]').onclick = () => { pages.push({ t:'Página ' + (pages.length + 1), txt:'' }); re(); };
+    v.querySelectorAll('[data-pdel]').forEach(x => x.onclick = () => { const i = +x.dataset.pdel, n = W.cards.filter(c => (c.page || 0) === i).length;
+      if (n && !confirm(`La sección «${pages[i].t || 'sin nombre'}» tiene ${n} figu${n === 1 ? '' : 's'}. Pasan a la sección ${i ? 'anterior' : 'siguiente'}. ¿La saco?`)) return;
+      pages.splice(i, 1); W.cards.forEach(c => { const p = c.page || 0; if (p === i) c.page = Math.max(0, i - 1); else if (p > i) c.page = p - 1; }); re(); });
+    v.querySelector('[data-padd]').onclick = () => { pages.push({ t:'', txt:'' }); re(); setTimeout(() => v.querySelector(`[data-pt="${pages.length - 1}"]`)?.focus(), 30); };
+    v.querySelectorAll('[data-pmv]').forEach(b => b.onclick = () => { const [i, dd] = b.dataset.pmv.split('|').map(Number), j = i + dd; if (j < 0 || j >= pages.length) return;
+      [pages[i], pages[j]] = [pages[j], pages[i]]; W.cards.forEach(c => { const p = c.page || 0; if (p === i) c.page = j; else if (p === j) c.page = i; }); re(); });
     v.querySelectorAll('[data-cn]').forEach(x => x.oninput = () => { W.cards[+x.dataset.cn].name = x.value; dirty(); });
     v.querySelectorAll('[data-crol]').forEach(x => x.onchange = () => { W.cards[+x.dataset.crol].role = x.value; dirty(); });
     v.querySelectorAll('[data-ff]').forEach(x => x.oninput = x.onchange = () => { const [i, k] = x.dataset.ff.split('|'); const c = W.cards[+i]; c.ficha = c.ficha || {}; c.ficha[k] = x.type === 'range' ? +x.value : x.value; dirty(); });

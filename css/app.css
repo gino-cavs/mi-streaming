@@ -2235,3 +2235,7 @@ html.lite #negro .ngbar { transition:opacity 2s ease !important; } html.lite #ne
 .bkp.widep .fgspread, .bkp.widep .fgmesa { min-height:0; height:100%; box-sizing:border-box; }
 .fig .fdup { top:2.3em; bottom:auto; right:0; border-radius:.8em 0 0 .8em; }
 .bkhead h3 { font-size:clamp(14px, 1.6vw, 21px); max-width:calc(100% - 10px); overflow-wrap:anywhere; } .fgbook.tvb .bkhead h3 { font-size:15px; }
+.fgsecs { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:6px; }
+.fgsec { display:flex; align-items:center; gap:4px; background:var(--panel2); border-radius:10px; padding:4px 4px 4px 8px; }
+.fgsec input { width:170px; } .fgsec button { padding:4px 8px; }
+.fgpgmv { display:inline-flex; gap:2px; } .fgpgmv button { padding:2px 7px; font-size:12px; } .fgpgmv button:disabled { opacity:.3; }
