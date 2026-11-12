@@ -1,0 +1,21 @@
+name: probe
+on:
+  push:
+    paths: ['.github/workflows/probe.yml']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          mkdir -p o && cd o
+          gh api "repos/${{ github.repository }}/actions/workflows/noticias.yml/runs?per_page=12" --jq '.workflow_runs[] | "\(.created_at) \(.updated_at) \(.status) \(.conclusion) \(.event) \(.id)"' > runs.txt || echo fail > runs.txt
+          for id in $(gh api "repos/${{ github.repository }}/actions/workflows/noticias.yml/runs?per_page=4" --jq '.workflow_runs[].id'); do
+            gh api "repos/${{ github.repository }}/actions/runs/$id/jobs" --jq '.jobs[].steps[] | "\(.name) | \(.status) \(.conclusion) \(.started_at) \(.completed_at)"' > steps-$id.txt || true
+          done
+          gh api "repos/${{ github.repository }}/actions/workflows" --jq '.workflows[] | "\(.name) \(.state)"' > wf.txt || true
+          git init -q && git checkout -q -b probe && git add -A && git -c user.name=p -c user.email=p@p commit -qm probe
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" probe
