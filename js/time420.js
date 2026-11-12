@@ -233,5 +233,5 @@ const T420 = (() => {
     toast(`<span class="g">🍃 Son las ${d.getHours()}:20</span>${esc(pick(DATOS))}`, { cls:'t420', ms:20000, onclick:() => Nav.go('420') });
   }
   function init() { setInterval(check, 30e3); }
-  return { init, render };
+  return { init, render, bank:{ DATOS, PENSAR, PREFERIS, BIEN } };
 })();

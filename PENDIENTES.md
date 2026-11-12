@@ -26,3 +26,4 @@ Ideas y cosas que quedaron para hacer más adelante.
 - 🏭 **Fábrica de figuritas** (12/11, Colección → Álbumes → Fábrica): foto o gif, marco de rareza, título, bajada y barras de puntaje; baja PNG (en la app del celu va a Descargas/FUNVS, app 1.3) o va directo a los sobres de un álbum.
 - 🧭 **Nichos** (12/11, Ver → Nichos): base de links propia + 🎲 por tiempo disponible y rareza.
 - 📼 Vivos ya emitidos y videos: con la barra de YouTube para adelantar/atrasar; subtítulos apagados siempre.
+- 🎙️ **Fragotime** (12/11, Jugar → Fragotime): modo podcast con Ulises — guion, pizarra, marcas con minuto, preguntas/respuestas, muro, buscar (programas + Wikipedia), 🎲, 🙈 ocultar (H), 📺 mostrar, 🍃 modo 420.
