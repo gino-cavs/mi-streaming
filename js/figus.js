@@ -227,8 +227,11 @@ const Figus = (() => {
       const o = JSON.parse(f.truncated ? await (await fetch(f.raw_url)).text() : f.content); for (const [k, v] of Object.entries(o)) await imgPut(k, v);
       if (Nav.current === 'figus') hydrate(); } catch { fetched.delete(aid); }
   }
+  // 🔤 la letra de cada figu va en proporción a su tamaño (así el nombre y las etiquetas nunca se salen)
+  const figFont = root => root?.querySelectorAll('.fig').forEach(f => { const w = f.offsetWidth; if (w) f.style.fontSize = (w / 10).toFixed(1) + 'px'; });
+  let ffT = 0; addEventListener('resize', () => { clearTimeout(ffT); ffT = setTimeout(() => { figFont($('v-figus')); figFont($('fgZoom')); }, 150); });
   async function hydrate(root = $('v-figus')) {
-    if (!root) return;
+    if (!root) return; figFont(root);
     for (const el of root.querySelectorAll('[data-img]')) { const id = el.dataset.img; if (!id) continue;
       let u = urlCache[id]; if (!u) { const v = await imgGet(id).catch(() => null); if (v) u = urlCache[id] = v; }
       if (u) { if (el.tagName === 'IMG') { if (el.src !== u) el.src = u; } else el.style.backgroundImage = `url("${u}")`; el.classList.add('ok'); } }
@@ -332,8 +335,8 @@ const Figus = (() => {
     const gold = derive().done.has(a.id);
     return `<div class="fig st-${a.style || 'panini'} rar-${r} ${gold ? 'gold' : ''} ${small ? 'sm' : ''} ${back ? 'back' : ''} ${c.role ? 'role-' + c.role : ''}" style="${cv(a)}" data-k="${esc(a.id + ':' + c.n)}"${tvDev() ? ' tabindex="0"' : ''}>
       <div class="fin"><div class="fimg" data-img="${esc(c.img || '')}"></div>
-      <div class="fband"><span class="fnum">${numOf(c)}</span><b>${c.role && ROLEIC[c.role] ? `<i class="frole" title="${esc(ROLES[c.role])}">${ROLEIC[c.role]}</i>` : ''}${esc(c.name || '')}</b></div>
-      <span class="falb">${esc(a.name)}</span>${gold ? '<span class="frar fgold">👑 GOLDEN</span>' : r !== 'c' ? `<span class="frar">${RARL[r]}</span>` : ''}</div>
+      <div class="fband" title="${esc(c.name || '')}"><span class="fnum">${numOf(c)}</span><b>${c.role && ROLEIC[c.role] ? `<i class="frole" title="${esc(ROLES[c.role])}">${ROLEIC[c.role]}</i>` : ''}${esc(c.name || '')}</b></div>
+      <span class="falb">${esc(a.name)}</span>${gold ? '<span class="frar fgold">👑 <i>GOLDEN</i></span>' : r !== 'c' ? `<span class="frar">${RARL[r].replace(' ', ' <i>')}</i></span>` : ''}</div>
       ${n > 1 ? `<span class="fdup">×${n}</span>` : ''}</div>`;
   }
 
@@ -480,9 +483,12 @@ const Figus = (() => {
     L.push({ kind:'cover', html:`<div class="bkcover cv-${esc(a.cover || 'clasica')} ${derive().done.has(a.id) ? 'golden' : ''}">${stkHtml(a)}<div class="fgalogo big" data-img="${esc(a.logo || '')}">${a.logo ? '' : esc((a.name || '?').slice(0, 2).toUpperCase())}</div>
       <h1>${esc(a.name)}</h1><span class="bkstamp">ÁLBUM DE FIGURITAS</span><small>${(a.cards || []).length} figus · ${p.got} pegadas${p.pend && !tvDev() ? ` · ${p.pend} en el mazo` : ''}${derive().done.has(a.id) ? ' · 👑 COMPLETO' : ''}</small></div>` });
     const intro = { kind:'page', n:num++ }; L.push(intro);
-    pages.forEach((pg, i) => { const cards = (a.cards || []).filter(c => (c.page || 0) === i); if (!cards.length) return;
+    pages.forEach((pg, i) => { let cards = (a.cards || []).filter(c => (c.page || 0) === i); if (!cards.length) return;
       idx.push({ t:pg.t || 'Página ' + (i + 1), n:num, got:cards.filter(c => h[a.id + ':' + c.n] && derive().stuck.has(a.id + ':' + c.n)).length, tot:cards.length, leaf:L.length });
-      if (pg.lay === 'mesa') { L.push({ kind:'wide', n:num, html:pageHtml(a, pg, cards, h) }); num += 2; return; }
+      if (pg.lay === 'mesa') {   // en la mesa entran: 2 logos, 3 en la conducción, 12 a los costados y 8 momentos; lo demás sigue en hojas comunes
+        const cap = { logo:2, conductor:3, momento:8 }, used = {}, inMesa = [], over = [];
+        cards.forEach(c => { const r = ['logo', 'conductor', 'momento'].includes(c.role) ? c.role : 'side', max = cap[r] ?? 12; used[r] = (used[r] || 0) + 1; (used[r] <= max ? inMesa : over).push(c); });
+        L.push({ kind:'wide', n:num, html:pageHtml(a, pg, inMesa, h) }); num += 2; if (!over.length) return; cards = over; pg = { ...pg, lay:'', txt:'' }; }
       const head = `${pg.t ? `<h3>${esc(pg.t)}</h3>` : ''}${pg.txt ? `<p>${esc(pg.txt).replace(/\n/g, '<br>')}</p>` : ''}`;
       for (let j = 0, k = 0; j < cards.length; k++) {
         const hero = pg.lay === 'hero' && k === 0, take = hero ? Math.max(1, Math.min(per, 5)) : per, ch = cards.slice(j, j + take); j += take;
@@ -539,7 +545,7 @@ const Figus = (() => {
     const vw = v.querySelector('.bkview'), rng = v.querySelector('[data-bkr]');
     const paint = () => { vw.innerHTML = spreadHtml(L, SP[si]); bindPage(vw); hydrate(vw); if (pickK) vw.querySelector(`.tostick[data-slotk="${CSS.escape(pickK)}"]`)?.classList.add('pick'); rng.value = si; view.leaf = leafOf(SP[si]); wearUp(a.id, SP[si]);
       v.querySelector('[data-bkn]').textContent = si === 0 ? 'Tapa' : si === SP.length - 1 ? 'Contratapa' : `Hoja ${si} de ${SP.length - 2}`;
-      v.querySelector('[data-bk="-1"]').disabled = si === 0; v.querySelector('[data-bk="1"]').disabled = si === SP.length - 1; if (TV) fitTV(v); };
+      v.querySelector('[data-bk="-1"]').disabled = si === 0; v.querySelector('[data-bk="1"]').disabled = si === SP.length - 1; if (TV) fitTV(v); fitPages(vw); };
     const bindPage = root => {
       root.querySelectorAll('.fig[data-k]').forEach(f => f.onclick = () => zoom(f));
       root.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => { const t = SP.findIndex(sp => [sp.one, sp.solo, sp.wide, sp.l, sp.r].includes(+b.dataset.goto)); if (t >= 0) turn(t); });
@@ -567,7 +573,7 @@ const Figus = (() => {
         flap.innerHTML = `<div class="bkf">${pageBox(L, dir > 0 ? from.r : from.l, dir > 0 ? 'r' : 'l')}<i class="bkshade"></i><i class="bkgloss"></i></div><div class="bkf backf">${pageBox(L, dir > 0 ? nx.l : nx.r, dir > 0 ? 'l' : 'r')}<i class="bkshade"></i><i class="bkgloss"></i></div>`;
         sp.insertAdjacentHTML('beforeend', `<i class="bkcast ${dir > 0 ? 'fwd' : 'bwd'}"></i>`);
       } else { flap.className = 'bkflap full pc ' + (dir > 0 ? 'fwd' : 'bwd'); flap.innerHTML = `<div class="bkf">${spreadHtml(L, from)}<i class="bkshade"></i></div>`; }
-      sp.appendChild(flap); hydrate(vw);
+      sp.appendChild(flap); fitPages(flap); hydrate(vw);
       setTimeout(() => { busy = false; paint(); }, two ? 900 : 560);
     }
     v.querySelectorAll('[data-bk]').forEach(b => b.onclick = () => turn(si + +b.dataset.bk));
@@ -592,20 +598,45 @@ const Figus = (() => {
   }
 
   /* ---------------- 📺 en la tele todo con medidas fijas (la WebView del Fire Stick no siempre entiende las medidas "inteligentes") ---------------- */
+  // 📏 todo tiene que entrar en la hoja, aunque el álbum tenga muchas figus: medimos la hoja real y calculamos el tamaño de cada figu
+  const imp = (el, k, val) => el.style.setProperty(k, val, 'important');
+  const sizeFig = (cell, w) => { w = Math.max(24, Math.floor(w)); imp(cell, 'width', w + 'px'); const f = cell.querySelector('.fig'); if (f) { imp(f, 'width', w + 'px'); imp(f, 'height', Math.round(w * 7 / 5) + 'px'); f.style.fontSize = (w / 10).toFixed(1) + 'px'; } };
+  function fitPages(root) {
+    root.querySelectorAll('.bkp:not(.cov):not(.none):not(.blank)').forEach(p => {
+      const H = p.clientHeight, W = p.clientWidth; if (!H || !W) return;
+      const cs = getComputedStyle(p), padV = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom), padH = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+      const head = p.querySelector('.bkhead')?.offsetHeight || 0, availH = H - padV - head - 10, availW = W - padH - 6, hero = p.querySelector('.bkhero');
+      p.querySelectorAll('.bkgrid').forEach(g => { const cols = +g.style.getPropertyValue('--cols') || 3, rows = +g.style.getPropertyValue('--rows') || 1, extra = g.querySelector('.fgbuy1') ? 30 : 6;
+        const gw = hero ? availW * .5 : availW, cw = Math.min((gw - (cols - 1) * 12) / cols, ((availH - (rows - 1) * 10) / rows - extra) * 5 / 7);
+        g.querySelectorAll('.fgcell').forEach(c => sizeFig(c, cw)); });
+      if (hero) hero.querySelectorAll('.fgcell').forEach(c => sizeFig(c, Math.min(availW * (p.querySelector('.bkgrid') ? .46 : .7), (availH - (c.querySelector('.fgbuy1') ? 30 : 6)) * 5 / 7)));
+      for (let k = 0; k < 8 && p.scrollHeight > p.clientHeight + 2; k++) p.querySelectorAll('.bkgrid .fgcell, .bkhero .fgcell').forEach(c => sizeFig(c, c.offsetWidth * .9));
+    });
+    root.querySelectorAll('.fgmesa .fgspread').forEach(fitMesa);
+  }
+  function fitMesa(sp) {   // 🎙️ la mesa: logo arriba, conducción al centro, panel e invitados a los costados, momentos abajo
+    const H = sp.clientHeight, W = sp.clientWidth; if (!H || !W) return;
+    const logos = [...sp.querySelectorAll('.fglogos .fgcell')], moms = [...sp.querySelectorAll('.fgmoms .fgcell')], cen = [...sp.querySelectorAll('.fgcenter .fgcell')], sides = [...sp.querySelectorAll('.fgside')];
+    const narrowM = innerWidth <= 700;
+    for (let f = 1, k = 0; k < 10; k++, f *= .86) {   // calculo, y si igual no entra, achico todo un poco y pruebo de nuevo
+      const lw = Math.min(90, H * .14 * 5 / 7) * f; logos.forEach(c => sizeFig(c, lw));
+      const mw = moms.length ? Math.min(84, H * (narrowM ? .13 : .17) * 5 / 7, narrowM ? 999 : (W - 40) / Math.min(moms.length, 8) - 8) * f : 0;   // en el celu la tira de momentos se desliza moms.forEach(c => sizeFig(c, mw));
+      const head = sp.querySelector('.fgmesahead')?.offsetHeight || 0, momH = moms.length ? mw * 7 / 5 + 30 : 0, availH = Math.max(60, H - head - momH - 60);
+      const cw = Math.min(150, availH * .95 * 5 / 7, W * (narrowM ? .3 : .2) / Math.max(1, cen.length)) * f; cen.forEach(c => sizeFig(c, cw));
+      const sideW = narrowM ? W - 30 : (W - cw * Math.max(1, cen.length) - 70) / 2, sideH = narrowM ? (availH - cw * 7 / 5 - 20) / 2 : availH;
+      sides.forEach(sd => { const n = sd.children.length; if (!n) return; let x = Math.min(110, cw * .85);
+        for (; x > 22; x -= 2) { const cols = Math.max(1, Math.floor((sideW + 10) / (x + 10))), rows = Math.ceil(n / cols); if (rows * (x * 7 / 5 + 10) <= sideH) break; }
+        [...sd.children].forEach(c => sizeFig(c, x * (k ? f : 1))); });
+      if (sp.scrollHeight <= sp.clientHeight + 2) break;
+    }
+  }
   function fitTV(v) {
     const vw = v.querySelector('.bkview'), sp = vw?.querySelector('.bkspread'); if (!sp) return;
-    const imp = (el, k, val) => el.style.setProperty(k, val, 'important');
     const bar = [...document.querySelectorAll('body > *')].filter(e => getComputedStyle(e).position === 'fixed' && e.getBoundingClientRect().top > innerHeight * .6 && e.offsetHeight < innerHeight * .3).reduce((m, e) => Math.max(m, innerHeight - e.getBoundingClientRect().top), 0);
     const top = vw.getBoundingClientRect().top, foot = 40 + bar, H0 = Math.max(220, innerHeight - top - foot - 8), W0 = vw.clientWidth;
     const ratio = sp.classList.contains('one') ? .7 : 1.45, W = Math.floor(Math.min(W0, H0 * ratio)), H = Math.floor(W / ratio);
     imp(sp, 'width', W + 'px'); imp(sp, 'height', H + 'px');
-    sp.querySelectorAll('.bkp').forEach(p => { imp(p, 'height', H + 'px');
-      const head = p.querySelector('.bkhead')?.offsetHeight || 0, availH = H - head - 56, availW = p.clientWidth - 40;
-      p.querySelectorAll('.bkgrid').forEach(g => { const cols = +g.style.getPropertyValue('--cols') || 3, rows = +g.style.getPropertyValue('--rows') || 1, hero = !!p.querySelector('.bkhero');
-        const cw = Math.floor(Math.min((hero ? availW / 2 : availW) / cols - 12, ((availH / rows) - 10) * 5 / 7));
-        g.querySelectorAll('.fgcell').forEach(c => { imp(c, 'width', cw + 'px'); const f = c.querySelector('.fig'); if (f) { imp(f, 'width', cw + 'px'); imp(f, 'height', Math.round(cw * 7 / 5) + 'px'); } }); });
-      p.querySelectorAll('.bkhero .fgcell').forEach(c => { const cw = Math.floor(Math.min(availW / 2 - 12, availH * 5 / 7)); imp(c, 'width', cw + 'px'); const f = c.querySelector('.fig'); if (f) { imp(f, 'width', cw + 'px'); imp(f, 'height', Math.round(cw * 7 / 5) + 'px'); } });
-      p.querySelectorAll('.bkcover .fgalogo.big').forEach(l => { const z = Math.round(Math.min(W / (ratio === .7 ? 1 : 2), H) * .3); imp(l, 'width', z + 'px'); imp(l, 'height', z + 'px'); }); });
+    sp.querySelectorAll('.bkcover .fgalogo.big').forEach(l => { const z = Math.round(Math.min(W / (ratio === .7 ? 1 : 2), H) * .3); imp(l, 'width', z + 'px'); imp(l, 'height', z + 'px'); });
   }
 
   /* ---------------- 🔊 sonidos de papel (se generan acá mismo, sin archivos) ---------------- */
@@ -893,7 +924,7 @@ const Figus = (() => {
     const x = keyCard(f.dataset.k || '');
     o.className = tvDev() ? 'fgstatic' : ''; o.innerHTML = `<div class="fgzwrap">${f.outerHTML}${x?.c ? fichaHtml(x.a, x.c) : ''}</div>${x?.c && !tvDev() ? pinBtn('fig', f.dataset.k) : ''}`; document.body.appendChild(o);
     const big = o.querySelector('.fig'); big.classList.add('big'); big.classList.remove('tilting', 'justin'); big.removeAttribute('tabindex'); bindPin(o); hydrate(o); if (pcDev()) tilt(o);
-    if (tvDev()) { const w = Math.round(Math.min(innerWidth * .32, (innerHeight - 60) * 5 / 7)); big.style.setProperty('width', w + 'px', 'important'); big.style.setProperty('height', Math.round(w * 7 / 5) + 'px', 'important'); } }
+    if (tvDev()) { const w = Math.round(Math.min(innerWidth * .32, (innerHeight - 60) * 5 / 7)); big.style.setProperty('width', w + 'px', 'important'); big.style.setProperty('height', Math.round(w * 7 / 5) + 'px', 'important'); figFont(o); } }
 
   function renderEdit(v, a) {
     if (!work) work = JSON.parse(JSON.stringify(a));

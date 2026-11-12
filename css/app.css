@@ -2137,3 +2137,101 @@ html.lite #negro .ngbar { transition:opacity 2s ease !important; } html.lite #ne
 .fgmoms { position:relative; z-index:2; padding:6px 10px 12px; } .fgmoms small { color:#fff; font:700 11px Oswald, system-ui; letter-spacing:1px; opacity:.8; }
 .fgmoms > div { display:flex; gap:8px; overflow-x:auto; padding-top:4px; } .fgmoms .fgcell { width:min(84px, 16%); flex:none; }
 .fgrolel { display:flex; flex-direction:column; gap:2px; font-size:11px; color:var(--mut); }
+
+/* ---- Colección: que el álbum parezca de papel de verdad ---- */
+.fgbook { --paper:#f3ecdb; --ink:#231f18; }
+.fgbook.st-neon { --paper:#11142a; --ink:#e9edff; }
+/* tapa dura asomando alrededor de las hojas, y la sombra del libro sobre la mesa */
+.bkspread { padding:12px; gap:0; border-radius:16px; filter:none; background:var(--c1); background:linear-gradient(135deg, color-mix(in srgb, var(--c1) 85%, #000), color-mix(in srgb, var(--c1) 55%, #000));
+  box-shadow:0 34px 40px -20px #000d, 0 12px 20px #0008, inset 0 0 0 1px #ffffff22, inset 0 2px 0 #ffffff26; }
+.bkspread.solo { background:none; box-shadow:none; } .bkspread.one { padding:7px; border-radius:12px; }
+/* lomo: la sombra del medio donde se dobla el papel */
+.bkspread:not(.solo):not(.one)::after { content:''; position:absolute; top:12px; bottom:12px; left:50%; width:70px; transform:translateX(-50%); pointer-events:none; z-index:4;
+  background:linear-gradient(90deg, transparent, #0000001c 38%, #0000005a 49%, #ffffff14 51%, #00000026 60%, transparent); }
+/* la hoja: grano del papel, curvatura con luz, y el canto de las hojas de abajo */
+.bkp { background-color:var(--paper); color:var(--ink); }
+.bkp::before { content:''; position:absolute; inset:0; pointer-events:none; opacity:1; z-index:0;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .42  0 0 0 0 .34  0 0 0 0 .22  0 0 0 .11 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+    radial-gradient(ellipse at 50% 40%, #ffffff30, transparent 70%); }
+.bkp.l::before { background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .42  0 0 0 0 .34  0 0 0 0 .22  0 0 0 .11 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+    linear-gradient(90deg, #00000014, transparent 12%, #ffffff26 45%, transparent 80%, #0000002e); }
+.bkp.r::before { background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .42  0 0 0 0 .34  0 0 0 0 .22  0 0 0 .11 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+    linear-gradient(270deg, #00000014, transparent 12%, #ffffff26 45%, transparent 80%, #0000002e); }
+.bkp > :not(.bknum) { position:relative; z-index:1; }
+.bkp.l { border-radius:8px 2px 2px 8px; box-shadow:-1px 0 0 #d8cfba, -2px 1px 0 #c7bca4, -3px 1px 0 #e3dac5, -4px 2px 0 #bfb39a, -5px 2px 0 #ddd3bd, -6px 3px 0 #b5a98f; }
+.bkp.r { border-radius:2px 8px 8px 2px; box-shadow:1px 0 0 #d8cfba, 2px 1px 0 #c7bca4, 3px 1px 0 #e3dac5, 4px 2px 0 #bfb39a, 5px 2px 0 #ddd3bd, 6px 3px 0 #b5a98f; }
+.bkp.one { border-radius:3px 8px 8px 3px; box-shadow:1px 0 0 #d8cfba, 2px 1px 0 #c7bca4, 3px 1px 0 #e3dac5, 4px 2px 0 #bfb39a, inset 14px 0 18px -14px #0007; }
+.bkp.none { box-shadow:none; }
+/* el marco impreso de cada página */
+.bkp:not(.cov):not(.blank):not(.none)::after { content:''; position:absolute; inset:12px; pointer-events:none; z-index:0; border-radius:3px; border:1.5px solid #1238b54d; border-color:color-mix(in srgb, var(--c1) 40%, transparent); }
+.bkp.wear1, .bkp.wear2, .bkp.wear3 { background-color:var(--paper); }
+/* títulos impresos tipo álbum de figuritas */
+.bkhead h3 { border:none; background:var(--c1); color:var(--c2); padding:3px 12px 2px; border-radius:2px; transform:skewX(-8deg); box-shadow:2px 2px 0 #0002; letter-spacing:.5px; }
+.bkhead h4 { color:var(--ink); }
+/* figus pegadas: planas contra el papel, con un brillito de plástico; los huecos, impresos */
+.bkp .fig:not(.ghost) { box-shadow:0 1px 1px #0004, 0 2px 4px #0002; }
+.bkp .fig:not(.ghost) .fin { background-image:linear-gradient(135deg, #ffffff22, transparent 35%); }
+.bkp .fig.ghost { box-shadow:none; background:#0000000a; border:1.5px dashed #00000045; border-radius:6px; }
+.bkp .fig.ghost .fnum { background:transparent; color:var(--ink); opacity:.45; font-size:1.5em; }
+.fgbook.st-neon .bkp .fig.ghost { background:#ffffff08; border-color:#ffffff40; }
+.bknum { font-family:Georgia, 'Times New Roman', serif; font-weight:400; font-size:13px; opacity:.6; color:var(--ink); }
+/* la mesa: impresa sobre la doble página, con margen de papel */
+.bkspread.wide > .fgpage.fgmesa { background:var(--paper); padding:14px; border-radius:8px; height:100%; box-sizing:border-box; }
+.bkspread.wide .fgspread { border-radius:3px; box-shadow:inset 0 0 0 1px #0003; }
+.bkp.widep { padding:10px; } .bkp.widep .fgspread { border-radius:3px; }
+/* en la tele, sin grano ni lomo (para no cargar la placa) */
+.fgstatic .bkspread::after, .fgstatic .bkp::after { display:none !important; }
+.fgstatic .bkp.l, .fgstatic .bkp.r { box-shadow:none; }
+/* el canto de las hojas también en la hoja que gira */
+.bkf .bkp.l, .bkf .bkp.r { box-shadow:none; }
+
+/* ======== Colección: figus rediseñadas — todo en proporción al tamaño de la figu (1em = 1/10 del ancho) ======== */
+.fig { font-size:12px; padding:.42em; border-radius:.75em; }
+.fig .fin { border-radius:.42em; }
+.fig .fband { gap:.4em; padding:.32em .45em; min-height:2.1em; }
+.fig .fband b { flex:1; min-width:0; font-size:.92em; line-height:1.08; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fig:not(.sm) .fband b { white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow-wrap:anywhere; }
+.fig .fnum { flex:none; font-size:1.15em; line-height:1.25; min-width:1.45em; text-align:center; padding:0 .3em; border-radius:.25em; }
+.fig .falb { top:.38em; left:.42em; max-width:58%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.6em; letter-spacing:.08em; padding:.1em .45em; border-radius:.3em; }
+.fig .frar { top:.34em; right:.34em; font-size:.6em; letter-spacing:.06em; padding:.15em .55em; border-radius:1em; white-space:nowrap; box-shadow:0 .1em .3em #0006; }
+.fig .frar i { font-style:normal; }
+.fig.sm .frar i, .fig.sm .falb { display:none; } .fig.sm .frar { padding:.15em .4em; font-size:.8em; }
+.fig .fdup { font-size:.95em; padding:.15em .6em; border-radius:.8em 0 .8em 0; right:0; bottom:0; }
+.frole { font-size:.95em; }
+.fig.ghost { gap:.3em; border-radius:.75em; } .fig.ghost .fnum { font-size:2.3em; min-width:0; } .fig.ghost small { font-size:.78em; line-height:1.1; padding:0 .5em; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow-wrap:anywhere; }
+.fig.ghost.tostick::after { font-size:.68em; bottom:.5em; padding:.1em .5em; }
+.fig.role-momento .fin::before { font-size:.6em; left:.5em; bottom:3.6em; padding:.1em .45em; }
+.fig.role-logo .fimg { padding:8%; }
+/* la foto: un poco de profundidad y el borde interno */
+.fig .fimg { box-shadow:inset 0 0 0 1px #0000002a; }
+.fig .fin::after { content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit; box-shadow:inset 0 0 0 1px #ffffff1f; }
+
+/* ---- rarezas: cada una con su marco y su sello ---- */
+/* común: el marco del color del álbum, mate */
+.fig.rar-c .frar { display:none; }
+/* rara: filete plateado y un brillo que cruza */
+.fig.rar-r { box-shadow:0 0 0 .14em #dfe6ee, 0 .5em 1em #0007; }
+.fig.rar-r .frar { background:linear-gradient(135deg, #ffffff, #c9d3de); color:#1b2430; }
+/* épica: azul eléctrico que late */
+.fig.rar-e { background:linear-gradient(135deg, #061a5c, #1238b5 30%, #6aa6ff 50%, #1238b5 70%, #061a5c); background-size:260% 260%; animation:fgholo 5s ease-in-out infinite; box-shadow:0 0 1.1em #3d7bffaa, 0 .5em 1em #0007; }
+.fig.rar-e .frar { background:#0b1f6b; color:#fff; box-shadow:0 0 .5em #6aa6ff, inset 0 0 0 .1em #6aa6ff; }
+.fig.rar-e .fband { box-shadow:inset 0 .12em 0 #6aa6ff; }
+/* legendaria: lámina holográfica arcoíris */
+.fig.rar-l { background:conic-gradient(from 30deg, #ff5ec4, #ffd25e, #5effa0, #5ed8ff, #a35eff, #ff5ec4); background-size:100% 100%; animation:none; box-shadow:0 0 1em #ffffff66, 0 .5em 1em #0007; }
+.fig.rar-l::after { background:linear-gradient(120deg, #ff00cc2e, #00e5ff2e, #fff7002e, #00ff882e, #ff00cc2e); background-size:300% 300%; animation:fgholo 4s ease-in-out infinite; }
+.fig.rar-l .frar { background:#0b0b0b; color:#fff; box-shadow:0 0 0 .1em #fff, 0 0 .6em #ffffffaa; }
+/* golden (álbum completo): todo dorado */
+.fig.gold { background:linear-gradient(135deg, #f7e08a, #b8862b 30%, #fff3c4 50%, #a8741a 70%, #f7e08a); background-size:220% 220%; box-shadow:0 0 1.1em #e3b64a99, 0 .5em 1em #0007; }
+.fig.gold .frar { background:linear-gradient(90deg, #f7e08a, #fff3c4); color:#4a3200; box-shadow:0 0 0 .1em #a8741a; }
+/* los estilos siguen mandando adentro (banda, número, tipografía) */
+.fig.st-neon.rar-c { background:#05060d; }
+.fig.st-retro .fband b { font-size:1.15em; } .fig.st-diario .fimg { margin:.45em .45em 0; }
+.fig.st-neon .fband b { font-size:.95em; }
+/* en el álbum de papel las pegadas van planas */
+.bkp .fig.rar-r, .bkp .fig.rar-e, .bkp .fig.rar-l, .bkp .fig.gold { box-shadow:0 1px 2px #0005, 0 0 .5em #ffffff33; }
+.bkp .fig.rar-r { box-shadow:0 0 0 .12em #c9d3de, 0 1px 2px #0005; }
+/* en la tele, sin brillos que se muevan */
+.fgstatic .fig.rar-l { background:conic-gradient(from 30deg, #ff5ec4, #ffd25e, #5effa0, #5ed8ff, #a35eff, #ff5ec4); }
+.bkp.widep .fgspread, .bkp.widep .fgmesa { min-height:0; height:100%; box-sizing:border-box; }
+.fig .fdup { top:2.3em; bottom:auto; right:0; border-radius:.8em 0 0 .8em; }
+.bkhead h3 { font-size:clamp(14px, 1.6vw, 21px); max-width:calc(100% - 10px); overflow-wrap:anywhere; } .fgbook.tvb .bkhead h3 { font-size:15px; }
