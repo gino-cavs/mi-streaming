@@ -57,7 +57,7 @@ const Dia = (() => {
       if (mins === 15 && !fired.has(key)) {
         fired.add(key); S.set('diaFired', [...fired].slice(-30));
         const est = v.k === 'roca' ? Transporte.estado('roca') : null;
-        Grafismo.notify(`${v.ic} <b>${esc(v.n)} ${v.t}${v.hasta ? '–' + v.hasta : ''}: en 15 minutos</b><span>${esc(v.s)}</span>${est ? `<small>${esc(est)}</small>` : ''}`, { ms:15000, lbl:'🗓 TU VIAJE' });
+        Grafismo.notify(`${v.ic} <b>${esc(v.n)} ${v.t}${v.hasta ? '–' + v.hasta : ''}: en 15 minutos</b><span>${esc(v.s)}</span>${est ? `<small>${esc(est)}</small>` : ''}`, { ms:15000, lbl:'🗓 TU VIAJE', kind:'viaje' });
       }
     }
   }

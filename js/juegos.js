@@ -38,6 +38,40 @@ const Juegos = (() => {
       <div class="jgrid">${GAMES.map(([id, ic, t, d]) => `<button class="jgcard" data-g="${id}"><span class="ic">${ic}</span><b>${t}</b><span>${d}</span>
         ${best(id) ? `<small>${id === 'wiki' ? '🏆 ' + best(id) + ' carrera(s) completada(s)' : id === 'jugo' ? '🏆 ' + best(id) + ' cadena(s) resuelta(s)' : '🏆 Récord: ' + best(id)}</small>` : ''}</button>`).join('')}</div>`;
     v.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { game = b.dataset.g; state = {}; render(); });
+    v.insertAdjacentHTML('beforeend', cruciHtml() + shelfHtml()); bindExtras(v);
+  }
+
+  /* ---------- 📰 Crucigrama del día (el de La Nación, en su página) con tu racha ---------- */
+  const CRUCI = 'https://www.lanacion.com.ar/juegos/crucigrama/';
+  const hoy = () => new Intl.DateTimeFormat('en-CA', { timeZone:'America/Argentina/Buenos_Aires' }).format(new Date());
+  function racha() { const d = J().cruci || {}, days = Object.keys(d).sort(); let n = 0; const x = new Date(); if (!d[hoy()]) x.setDate(x.getDate() - 1);
+    for (;;) { const k = new Intl.DateTimeFormat('en-CA', { timeZone:'America/Argentina/Buenos_Aires' }).format(x); if (!d[k]) break; n++; x.setDate(x.getDate() - 1); } return { n, total:days.length }; }
+  function cruciHtml() { const done = !!(J().cruci || {})[hoy()], r = racha();
+    return `<h2 class="sec">📰 Crucigrama del día</h2><div class="cruci ${done ? 'done' : ''}"><div class="cruciic">✏️</div><div><b>El crucigrama de La Nación</b><span>${done ? '✔ Hoy ya lo hiciste.' : 'Todavía no lo hiciste hoy.'} ${r.n ? `🔥 Racha: ${r.n} día${r.n === 1 ? '' : 's'}` : ''}${r.total ? ` · ${r.total} en total` : ''}</span></div>
+      <div class="btns"><a class="btn pri" href="${CRUCI}" target="_blank" rel="noopener" data-cruo>✏️ Jugar</a><button data-cru>${done ? '↩ No lo hice' : '✔ Ya lo hice'}</button></div></div>
+      <p class="mut" style="font-size:12px">Se abre en la página de La Nación (es de ellos y puede pedirte iniciar sesión). Cuando lo termines, tocá «Ya lo hice» para sumar a la racha.</p>`; }
+
+  /* ---------- 🕹️ Estantería: juegos cortos e icónicos, en sus sitios oficiales ---------- */
+  const SHELF = [
+    ['🎸', 'Punk-o-Matic 2', 'Armá temas de punk con tu banda. El de Evil-Dog, en Kongregate.', 'https://www.kongregate.com/games/EvilDog/punk-o-matic-2'],
+    ['🛷', 'Line Rider', 'Dibujá la pista y mirá cómo baja el del trineo. La versión oficial.', 'https://www.linerider.com/'],
+    ['🎸', 'Punk-o-Matic (el 1)', 'El clásico de Newgrounds de 2004.', 'https://www.newgrounds.com/search/conduct/games?terms=punk-o-matic'],
+    ['🏰', 'Crush the Castle', 'La catapulta que inspiró a Angry Birds.', 'https://armorgames.com/search?q=crush+the+castle'],
+    ['🍣', 'Sushi Cat', 'El gato que tiene que comer sushi cayendo.', 'https://armorgames.com/search?q=sushi+cat'],
+    ['🎈', 'Bloons Tower Defense', 'Los monos contra los globos.', 'https://www.newgrounds.com/search/conduct/games?terms=bloons'],
+    ['🐧', 'Yetisports', 'Pingu Throw y compañía: tirar el pingüino lo más lejos posible.', 'https://www.crazygames.com/search?q=yetisports'],
+    ['⚽', 'Juegos de fútbol retro', 'Penales, cabezazos y fútbol de los de antes.', 'https://www.crazygames.com/search?q=soccer%20retro'],
+    ['🏀', 'Básquet retro', 'Tiros libres y partidos de los de antes.', 'https://www.crazygames.com/search?q=basketball'],
+    ['🕹️', 'Clásicos de Miniclip y Flash', 'Newgrounds los sigue teniendo (con Ruffle, sin Flash).', 'https://www.newgrounds.com/games/browse/sort/score'] ];
+  function shelfHtml() {
+    return `<h2 class="sec">🕹️ Estantería de clásicos</h2><div class="shelf">${SHELF.map(([ic, n, d, u]) => `<a class="shcart" href="${u}" target="_blank" rel="noopener"><span class="ic">${ic}</span><b>${esc(n)}</b><small>${esc(d)}</small></a>`).join('')}
+      <button class="shcart claw" data-claw><span class="ic">🧸</span><b>Máquina de gancho</b><small>Gastá vaccoins y agarrá cápsulas con figus, monedas y repuestos. Está en Colección.</small></button></div>
+      <p class="mut" style="font-size:12px">Se abren en sus sitios oficiales (Kongregate, Newgrounds, Armor Games, CrazyGames): FUNVS no los puede copiar adentro porque son de sus creadores y esos sitios no dejan meterlos en otras páginas.</p>`;
+  }
+  function bindExtras(v) {
+    v.querySelector('[data-cru]').onclick = () => { const d = J().cruci = J().cruci || {}, k = hoy(); if (d[k]) delete d[k]; else d[k] = 1; save(); menu(v); };
+    v.querySelector('[data-cruo]').addEventListener('click', () => S.set('cruciOpen', hoy()));
+    v.querySelector('[data-claw]').onclick = () => { Nav.go('figus'); setTimeout(() => Figus.tab('gancho'), 50); };
   }
   const back = () => `<button class="sm jgback" id="jgBack">← Juegos</button>`;
   const bindBack = () => { $('jgBack').onclick = () => { game = null; state = {}; render(); }; };

@@ -115,7 +115,8 @@ const Fulbito = (() => {
     const line = `${m.h.team.shortDisplayName || m.h.team.displayName} ${m.hs} - ${m.as} ${m.a.team.shortDisplayName || m.a.team.displayName}`;
     if (m.id !== 'test' && isFav(team)) Stats.bump('gol', { id:m.id + '-' + m.hs + '-' + m.as, line, t:Date.now() });
     Grafismo.notify(`<span class="g">⚽ ¡GOL de ${esc(team.shortDisplayName || team.displayName)}!</span>${esc(line)}${who ? `<small>${esc(who)}</small>` : ''}`,
-      { cls:'goal', ms:15000, onclick:() => Nav.go('fulbito') });
+      { cls:'goal', ms:15000, kind:'fulbito', onclick:() => Nav.go('fulbito') });
+    if (!notifOn('fulbito')) return;
     if (local.sound && !DND.active()) beep();
     if (local.notif && !DND.active() && document.hidden && 'Notification' in window && Notification.permission === 'granted') {
       try { new Notification('⚽ ¡GOL de ' + (team.shortDisplayName || team.displayName) + '!', { body:line + (who ? '\n' + who : ''), icon:team.logo, tag:'gol' + m.id + m.hs + m.as }); } catch {}
@@ -124,8 +125,8 @@ const Fulbito = (() => {
 
   const nm2 = t => t.team.shortDisplayName || t.team.displayName;
   function stateAlert(m, lbl, line) {
-    Grafismo.notify(`<b>${lbl}</b> ${esc(line)}`, { lbl:lbl.split(' ')[0] + ' PARTIDO', cls:'goal', ms:12000, onclick:() => Nav.go('fulbito') });
-    if (local.notif && !DND.active() && document.hidden && 'Notification' in window && Notification.permission === 'granted') try { new Notification(lbl.replace(/^\S+ /, '') + ': ' + line, { tag:'st' + m.id + m.state }); } catch {}
+    Grafismo.notify(`<b>${lbl}</b> ${esc(line)}`, { lbl:lbl.split(' ')[0] + ' PARTIDO', cls:'goal', ms:12000, kind:'fulbito', onclick:() => Nav.go('fulbito') });
+    if (notifOn('fulbito') && local.notif && !DND.active() && document.hidden && 'Notification' in window && Notification.permission === 'granted') try { new Notification(lbl.replace(/^\S+ /, '') + ': ' + line, { tag:'st' + m.id + m.state }); } catch {}
   }
   /* ---------- Pantalla ---------- */
   // escudo de cualquier equipo: el de ESPN; si no viene, el del CDN de ESPN por id; si tampoco, uno armado con sus colores e iniciales

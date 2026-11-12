@@ -127,5 +127,14 @@ const FUNVSApp = (() => {
   setInterval(() => { if (!document.hidden) checkUpdate(); }, 10 * 60e3);
   setTimeout(checkUpdate, 20e3);
 
-  return { back, menu, move, inApp, tv, checkUpdate };
+  // 🪟 ventana flotante de Android (PiP): la app me avisa cuándo entra y sale; dejo solo el video a pantalla completa
+  function pipMode(on) {
+    document.body.classList.toggle('pipmode', !!on);
+    document.querySelectorAll('.pipslot').forEach(e => e.classList.remove('pipslot'));
+    if (on) Player.pipEl(Player.pipSlot())?.classList.add('pipslot');
+    return true;
+  }
+  const pipToggle = () => Player.pipToggle();
+  const canPip = () => Player.pipSlot() >= 0;
+  return { back, menu, move, inApp, tv, checkUpdate, pipMode, pipToggle, canPip };
 })();

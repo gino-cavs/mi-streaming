@@ -111,6 +111,9 @@ function initSettings() {
   $('setGs').onchange = e => { db.grafStyle = e.target.value; save(); gs(); try { Grafismo.barPop('🎨 ESTILO', `<b>${esc(e.target.selectedOptions[0].text)}</b> Así se ve el zócalo`, { ms:5000 }); } catch {} };
   // 📐 zona segura: el video deja libre arriba (donde van el cartel y el logo FUNVS)
   document.body.classList.toggle('safehud', S.get('safeHud', true));
+  // 🔔 notificaciones: todas juntas acá
+  $('setNotifs').innerHTML = Object.entries(NOTIFS).map(([k, [ic, t]]) => `<label style="display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" data-nf="${k}" style="width:auto" ${notifOn(k) ? 'checked' : ''}> ${ic} ${t}</label>`).join('');
+  $('setNotifs').onchange = e => { const k = e.target.dataset.nf; if (!k) return; db.notifs = { ...(db.notifs || {}), [k]:e.target.checked }; save(); };
   $('setSafe').checked = S.get('safeHud', true);
   $('setSafe').onchange = e => { S.set('safeHud', e.target.checked); document.body.classList.toggle('safehud', e.target.checked); };
   // 🐶 fotos de Vaca: se achican a 200 px (pesan ~10 KB) y se sincronizan con tus aparatos

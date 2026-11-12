@@ -2239,3 +2239,52 @@ html.lite #negro .ngbar { transition:opacity 2s ease !important; } html.lite #ne
 .fgsec { display:flex; align-items:center; gap:4px; background:var(--panel2); border-radius:10px; padding:4px 4px 4px 8px; }
 .fgsec input { width:170px; } .fgsec button { padding:4px 8px; }
 .fgpgmv { display:inline-flex; gap:2px; } .fgpgmv button { padding:2px 7px; font-size:12px; } .fgpgmv button:disabled { opacity:.3; }
+
+/* 🪟 ventana flotante de Android: solo el video, ocupando toda la ventanita */
+body.pipmode * { visibility:hidden !important; animation:none !important; }
+body.pipmode .pipslot .vw, body.pipmode .pipslot .vw * { visibility:visible !important; }
+body.pipmode .pipslot .vw { position:fixed !important; left:0 !important; top:0 !important; width:100vw !important; height:100vh !important; z-index:2147483647 !important; background:#000; margin:0 !important; border-radius:0 !important; transform:none !important; }
+body.pipmode .pipslot .vw iframe { width:100% !important; height:100% !important; }
+body.pipmode { overflow:hidden !important; background:#000 !important; }
+/* 🎵 barra de minutos de la música */
+#musicbar .museek { flex-basis:100%; display:flex; align-items:center; gap:8px; font:600 12px system-ui; color:var(--mut); order:99; }
+#musicbar .museek input[type=range] { flex:1; width:auto !important; display:block !important; accent-color:#1238b5; }
+#musicbar #muRep.on, #musicbar #muShuf.on { background:#1238b5; color:#fff; }
+#musicbar { flex-wrap:wrap; row-gap:4px; }
+/* 📼 últimos vivos */
+.vodbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:6px 0 12px; } .vodbar .chips { display:flex; gap:6px; } .vodbar .chips button.on { background:#1238b5; color:#fff; }
+.vodlist { display:grid; grid-template-columns:repeat(auto-fill, minmax(330px, 1fr)); gap:12px; }
+.vod { display:flex; gap:10px; background:var(--panel2); border-radius:12px; padding:8px; } .vod.seen { opacity:.55; }
+.vodth { all:unset; position:relative; flex:none; width:150px; aspect-ratio:16/9; border-radius:8px; background:#000 center / cover; cursor:pointer; overflow:hidden; }
+.vodth:focus-visible { outline:3px solid #fff; } .vodth span { position:absolute; right:4px; bottom:6px; background:#000c; color:#fff; font:600 11px system-ui; padding:1px 5px; border-radius:4px; }
+.vodth i { position:absolute; left:0; bottom:0; height:3px; background:#e33; }
+.vodtx { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; } .vodtx small { color:var(--mut); } .vodtx b { font-size:14px; line-height:1.25; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.vodst { font-size:12px; color:var(--mut); }
+.radd { background:var(--panel2); border:1px solid #1238b5; border-radius:14px; padding:14px; margin:8px 0 14px; display:flex; flex-direction:column; gap:8px; max-width:640px; }
+.radd h3 { margin:0; } .radd label { display:flex; flex-direction:column; gap:3px; font-size:13px; color:var(--mut); } .radd input { color:var(--txt); }
+/* 🔍 figu ampliada: grande, y en la compu con la ficha al costado */
+#fgZoom { overflow:auto; padding:16px; } #fgZoom .fgzwrap { display:flex; flex-direction:column; align-items:center; gap:14px; max-width:100%; }
+#fgZoom.side .fgzwrap { flex-direction:row; align-items:center; gap:28px; } #fgZoom.side .fgficha { max-width:380px; }
+#fgZoom .fig.big { max-width:none; box-shadow:0 20px 60px #000c; }
+#fgZoom .fig.big .fimg { image-rendering:auto; }
+/* 🎮 crucigrama y estantería */
+.cruci { display:flex; gap:12px; align-items:center; flex-wrap:wrap; background:var(--panel2); border-radius:14px; padding:12px 14px; border:1px solid #ffffff14; }
+.cruci.done { border-color:#1238b5; } .cruciic { font-size:34px; } .cruci > div:nth-child(2) { flex:1; min-width:200px; display:flex; flex-direction:column; gap:2px; } .cruci span { color:var(--mut); font-size:13px; }
+.shelf { display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:12px; padding:14px; border-radius:14px; background:linear-gradient(#0d1020, #07080f); border-bottom:10px solid #2a2f45; }
+.shcart { display:flex; flex-direction:column; gap:4px; padding:12px; border-radius:10px; background:linear-gradient(160deg, #1238b5, #0b0b0b); color:#fff; text-decoration:none; border:1px solid #ffffff22; text-align:left; cursor:pointer; box-shadow:0 8px 14px #0008; transition:transform .15s; }
+.shcart:hover, .shcart:focus-visible { transform:translateY(-4px) rotate(-1deg); } .shcart .ic { font-size:30px; } .shcart small { opacity:.8; font-size:12px; line-height:1.3; }
+.shcart.claw { background:linear-gradient(160deg, #fff, #cfd6e6); color:#0b0b0b; }
+/* 🧸 máquina de gancho */
+.claw { display:flex; flex-wrap:wrap; gap:18px; align-items:flex-start; }
+.clawcab { width:min(360px, 100%); background:linear-gradient(#1238b5, #061a5c); border-radius:22px 22px 12px 12px; padding:12px; box-shadow:0 14px 30px #000a, inset 0 0 0 3px #ffffff33; display:flex; flex-direction:column; gap:10px; }
+.clawtop { text-align:center; font:900 18px Oswald, system-ui; letter-spacing:2px; color:#fff; background:#0b0b0b; border-radius:10px; padding:6px; box-shadow:inset 0 0 12px #3d7bff; }
+#clawCv { width:100%; height:auto; aspect-ratio:320/420; border-radius:8px; border:4px solid #cfd6e6; background:#050a1c; touch-action:none; display:block; }
+.clawctl { display:grid; grid-template-columns:1fr 1.4fr 1fr; gap:8px; } .clawctl button { font-size:20px; padding:10px; user-select:none; touch-action:none; }
+.clawcoin { font-size:16px; padding:10px; }
+.clawinfo { flex:1; min-width:240px; max-width:520px; } .clawinfo p { line-height:1.5; }
+/* 📄 el finde en PDF */
+#findeDlg { position:fixed; inset:0; z-index:300; background:#000b; display:grid; place-items:center; padding:16px; }
+.fdbox { width:min(720px, 100%); max-height:90vh; overflow:auto; background:var(--panel); border:1px solid #1238b5; border-radius:16px; padding:14px 16px; }
+.fdprev { background:#fff; color:#111; border-radius:10px; padding:16px 20px; margin:8px 0; } .fdprev h2 { color:#1238b5; margin:16px 0 0; font-size:20px; border-bottom:2px solid #1238b5; } .fdprev section:first-child h2 { margin-top:0; }
+.fdprev h3 { margin:10px 0 2px; font-size:14px; } .fdprev h4 { margin:8px 0 0; color:#1238b5; } .fdprev p { margin:2px 0; } .fdsub { color:#555; font-style:italic; } .fdbig { font-weight:800; } .fdsmall { color:#666; font-size:11px; margin-top:8px !important; }
+.fdsrc { font-size:12px; }

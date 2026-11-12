@@ -40,5 +40,28 @@ for (const c of order) {
     out.ch[c].lives = [...new Set([...out.ch[c].lives, ...ids])].slice(0, 10); out.ch[c].s = Date.now();
   } catch (e) { console.log('search:', e.message); break; }
 }
+// 3) 📼 últimos vivos terminados de cada canal (para no perderte programas): lista de subidas (1 unidad) + datos del video (1 cada 50)
+const vprev = await fetch(`https://raw.githubusercontent.com/${repo}/datos/vods.json?t=${Date.now()}`).then(r => r.ok ? r.json() : null).catch(() => null) || { ch:{} };
+const vods = { at:new Date().toISOString(), ch:{} };
+const names = Object.fromEntries((db.chans || []).filter(c => c.ref?.channelId).map(c => [c.ref.channelId, c.name]));
+let vu = 0;
+for (const c of cids) {
+  const old = vprev.ch?.[c];
+  if (old && Date.now() - (old.s || 0) < 90 * 60e3) { vods.ch[c] = old; continue; }   // cada canal, como mucho cada hora y media
+  try {
+    const pl = await yt('playlistItems', { part:'contentDetails', playlistId:'UU' + c.slice(2), maxResults:20 }); vu++;
+    const ids = (pl.items || []).map(x => x.contentDetails.videoId).filter(Boolean);
+    const vj = ids.length ? await yt('videos', { part:'snippet,liveStreamingDetails,contentDetails', id:ids.join(',') }) : { items:[] }; vu++;
+    const dur = s => { const m = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/.exec(s || '') || []; return (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0); };
+    const vids = (vj.items || []).filter(v => v.liveStreamingDetails?.actualEndTime && Date.now() - Date.parse(v.liveStreamingDetails.actualEndTime) < 21 * 864e5)
+      .map(v => ({ id:v.id, t:v.snippet.title, a:v.liveStreamingDetails.actualStartTime, e:v.liveStreamingDetails.actualEndTime, d:dur(v.contentDetails?.duration),
+        th:(v.snippet.thumbnails.medium || v.snippet.thumbnails.default || {}).url || '' }))
+      .sort((x, y) => Date.parse(y.a) - Date.parse(x.a)).slice(0, 12);
+    vods.ch[c] = { n:names[c] || '', s:Date.now(), vids };
+  } catch (e) { console.log('vods:', e.message); if (old) vods.ch[c] = old; }
+}
+out.used += vu;
+await writeFile(dir + '/vods.json', JSON.stringify(vods));
+console.log(`Últimos vivos: ${Object.values(vods.ch).reduce((a, x) => a + (x.vids?.length || 0), 0)} vivos terminados de ${Object.keys(vods.ch).length} canales (${vu} unidades)`);
 await done();
 console.log(`Vivos: ${n} búsquedas, ${Object.values(out.ch).filter(o => o.lives.length).length}/${cids.length} canales con vivo conocido, ${out.used} unidades hoy`);

@@ -23,15 +23,43 @@ const Radio = (() => {
     return `<div class="rcard ${playing ? 'playing' : ''}" tabindex="0" data-url="${esc(r.url)}">
       <div class="lg" style="${r.logo ? `background-image:url('${esc(r.logo)}')` : ''}">${r.logo ? '' : '📻'}</div>
       <div class="tx"><b>${esc(r.name)}</b><span>${esc(r.tags || r.place || '')}</span></div>
-      ${saved ? `<button class="act" data-del="${esc(r.url)}" title="Quitar de mis radios">✕</button>`
+      ${saved ? `<button class="act" data-edr="${esc(r.url)}" title="Editar (nombre, link, logo)">✎</button><button class="act" data-del="${esc(r.url)}" title="Quitar de mis radios">✕</button>`
               : `<button class="act" data-add="${esc(r.url)}" title="Guardar en mis radios">☆</button>`}</div>`;
+  }
+  /* ---------- ＋ Agregar (o editar) una radio con su link ---------- */
+  function linkForm(r) {
+    const el = $('rAdd'); el.hidden = false;
+    el.innerHTML = `<div class="radd"><h3>${r ? '✎ Editar radio' : '＋ Agregar una radio con su link'}</h3>
+      <label>Link del audio<input id="raU" value="${esc(r?.url || '')}" placeholder="https://…/stream.mp3, .aac, .m3u8 o .pls"></label>
+      <label>Nombre<input id="raN" value="${esc(r?.name || '')}" placeholder="Ej: Radio del barrio"></label>
+      <label>Logo (opcional)<input id="raL" value="${esc(r?.logo || '')}" placeholder="Link de una imagen"></label>
+      <small class="mut">Tiene que ser el link del audio (el que suena), no la página de la radio. Si pegás la página, te busco la radio por el nombre.</small>
+      <div class="btns"><button type="button" id="raT">▶ Probar</button><span class="sp"></span><button type="button" id="raX">Cancelar</button><button type="button" class="pri" id="raS">💾 Guardar cambios</button></div><div id="raMsg" class="mut"></div></div>`;
+    const msg = t => $('raMsg').innerHTML = t;
+    const read = () => { let u = $('raU').value.trim(); if (u && !/^https?:\/\//i.test(u)) u = 'https://' + u; return u; };
+    const isPage = u => { try { const x = new URL(u); return !/\.(mp3|aac|aacp|m3u8?|pls|ogg|opus|flac)(\?|$)/i.test(x.pathname) && !/stream|listen|live|icecast|shoutcast|radio\.|\/;$|:\d{2,5}/i.test(u) && (x.pathname === '/' || /\.(html?|php)$/i.test(x.pathname)); } catch { return false; } };
+    async function resolve(u) {   // .pls / .m3u: adentro viene el link real
+      if (!/\.(pls|m3u)(\?|$)/i.test(u)) return u;
+      try { const t = await (await fetch(u)).text(); const m = t.match(/(?:File\d+=)?(https?:\/\/[^\s]+)/i); return m ? m[1] : u; } catch { return u; }
+    }
+    $('raX').onclick = () => { el.hidden = true; el.innerHTML = ''; };
+    $('raT').onclick = async () => { const u = read(); if (!u) return msg('Pegá el link.');
+      if (isPage(u)) { msg('Eso parece la página de la radio. Te la busco…'); try { const name = new URL(u).hostname.replace(/^www\./, '').split('.')[0]; $('rQ').value = name; search(name); msg(`Busqué «${esc(name)}» abajo: tocá ☆ en la que sea.`); } catch {} return; }
+      const real = await resolve(u); msg('Probando…'); play({ name:$('raN').value.trim() || 'Prueba', url:real, logo:$('raL').value.trim(), hls:/\.m3u8/i.test(real) });
+      setTimeout(() => msg(audio && !audio.paused && audio.currentTime > 0 ? '✅ ¡Suena! Ponele nombre y guardala.' : 'Si no suena en unos segundos, el link no es de audio o la radio no deja escucharla desde otras páginas.'), 5000); };
+    $('raS').onclick = async () => { const u = read(), n = $('raN').value.trim(); if (!u || !n) return msg('Poné el link y el nombre.');
+      if (isPage(u) && !confirm('Ese link parece una página web, no el audio. ¿La guardo igual?')) return;
+      const real = await resolve(u), x = { ...(r || {}), id:r?.id || 'link-' + Date.now(), name:n, url:real, logo:$('raL').value.trim(), hls:/\.m3u8/i.test(real), tags:r?.tags || 'agregada con link' };
+      if (r) { const i = db.radios.findIndex(y => y.url === r.url); if (i >= 0) db.radios[i] = x; } else if (db.radios.some(y => y.url === real)) return msg('Esa radio ya la tenés.'); else db.radios.push(x);
+      save(); el.hidden = true; el.innerHTML = ''; toast(`<b>📻 ${esc(n)}</b><small>${r ? 'Cambios guardados.' : 'Guardada en tus radios.'}</small>`, { ms:2500 }); render(); };
+    el.scrollIntoView({ block:'nearest', behavior:'smooth' }); $('raU').focus();
   }
   function render() {
     const v = $('v-radios');
     if (!v.dataset.built) {
       v.dataset.built = 1;
       v.innerHTML = `
-        <div class="secrow"><h2 class="sec">Mis radios</h2><div class="seg" id="rView"><button data-rv="lista">📻 Radios</button><button data-rv="grilla">🗓 Grilla</button><button id="rMap" title="Tus radios en un globo terráqueo">🌍 Mapa</button></div></div><div id="rMine"></div>
+        <div class="secrow"><h2 class="sec">Mis radios</h2><div class="seg" id="rView"><button data-rv="lista">📻 Radios</button><button data-rv="grilla">🗓 Grilla</button><button id="rMap" title="Tus radios en un globo terráqueo">🌍 Mapa</button><button id="rLink" title="Agregar una radio pegando su link">＋ Con link</button></div></div><div id="rAdd" hidden></div><div id="rMine"></div>
         <h2 class="sec">Buscar radios</h2>
         <form class="rsearch" id="rForm">
           <input id="rQ" placeholder="Nombre de la radio: Mitre, La 100, Rivadavia, Metro…">
@@ -44,11 +72,13 @@ const Radio = (() => {
       $('rForm').onsubmit = e => { e.preventDefault(); search($('rQ').value.trim()); };
       $('rTop').onclick = () => search('');
       $('rMap').onclick = e => { e.stopPropagation(); RadioMapa.open(); };
+      $('rLink').onclick = e => { e.stopPropagation(); linkForm(null); };
       $('rView').onclick = e => { const b = e.target.closest('[data-rv]'); if (b) { S.set('radView', b.dataset.rv); render(); } };
       v.addEventListener('click', e => {
         const add = e.target.closest('[data-add]'), del = e.target.closest('[data-del]');
         if (add) { const r = results.find(x => x.url === add.dataset.add); if (r && !db.radios.some(x => x.url === r.url)) { db.radios.push(r); save(); render(); } return; }
         if (del) { db.radios = db.radios.filter(x => x.url !== del.dataset.del); save(); render(); return; }
+        const edr = e.target.closest('[data-edr]'); if (edr) { linkForm(db.radios.find(x => x.url === edr.dataset.edr)); return; }
         const c = e.target.closest('[data-url]');
         if (c) { const r = db.radios.find(x => x.url === c.dataset.url) || results.find(x => x.url === c.dataset.url); if (r) play(r); }
       });

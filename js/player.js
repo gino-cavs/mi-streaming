@@ -34,6 +34,7 @@ const Player = (() => {
   }));
   const TW_API = () => loadScript('https://player.twitch.tv/js/embed/v1.js');
   const PIP_OK = 'documentPictureInPicture' in window;
+  const NATIVE = () => { try { return !!window.FUNVSNative?.hasPip?.(); } catch { return false; } };
   const ANDROID = /Android/i.test(navigator.userAgent);
 
   // v = video, ch = chat embebido oscuro, out = chat en ventana aparte
@@ -166,7 +167,7 @@ const Player = (() => {
             if (id) { s.e.id = id; Canales.learn(s.c, id); s.e.ch = `https://www.youtube.com/live_chat?v=${id}&embed_domain=${HOST}&dark_theme=1`; s.e.out = `https://www.youtube.com/live_chat?v=${id}&dark_theme=1`; try { paintBar(i); } catch {} }
           }
           if (e.data === 1 && last !== 1) AudioMgr.focus(sid);
-          last = e.data; s.yst = e.data; s.ystAt = Date.now();
+          last = e.data; s.yst = e.data; s.ystAt = Date.now(); nativePlaying();
           if (e.data === 0 && !s.c.t247) s.dead = true; if (e.data === 1) s.dead = false;
           if (e.data === 0 && s.c.onEnd) { let last = true; try { const pl = p.getPlaylist?.(); if (pl && p.getPlaylistIndex() < pl.length - 1) last = false; } catch {} if (last) { const f = s.c.onEnd; s.c.onEnd = null; setTimeout(f, 300); } }
           d.classList.toggle('paused', e.data === 2);
@@ -261,7 +262,7 @@ const Player = (() => {
     if (!slots[focus]) { const f = slots.findIndex(Boolean); if (f >= 0) focus = f; }
     const s = slots[focus];
     if (!s) { box.innerHTML = ''; return; }
-    const pip = PIP_OK || ANDROID ? `<button data-a="pip" title="Ventana flotante">⧉ Flotante</button>` : '';
+    const pip = PIP_OK || ANDROID || NATIVE() ? `<button data-a="pip" title="Ventana flotante">⧉ Flotante</button>` : '';
     box.innerHTML = `${layout > 1 ? `<span class="pa-lbl">Pantalla ${focus + 1}:</span>` : ''}
       <button data-a="snd" class="${AudioMgr.current === 'slot' + focus ? 'on' : ''}" title="Escuchar esta pantalla">🔊</button>
       ${s.e.kind === 'youtube' && s.e.id ? Likes.btn(s.e.id, s.c.name) : ''}
@@ -298,14 +299,21 @@ const Player = (() => {
     paintBar(i);
   }
 
+  // 🪟 en la app de Android: la ventana flotante del sistema (solo el video, con play/pausa)
+  let pipI = -1;
+  function nativePlaying() { try { window.FUNVSNative?.playing?.(slots.some(s => s && s.yst === 1 && !s.pip)); } catch {} }
+  function pipSlot() { if (pipI >= 0 && slots[pipI]) return pipI; const k = slots.findIndex(s => s && s.yst === 1); return k >= 0 ? k : slots.findIndex(Boolean); }
+  function pipToggle() { const s = slots[pipSlot()]; const p = s?.api?.p; if (!p) return false;
+    try { if (p.getPlayerState() === 1) { s.userPause = true; p.pauseVideo(); return false; } s.userPause = false; p.playVideo(); return true; } catch { return false; } }
   async function openPip(i) {
     const s = slots[i];
+    if (NATIVE()) { pipI = i; window.FUNVSNative.pip(); return; }
     if (!PIP_OK) {
       toast('<b>Ventana flotante en Android</b><small>Poné el video en pantalla completa y tocá el botón de inicio (o deslizá hacia arriba): el video queda flotando.</small>', { cls:'info', ms:12000 });
       return;
     }
     try {
-      const w = await documentPictureInPicture.requestWindow({ width:s.chat ? 900 : 640, height:360 });
+      const w = await documentPictureInPicture.requestWindow({ width:480, height:270 });   // como la ventanita clásica: solo el video
       const st = w.document.createElement('style');
       st.textContent = 'html,body{margin:0;height:100%;background:#000;overflow:hidden}iframe{border:0;width:100%;height:100%;display:block}';
       w.document.head.appendChild(st);
@@ -313,7 +321,7 @@ const Player = (() => {
       // la ventana flotante carga pip.html (una página nuestra) y esa página muestra el video:
       // así YouTube sabe desde qué sitio se abre y no da el "error 153"
       const base = location.origin + location.pathname.replace(/[^/]*$/, '');
-      const pip = base + 'pip.html?v=' + encodeURIComponent(s.e.v) + (s.chat && s.e.ch ? '&ch=' + encodeURIComponent(s.e.ch) : '');
+      const pip = base + 'pip.html?v=' + encodeURIComponent(s.e.v);
       w.document.body.innerHTML = `<iframe src="${esc(pip)}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture"></iframe>`;
       // en la página dejo un aviso en lugar del video (para que no suene doble)
       AudioMgr.unregister('slot' + i);
@@ -325,6 +333,7 @@ const Player = (() => {
       AudioMgr.register('slot' + i, { mute() {}, unmute() {}, label:() => s.c.name + ' (ventana flotante)' });
       AudioMgr.focus('slot' + i);
       w.addEventListener('pagehide', () => { if (slots[i] === s) { s.pip = null; mountVideo(i); paintBar(i); } });
+      if (!S.get('pipTip')) { S.set('pipTip', 1); toast('<b>🪟 Ventana flotante</b><small>Se queda arriba de todo y la podés achicar o mover. Si preferís la del navegador (con sus botones propios): en Chrome tocá el ícono ♫ de arriba a la derecha y después el botón de pantalla en pantalla, o hacé clic derecho dos veces sobre el video.</small>', { cls:'info', ms:14000 }); }
     } catch (e) { toast('<b>No se pudo abrir la ventana flotante</b><small>' + esc(e.message) + '</small>', { cls:'info' }); }
   }
 
@@ -403,7 +412,7 @@ const Player = (() => {
       let t = 0, d = 0, title = ''; try { t = s.api.p.getCurrentTime(); d = s.api.p.getDuration(); title = s.api.p.getVideoData?.().title || ''; } catch {}
       const v = s.c.ref.video;
       if (!(d > 300) || t < 60) continue;                       // solo videos largos y ya empezados
-      if (t > d * 0.95) { if (db.resume[v]) { delete db.resume[v]; changed = true; } continue; }   // terminado
+      if (t > d * 0.92) { if (db.resume[v]) delete db.resume[v]; db.vistos = db.vistos || {}; if (!db.vistos[v]) { db.vistos[v] = Date.now(); changed = true; } continue; }   // terminado (y queda como visto)
       db.resume[v] = { t:Math.floor(t), d:Math.floor(d), n:s.c.name, title:title || db.resume[v]?.title || s.c.name, at:Date.now() }; changed = true;
     }
     if (!changed) return;
@@ -437,5 +446,5 @@ const Player = (() => {
   }
   function closeAll() { for (let i = 0; i < 4; i++) clear(i); if (!$('player').classList.contains('tvmode')) $('player').classList.remove('show'); TV.refresh(); }
 
-  return { zapFx, paintActs, build, play, closeAll, embedOf, action, setChat, get prev() { return prevC; }, get layout() { return layout; }, get slots() { return slots; }, get sel() { return sel; } };
+  return { zapFx, paintActs, build, play, closeAll, embedOf, action, setChat, pipSlot, pipToggle, pipEl:i => els[i],  get prev() { return prevC; }, get layout() { return layout; }, get slots() { return slots; }, get sel() { return sel; } };
 })();

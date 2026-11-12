@@ -25,6 +25,7 @@ const Grafismo = (() => {
      Uno por vez; si hay Último momento, espera. Afuera de la Pantalla TV, el cartelito de siempre. ---------- */
   let zq = [], zBusy = false;
   function notify(html, opts = {}) {
+    if (opts.kind && !notifOn(opts.kind)) return;   // 🔔 apagado en Ajustes → Notificaciones
     if (!inTv()) return toast(html, opts);
     barPop(opts.lbl || (/goal/.test(opts.cls || '') ? '⚽ GOL' : 'FUNVS'), html, opts);
   }

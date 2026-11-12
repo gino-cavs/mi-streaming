@@ -43,7 +43,7 @@ const Porteno = (() => {
     if (Radio.current?.url !== r.url) Radio.play(r);
     const hold = () => { if (on) try { AudioMgr.focus('radio'); } catch {} };   // el video mudo; suena el tango
     [1200, 3000, 6000].forEach(t => setTimeout(hold, t));
-    Grafismo.notify(`<b>🎻 ${esc(r.name)}</b><span>${esc(v.t)}</span>`, { ms:9000, lbl:'🎻 BUENOS AIRES' });
+    Grafismo.notify(`<b>🎻 ${esc(r.name)}</b><span>${esc(v.t)}</span>`, { ms:9000, lbl:'🎻 BUENOS AIRES', kind:'porteno' });
   }
   // ▲▼ mientras está el modo porteño: otra caminata
   function step() { const s = Player.slots[Player.sel ?? 0] || Player.slots.find(Boolean); if (!s?.c?.porteno) { on = false; return false; } play(); return true; }

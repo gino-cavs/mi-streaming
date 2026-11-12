@@ -82,7 +82,13 @@ async function motogp() {
     sessions:(ne.broadcasts || []).filter(b => b.category?.acronym === 'MGP' && ['PRACTICE', 'QUALIFYING', 'RACE', 'WARM_UP'].includes(b.kind))
       .map(b => ({ name:MGS[b.name.trim()] || b.name.trim(), start:new Date(b.date_start.replace(/([+-]\d\d)(\d\d)$/, '$1:$2')).toISOString(), end:b.date_end ? new Date(b.date_end.replace(/([+-]\d\d)(\d\d)$/, '$1:$2')).toISOString() : null,
         key:b.kind === 'RACE' || b.kind === 'QUALIFYING', race:b.name.trim() === 'Grand Prix', live:!!b.is_live }))
-      .sort((a, b) => Date.parse(a.start) - Date.parse(b.start)) };
+      .sort((a, b) => Date.parse(a.start) - Date.parse(b.start)),
+    // 🏍️ todas las categorías (MotoGP, Moto2, Moto3…) con su nombre original, para el PDF del fin de semana
+    all:Object.fromEntries(Object.entries((ne.broadcasts || []).filter(b => ['PRACTICE', 'QUALIFYING', 'RACE', 'WARM_UP'].includes(b.kind) && b.category?.acronym)
+      .reduce((m, b) => { (m[b.category.acronym] = m[b.category.acronym] || []).push({ n:b.name.trim(), k:b.kind,
+        s:new Date(b.date_start.replace(/([+-]\d\d)(\d\d)$/, '$1:$2')).toISOString(), e:b.date_end ? new Date(b.date_end.replace(/([+-]\d\d)(\d\d)$/, '$1:$2')).toISOString() : null }); return m; }, {}))
+      .map(([k, l]) => [k, l.sort((a, b) => Date.parse(a.s) - Date.parse(b.s))])),
+    full:ne.name || '' };
   let standings = [], last = null;
   try {
     const seasons = await json('https://api.motogp.pulselive.com/motogp/v1/results/seasons');

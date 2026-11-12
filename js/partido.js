@@ -54,7 +54,7 @@ const Partido = (() => {
   function efemTv() {   // en la Pantalla TV, una vez por día, como zócalo
     const e = efemHoy(), k = new Date().toDateString(); if (!e || efShown === k || document.hidden || new Date().getHours() < 13) return;   // siempre a las 13
     efShown = k; S.set('efShown', k);
-    Grafismo.notify(`<b>💙 Un día como hoy</b>${e.hito ? `<span>${esc(e.hito.y)}: ${esc(e.hito.t.slice(0, 160))}</span>` : ''}${e.cumples.length ? `<small>🎂 ${e.cumples.map(c => cumpleTxt(c, e.y)).join(' · ')}</small>` : ''}`, { ms:12000, onclick:() => Nav.go('velez') });
+    Grafismo.notify(`<b>💙 Un día como hoy</b>${e.hito ? `<span>${esc(e.hito.y)}: ${esc(e.hito.t.slice(0, 160))}</span>` : ''}${e.cumples.length ? `<small>🎂 ${e.cumples.map(c => cumpleTxt(c, e.y)).join(' · ')}</small>` : ''}`, { ms:12000, kind:'efem', onclick:() => Nav.go('velez') });
   }
   Inicio.add({ id:'efem', order:75, html() {
     loadEfem().then(d => { if (d && !$('v-inicio')?.querySelector('[data-b="efem"]') && Nav.current === 'inicio' && efemHoy()) Inicio.render(); });

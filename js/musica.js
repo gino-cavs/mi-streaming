@@ -4,7 +4,9 @@
    Si tenés la sesión de YouTube (Premium) iniciada en ese navegador, YouTube la reconoce.
    ========================================================= */
 const Musica = (() => {
-  let p = null, cur = null, track = null, ready = false, errs = 0, shuffle = S.get('musShuffle', false), poll = null, hidden = S.get('musHideVid', false);
+  let p = null, cur = null, track = null, ready = false, errs = 0, shuffle = S.get('musShuffle', false), poll = null, hidden = S.get('musHideVid', false), repeat = S.get('musRepeat', 'off'), seeking = false;
+  const mmss = t => { t = Math.max(0, Math.floor(t || 0)); const h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), x = String(t % 60).padStart(2, '0'); return h ? `${h}:${String(m).padStart(2, '0')}:${x}` : `${m}:${x}`; };
+  const REP = { off:['🔁', 'Repetir: no'], all:['🔁', 'Repetir: toda la lista'], one:['🔂', 'Repetir: este tema'] };
 
   /* ---------- Leer links de YouTube Music / YouTube ---------- */
   function parse(raw) {
@@ -131,7 +133,12 @@ const Musica = (() => {
     p = new YT.Player('muYT', { width:'100%', height:'100%', videoId:it.kind === 'video' ? it.ref : ids?.length ? ids[0] : (it.first || undefined), playerVars:vars,
       events:{
         onReady:() => { ready = true; errs = 0; p.playVideo(); if (shuffle && it.kind === 'playlist' && !ids?.length) applyShuffle(true); kick(it); },
-        onStateChange:e => { if (e.data === 1) { AudioMgr.focus('music'); errs = 0; note(''); } upd(); },
+        onStateChange:e => { if (e.data === 1) { AudioMgr.focus('music'); errs = 0; note(''); }
+          if (e.data === 0 && repeat !== 'off') {   // 🔁 repetir: el mismo tema, o volver al principio de la lista
+            try { const pl = p.getPlaylist?.(), i = p.getPlaylistIndex?.();
+              if (repeat === 'one') { p.seekTo(0, true); p.playVideo(); }
+              else if (!pl || !pl.length || i >= pl.length - 1) { if (pl && pl.length) p.playVideoAt(0); else { p.seekTo(0, true); p.playVideo(); } } } catch {} }
+          upd(); },
         onError:e => {
           lastErr = e.data; note(ERR[e.data] || 'YouTube dio el error ' + e.data);
           if (e.data === 101 || e.data === 150 || e.data === 100 || e.data === 153) {
@@ -143,7 +150,7 @@ const Musica = (() => {
             try { p.nextVideo(); } catch {}
           }
         } } });
-    clearInterval(poll); poll = setInterval(upd, 2000);
+    clearInterval(poll); poll = setInterval(upd, 1000);
     if (Nav.current === 'musica') render();
   }
   /* Temas de una playlist (con tu clave de YouTube; 1 unidad cada 50 temas). Guardados un rato para no gastar. */
@@ -199,6 +206,8 @@ const Musica = (() => {
     $('muPlay').textContent = st() === 1 ? '❚❚' : '▶';
     if (track && track.vid && $('muLike').dataset.v !== track.vid) { $('muLike').dataset.v = track.vid; $('muLike').innerHTML = Likes.btn(track.vid, track.title); Likes.status(track.vid); }
     $('muSnd').textContent = p.isMuted && p.isMuted() ? '🔇' : '🔊';
+    try { const D = p.getDuration?.() || 0, t = p.getCurrentTime?.() || 0; $('muDur').textContent = D ? mmss(D) : '--:--';
+      if (!seeking) { $('muCur').textContent = mmss(t); $('muPos').value = D ? Math.round(t / D * 1000) : 0; } $('muPos').disabled = !D; } catch {}
     // las tarjetas de la sección muestran lo que suena de verdad
     document.querySelectorAll('#v-musica [data-mu]').forEach(c => { const on = cur && c.dataset.mu === cur.id; c.classList.toggle('playing', !!on); const pb = c.querySelector('.muplay'); if (pb) pb.textContent = on && st() === 1 ? '❚❚' : '▶'; });
   }
@@ -210,10 +219,17 @@ const Musica = (() => {
       b.innerHTML = `<div class="muvid" id="muVid"></div>
         <div class="tx" id="muT"></div><span class="munote" id="muNote" hidden></span>
         <button id="muPrev" title="Anterior">⏮</button><button id="muPlay">▶</button><button id="muNext" title="Siguiente">⏭</button>
-        <button id="muShuf" title="Aleatorio">🔀</button><button id="muSnd" title="Escuchar esto">🔊</button>
+        <button id="muShuf" title="Aleatorio">🔀</button><button id="muRep" title="Repetir">🔁</button><button id="muSnd" title="Escuchar esto">🔊</button>
         <input type="range" id="muVol" min="0" max="100" step="5" value="100">
         <button id="muHide" title="Mostrar u ocultar el video">🎬</button>
-        <span id="muLike"></span><button id="muYtm" title="Abrir en YouTube Music">↗</button><button id="muStar" title="Guardar este momento">⭐</button><button id="muTv" title="Pantalla TV">📺</button><button id="muX" title="Cerrar">✕</button>`;
+        <span id="muLike"></span><button id="muYtm" title="Abrir en YouTube Music">↗</button><button id="muStar" title="Guardar este momento">⭐</button><button id="muTv" title="Pantalla TV">📺</button><button id="muX" title="Cerrar">✕</button>
+        <div class="museek"><span id="muCur">0:00</span><input type="range" id="muPos" min="0" max="1000" step="1" value="0" aria-label="Minuto del tema"><span id="muDur">--:--</span></div>`;
+      const pos = $('muPos'), want = () => { try { return pos.value / 1000 * (p.getDuration() || 0); } catch { return 0; } };
+      pos.oninput = () => { seeking = true; $('muCur').textContent = mmss(want()); };
+      pos.onchange = () => { try { p.seekTo(want(), true); if (p.getPlayerState() !== 1) p.playVideo(); } catch {} seeking = false; };
+      const paintRep = () => { const [ic, t] = REP[repeat]; $('muRep').textContent = ic; $('muRep').title = t; $('muRep').classList.toggle('on', repeat !== 'off'); };
+      $('muRep').onclick = () => { repeat = repeat === 'off' ? 'all' : repeat === 'all' ? 'one' : 'off'; S.set('musRepeat', repeat); paintRep(); try { p.setLoop?.(repeat === 'all'); } catch {} toast(REP[repeat][1], { ms:1800 }); };
+      paintRep();
       $('muPrev').onclick = () => { try { p.previousVideo(); } catch {} };
       $('muNext').onclick = () => { try { p.nextVideo(); } catch {} };
       $('muPlay').onclick = toggle;

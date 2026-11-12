@@ -134,7 +134,7 @@ const MG = (() => {
       ...ef.filter(e => !shown.has('ef' + e.y)).map(e => ({ k:'ef' + e.y, h:`<b>📜 Un día como hoy (${e.y})</b><span>${esc(e.t)}</span>` }))];
     const x = pool[Math.floor(Math.random() * pool.length)]; if (!x) return;
     shown.add(x.k); S.set('mgShown', [...shown].slice(-80));
-    Grafismo.notify(x.h, { ms:14000, lbl:'📍 MG NEWS', cls:'mgn', onclick:() => Nav.go('mg') });
+    Grafismo.notify(x.h, { ms:14000, lbl:'📍 MG NEWS', cls:'mgn', kind:'mg', onclick:() => Nav.go('mg') });
   }
   function init() { load(); setInterval(() => { load(); }, 20 * 60e3); setInterval(tick, 60e3); }
   return { init, render, load, data:() => data };

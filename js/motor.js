@@ -54,11 +54,12 @@ const Motor = (() => {
     const live = liveSessions();
     v.innerHTML = `
       <div class="subbar"><div class="tabs" id="mTabs">
-        <button data-m="resumen" class="${tab === 'resumen' ? 'on' : ''}">🏁 Resumen</button>
+        <button data-m="resumen" class="${tab === 'resumen' ? 'on' : ''}">🏁 Resumen</button><button id="mPdf" title="Horarios del fin de semana (F1, Moto3, Moto2, MotoGP y Huracán) en PDF">📄 PDF del finde</button>
         ${CATS.map(([id, n, ic]) => `<button data-m="${id}" class="${tab === id ? 'on' : ''}">${ic} ${n}${live.some(x => x.id === id) ? ' <span class="cnt" style="background:var(--live);color:#fff;border-radius:10px;padding:0 6px">●</span>' : ''}</button>`).join('')}
       </div></div>
       <div id="mBody">${tab === 'resumen' ? resumen() : catView(tab)}</div>
       <p class="mut" style="font-size:12px;margin-top:14px">Datos: Jolpica (F1), motogp.com, ESPN (NASCAR), ACTC, tc2000.com.ar, toprace.com.ar · Canales: futbolenvivoargentina.com · Actualizado ${ago(data.updated)} · <a href="https://vueltarapida.com/calendario" target="_blank" rel="noopener" style="color:var(--acc)">Calendario de +50 categorías en Vuelta Rápida ↗</a></p>`;
+    $('mPdf').onclick = e => { e.stopPropagation(); Finde.open(); };
     $('mTabs').onclick = e => { const b = e.target.closest('[data-m]'); if (b) { tab = b.dataset.m; S.set('motorTab', tab); render(); } };
     v.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { tab = b.dataset.go; S.set('motorTab', tab); render(); $('scroller').scrollTo(0, 0); });
     const f = $('mFavForm');
@@ -200,5 +201,5 @@ const Motor = (() => {
     return { open:Date.now() >= from && Date.now() <= to, name:n.name, from, to };
   }
   const lastRace = id => data?.cats?.[id]?.last || null;
-  return { init, render, ticker, upcoming, weekend, lastRace, liveCount:() => liveSessions().length };
+  return { init, render, ticker, upcoming, weekend, lastRace, liveCount:() => liveSessions().length, data:async () => { await load(true).catch(() => {}); return data; } };
 })();

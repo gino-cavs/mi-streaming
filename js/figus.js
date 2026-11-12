@@ -100,6 +100,7 @@ const Figus = (() => {
     const gar = JSON.parse(JSON.stringify(B.gar || {})), wins = JSON.parse(JSON.stringify(B.wins || {}));
     const exps = {}, posts = new Set(B.posts || []); let blends = B.blends || 0, expDone = B.expDone || 0;
     const stuck = new Set(B.stuckV === 2 ? B.stuck || [] : []), covers = new Set(B.covers || ['clasica']), postT = { ...(B.postT || {}) }; let perfects = B.perfects || 0;
+    const claws = {}; let clawN = B.clawN || 0, clawWin = B.clawWin || 0;
     const ups = { ...(B.ups || {}) }, postV = new Set(B.postV || []); let trades = B.trades || 0, pibes = B.pibes || 0, perfRun = B.perfRun || 0, perfBest = B.perfBest || 0, wks = B.wks || 0;
     const sticks = [];   // 🂠 nada se pega solo: todo lo que tenés y no pegaste está en el mazo
     for (const e of evs) {
@@ -135,6 +136,9 @@ const Figus = (() => {
         if (!Object.entries(need).every(([k, n]) => (have[k] || 0) - n >= 1) || coins < (e.gvc || 0)) continue;
         Object.entries(need).forEach(([k, n]) => have[k] -= n); (e.get || []).forEach(k => have[k] = (have[k] || 0) + 1);
         coins += (e.rvc || 0) - (e.gvc || 0); spent += e.gvc || 0; earned.trade = (earned.trade || 0) + (e.rvc || 0); trades++; if (e.who === 'pibe') pibes++; }
+      else if (e.ty === 'claw') { if (coins < e.cost) continue; coins -= e.cost; spent += e.cost; claws[e.id] = 1; clawN++; }
+      else if (e.ty === 'clawok') { if (claws[e.e] !== 1) continue; claws[e.e] = 2; const r = e.rw || {}; coins += r.vc || 0; earned.claw = (earned.claw || 0) + (r.vc || 0); clawWin++;
+        if (r.fig) have[r.fig] = (have[r.fig] || 0) + 1; if (r.part) { const g = gar[r.part[0]] = gar[r.part[0]] || []; if (!g.includes(r.part[1])) g.push(r.part[1]); } }
       else if (e.ty === 'up') { if ((ups[e.u] || 0) !== e.lvl - 1 || coins < e.cost) continue; coins -= e.cost; spent += e.cost; ups[e.u] = e.lvl; }
       else if (e.ty === 'wk') { const n = Math.min(200, e.n || 0); coins += n; earned.wk = (earned.wk || 0) + n; wks++; }
       else if (e.ty === 'cover') { if (covers.has(e.d) || coins < e.cost) continue; coins -= e.cost; spent += e.cost; covers.add(e.d); }
@@ -142,14 +146,14 @@ const Figus = (() => {
     for (const e of sticks) { if (!(have[e.k] > 0) || stuck.has(e.k)) continue; stuck.add(e.k);
       if (e.acc >= 99) { perfRun++; perfBest = Math.max(perfBest, perfRun); } else if (e.acc !== undefined && e.dev !== 'celu') perfRun = 0;
       const n = Math.min(20, e.n || 0); if (n) { coins += n; earned.stick = (earned.stick || 0) + n; perfects++; } }
-    return D = { coins, have, toks, day, dailies, done, lastSlot, earned, spent, gar, wins, exps, posts, postT, postV, blends, expDone, stuck, covers, perfects, ups, trades, pibes, perfRun, perfBest, wks };
+    return D = { coins, have, toks, day, dailies, done, lastSlot, earned, spent, gar, wins, exps, posts, postT, postV, blends, expDone, stuck, covers, perfects, ups, trades, pibes, perfRun, perfBest, wks, clawN, clawWin };
   }
   // cuando el registro crece mucho, lo viejo (más de 60 días) se resume en una "base" (igual en todos los aparatos)
   function compact() {
     if (st.ev.length < 4000) return;
     const cut = Date.now() - 60 * 864e5, old = st.ev.filter(e => e.t <= cut); if (!old.length) return;
     const keep = st.ev.filter(e => e.t > cut); st.ev = old; D = null; const d = derive();
-    st.base = { upTo:cut, coins:d.coins, have:d.have, toks:d.toks, dailies:[...d.dailies], done:[...d.done], lastSlot:d.lastSlot, gar:d.gar, wins:d.wins, posts:[...d.posts], blends:d.blends, expDone:d.expDone, stuck:[...d.stuck], stuckV:2, postT:d.postT, postV:[...d.postV], ups:d.ups, trades:d.trades, pibes:d.pibes, perfRun:d.perfRun, perfBest:d.perfBest, wks:d.wks, covers:[...d.covers], perfects:d.perfects };
+    st.base = { upTo:cut, coins:d.coins, have:d.have, toks:d.toks, dailies:[...d.dailies], done:[...d.done], lastSlot:d.lastSlot, gar:d.gar, wins:d.wins, posts:[...d.posts], blends:d.blends, expDone:d.expDone, stuck:[...d.stuck], stuckV:2, postT:d.postT, postV:[...d.postV], ups:d.ups, trades:d.trades, pibes:d.pibes, perfRun:d.perfRun, perfBest:d.perfBest, wks:d.wks, clawN:d.clawN, clawWin:d.clawWin, covers:[...d.covers], perfects:d.perfects };
     st.ev = keep; saveSt();
   }
   function merge(r) {
@@ -237,7 +241,7 @@ const Figus = (() => {
       if (u) { if (el.tagName === 'IMG') { if (el.src !== u) el.src = u; } else el.style.backgroundImage = `url("${u}")`; el.classList.add('ok'); } }
   }
   // achico al subir: fotos a 360 px (webp/jpeg); los gif quedan como están si pesan menos de 700 KB
-  function readImg(file, max = 360) {
+  function readImg(file, max = 720) {   // las figus se guardan a 720 px: se ven bien grandes al ampliarlas
     return new Promise((ok, no) => {
       const fr = new FileReader();
       fr.onload = () => {
@@ -342,7 +346,7 @@ const Figus = (() => {
 
   /* ---------------- 🖥️ pantalla ---------------- */
   let view = { tab:'inicio' }, work = null;
-  const TABS = [['inicio', '🏠 Inicio'], ['albumes', '📚 Álbumes'], ['cambios', '🤝 Cambios'], ['garage', '🏎️ Garage'], ['expe', '🦴 Expediciones'], ['licua', '🌀 Licuadora'], ['vitrina', '🏛️ Vitrina'], ['trofeos', '🏆 Trofeos'], ['kiosco', '🏪 Kiosco'], ['repes', '🔁 Repetidas'], ['balance', '📒 Balance']];
+  const TABS = [['inicio', '🏠 Inicio'], ['albumes', '📚 Álbumes'], ['cambios', '🤝 Cambios'], ['garage', '🏎️ Garage'], ['expe', '🦴 Expediciones'], ['licua', '🌀 Licuadora'], ['gancho', '🧸 Gancho'], ['vitrina', '🏛️ Vitrina'], ['trofeos', '🏆 Trofeos'], ['kiosco', '🏪 Kiosco'], ['repes', '🔁 Repetidas'], ['balance', '📒 Balance']];
   function header() {
     const d = derive(), hoy = Math.min(ECO.slotCap, d.day[today()] || 0), s = streakFor(today()) + (d.dailies.has(today()) ? 1 : 0);
     return `${bannerHtml()}<div class="fghead"><div class="fgcoins">${coinTxt(d.coins)}</div>
@@ -403,6 +407,8 @@ const Figus = (() => {
       body = expeHtml();
     } else if (view.tab === 'cambios') {
       body = cambiosHtml();
+    } else if (view.tab === 'gancho') {
+      body = ganchoHtml();
     } else if (view.tab === 'vitrina') {
       body = vitrinaHtml();
     } else if (view.tab === 'licua') {
@@ -422,7 +428,7 @@ const Figus = (() => {
     bindCommon(v); v.querySelectorAll('.fgbn-it .fig[data-k]').forEach(f => f.onclick = () => zoom(f));
     v.querySelectorAll('[data-alb]').forEach(b => b.onclick = () => { view = { tab:view.tab, alb:b.dataset.alb }; render(); });
     v.querySelectorAll('[data-new]').forEach(b => b.onclick = newAlbum);
-    bindExpe(v); bindLicua(v); bindCambios(v); bindWk(v); bindVitrina(v);
+    bindExpe(v); bindLicua(v); bindCambios(v); bindWk(v); bindVitrina(v); bindGancho(v);
     v.querySelectorAll('[data-gs]').forEach(b => b.onclick = () => { view.gs = b.dataset.gs; render(); });
     v.querySelectorAll('[data-gbox]').forEach(b => b.onclick = () => buyBox(b.dataset.gbox));
     v.querySelectorAll('[data-gmod]').forEach(b => b.onclick = () => modelZoom(b.dataset.gmod));
@@ -555,6 +561,7 @@ const Figus = (() => {
       v.querySelector('[data-bk="-1"]').disabled = si === 0; v.querySelector('[data-bk="1"]').disabled = si === SP.length - 1; if (TV) fitTV(v); fitPages(vw); };
     const bindPage = root => {
       root.querySelectorAll('.fig[data-k]').forEach(f => f.onclick = () => zoom(f));
+      if (PC) root.querySelectorAll('.fig.ghost.tostick[data-slotk]').forEach(f => f.onclick = () => zoomKey(f.dataset.slotk));
       root.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => { const t = SP.findIndex(sp => [sp.one, sp.solo, sp.wide, sp.l, sp.r].includes(+b.dataset.goto)); if (t >= 0) turn(t); });
       root.querySelectorAll('[data-buy1]').forEach(b => b.onclick = () => {
         const c = a.cards.find(x => String(x.n) === b.dataset.buy1), cost = ECO.buy[c.rar || 'c'];
@@ -731,7 +738,7 @@ const Figus = (() => {
       else { const leaf = leaves(a).findIndex(x => x.html?.includes(`data-slotk="${esc(k)}"`)); if (leaf >= 0) goLeaf(leaf); } });
     vw.addEventListener('click', e => {
       const sl = e.target.closest('.tostick[data-slotk]'); if (!sl) return;
-      if (!pickK) return toast('<b>Primero elegí la figu del mazo</b><small>Está abajo de la hoja.</small>', { cls:'info', ms:2200 });
+      if (!pickK) return zoomKey(sl.dataset.slotk);   // sin elegir del mazo: la muestro grande
       if (sl.dataset.slotk !== pickK) { sl.classList.remove('nope'); void sl.offsetWidth; sl.classList.add('nope'); return toast('<b>Esa no va ahí</b><small>Fijate el número.</small>', { cls:'info', ms:1800 }); }
       const k = pickK; pickK = null; add({ id:'st-' + k, ty:'stick', k, dev:'celu', n:0 }); pushSoon(); checkDone(a); render();
       $('v-figus').querySelector(`.bkview .fig[data-k="${CSS.escape(k)}"]`)?.classList.add('justin'); });
@@ -856,6 +863,102 @@ const Figus = (() => {
   }
   const fdate = t => t ? new Date(t).toLocaleDateString('es-AR', { day:'numeric', month:'long', year:'numeric' }) : '—';
 
+  /* ---------------- 🧸 MÁQUINA DE GANCHO: ponés vaccoins, movés el gancho y tratás de agarrar una cápsula ----------------
+     Lo que trae la cápsula sale "sorteado" con el número de la jugada (igual en todos tus aparatos). */
+  const CLAW = 30;
+  function clawPrize(id) {
+    const r = rng('cl' + id), d = derive(), x = r(), out = {};
+    const pool = albums().filter(a => a.kind !== 'vaca').flatMap(a => ready(a).map(c => ({ k:a.id + ':' + c.n, rar:c.rar || 'c' })));
+    const pickFig = only => { const W = { c:60, r:25, e:11, l:4 }, l = pool.filter(c => !only || c.rar === only); if (!l.length) return null; const tot = l.reduce((a, c) => a + W[c.rar], 0); let q = r() * tot; for (const c of l) { q -= W[c.rar]; if (q <= 0) return c.k; } return l[0].k; };
+    if (x < .02) out.fig = pickFig('l') || pickFig();
+    else if (x < .47) out.fig = pickFig();
+    else if (x < .62) { const inc = Object.keys(GARAGE).flatMap(models).filter(m => (d.gar[m.key] || []).length > 0 && (d.gar[m.key] || []).length < 10);
+      const m = inc.length ? inc[Math.floor(r() * inc.length)] : null; if (m) { const left = GARAGE[m.s].parts.map(p => p[0]).filter(p => !(d.gar[m.key] || []).includes(p)); out.part = [m.key, left[Math.floor(r() * left.length)]]; } }
+    else if (x < .70) out.vc = 100;
+    if (!out.fig && !out.part && !out.vc) out.vc = Math.round(15 + r() * 45);
+    return out;
+  }
+  function ganchoHtml() {
+    const d = derive();
+    return `<div class="claw"><div class="clawcab"><div class="clawtop">🧸 GANCHO FUNVS 🧸</div><canvas id="clawCv" width="320" height="420" tabindex="0" aria-label="Máquina de gancho"></canvas>
+        <div class="clawctl"><button data-cm="-1" aria-label="Izquierda">◀</button><button class="pri" data-cgo>⬇ ¡Bajar!</button><button data-cm="1" aria-label="Derecha">▶</button></div>
+        <button class="pri clawcoin" data-cplay ${d.coins >= CLAW ? '' : 'disabled'}>🪙 Poner ${coinTxt(CLAW)} y jugar</button></div>
+      <div class="clawinfo"><h3>Cómo se juega</h3><p>Poné ${CLAW} vaccoins, mové el gancho con ◀ ▶ (o las flechitas, o arrastrando con el dedo) y tocá <b>¡Bajar!</b>. Si agarra una cápsula y no se le cae en el camino, la suelta en la boca de premios.</p>
+        <p>Adentro puede haber: <b>figus</b> de tus álbumes (de cualquier rareza, hasta legendarias), <b>vaccoins</b> (a veces 100), o un <b>repuesto</b> para una maqueta que ya empezaste.</p>
+        <p class="mut">Tenés 15 segundos para apuntar. Jugaste ${d.clawN} ${d.clawN === 1 ? 'vez' : 'veces'} · ganaste ${d.clawWin}.</p></div></div>`;
+  }
+  let clawStop = null;
+  function bindGancho(v) {
+    const cv = v.querySelector('#clawCv'); if (clawStop) { clawStop(); clawStop = null; } if (!cv) return;
+    const g = cv.getContext('2d'), W = 320, H = 420, CH = 64, FLOOR = 404, COLS = ['#1238b5', '#ffffff', '#0b0b0b', '#3d7bff', '#9fb6ff', '#e33', '#ffd400'];
+    const caps = []; for (let i = 0; i < 18; i++) caps.push({ x:CH + 34 + Math.random() * (W - CH - 60), y:FLOOR - 18 - Math.random() * 40, r:17, c:COLS[i % COLS.length], vy:0, a:Math.random() * 6 });
+    const settle = () => { for (let k = 0; k < 40; k++) for (const p of caps) { if (p.held) continue; let floor = FLOOR - p.r;
+      for (const q of caps) if (q !== p && !q.held && q.y > p.y - 1) { const dx = p.x - q.x, dy = q.y - p.y, dd = Math.hypot(dx, dy); if (dd < p.r + q.r) { floor = Math.min(floor, q.y - Math.sqrt(Math.max(0, (p.r + q.r) ** 2 - dx * dx))); if (Math.abs(dx) < 4) p.x += (dx >= 0 ? 1 : -1) * 1.5; } }
+      p.y = Math.min(p.y + 2, floor); p.x = Math.max(CH + p.r + 6, Math.min(W - p.r - 4, p.x)); } };
+    settle();
+    let st = 'idle', cx = W / 2 + 20, cy = 40, open = 1, held = null, dir = 0, t0 = 0, play = null, slipAt = 0, prize = null, raf = 0, alive = true;
+    const draw = () => {
+      g.clearRect(0, 0, W, H);
+      const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0d1d5a'); bg.addColorStop(1, '#050a1c'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+      g.fillStyle = '#ffffff10'; for (let i = 0; i < 6; i++) g.fillRect(30 + i * 52, 0, 2, H);
+      g.fillStyle = '#000'; g.fillRect(0, FLOOR - 70, CH, 70 + 20); g.fillStyle = '#ffffff22'; g.fillRect(CH, FLOOR - 70, 4, 90);   // la boca de premios
+      g.fillStyle = '#fff'; g.font = 'bold 10px system-ui'; g.textAlign = 'center'; g.fillText('PREMIO', CH / 2, FLOOR - 76);
+      g.fillStyle = '#1a2a6c'; g.fillRect(CH + 4, FLOOR, W, H - FLOOR);
+      for (const p of caps) { if (p === held) continue; cap(p); }
+      g.strokeStyle = '#cfd6e6'; g.lineWidth = 2; g.beginPath(); g.moveTo(cx, 0); g.lineTo(cx, cy - 10); g.stroke();   // la soga
+      g.fillStyle = '#cfd6e6'; g.fillRect(cx - 12, cy - 14, 24, 10);
+      const arm = s => { g.save(); g.translate(cx, cy - 4); g.rotate(s * (.25 + open * .45)); g.strokeStyle = '#e8edf6'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.moveTo(0, 0); g.lineTo(s * 4, 20); g.lineTo(-s * 6, 30); g.stroke(); g.restore(); };
+      arm(-1); arm(1);
+      if (held) { held.x = cx; held.y = cy + 26; cap(held); }
+      g.fillStyle = '#ffffff12'; g.fillRect(0, 0, W, 6);
+      if (st === 'aim') { const left = Math.max(0, 15 - (performance.now() - t0) / 1000); g.fillStyle = '#fff'; g.font = 'bold 14px Oswald, system-ui'; g.textAlign = 'right'; g.fillText(`⏱ ${left.toFixed(0)}`, W - 8, 22); }
+      if (st === 'idle') { g.fillStyle = '#fff'; g.font = 'bold 15px Oswald, system-ui'; g.textAlign = 'center'; g.fillText('Poné vaccoins para jugar', W / 2 + 30, 150); }
+    };
+    const cap = p => { g.save(); g.translate(p.x, p.y); g.rotate(p.a); g.beginPath(); g.arc(0, 0, p.r, Math.PI, 0); g.fillStyle = p.c; g.fill(); g.beginPath(); g.arc(0, 0, p.r, 0, Math.PI); g.fillStyle = '#ffffffdd'; g.fill();
+      g.strokeStyle = '#0006'; g.lineWidth = 1.5; g.beginPath(); g.arc(0, 0, p.r, 0, Math.PI * 2); g.moveTo(-p.r, 0); g.lineTo(p.r, 0); g.stroke(); g.restore(); };
+    const step = now => {
+      if (!alive || !document.body.contains(cv)) return stop();
+      if (st === 'aim') { cx = Math.max(CH + 14, Math.min(W - 14, cx + dir * 2.6)); if ((now - t0) / 1000 >= 15) drop(); }
+      else if (st === 'down') { const under = caps.filter(p => Math.abs(p.x - cx) < p.r + 6), stopY = under.length ? Math.min(...under.map(p => p.y - p.r)) - 22 : FLOOR - 30;
+        cy += 3; if (cy >= stopY) { st = 'grab'; t0 = now; } }
+      else if (st === 'grab') { open = Math.max(0, 1 - (now - t0) / 350); if (open === 0) {
+          const near = caps.filter(p => Math.abs(p.x - cx) < 18 && Math.abs(p.y - (cy + 26)) < 30).sort((a, b) => Math.abs(a.x - cx) - Math.abs(b.x - cx))[0];
+          if (near && Math.random() < .9 - Math.abs(near.x - cx) / 18 * .45) { held = near; held.held = true; slipAt = Math.random() < .2 ? 60 + Math.random() * 180 : -1; }
+          st = 'up'; } }
+      else if (st === 'up') { cy -= 2.4; if (held && slipAt > 0 && cy < slipAt) { held.held = false; held.vy = 0; held = null; SND.nope(); }
+        if (cy <= 40) { cy = 40; st = held ? 'home' : 'fail'; t0 = now; } }
+      else if (st === 'home') { cx -= 2.6; if (cx <= CH / 2) { cx = CH / 2; st = 'release'; t0 = now; } }
+      else if (st === 'release') { open = Math.min(1, (now - t0) / 250); if (open === 1 && held) { const p = held; held = null; p.held = false; caps.splice(caps.indexOf(p), 1); win(p); } }
+      else if (st === 'fail') { open = Math.min(1, (now - t0) / 300); if (open === 1) { st = 'idle'; toast('<b>¡Uh, casi!</b><small>Se le escapó. Probá de nuevo.</small>', { cls:'info', ms:2200 }); cx = W / 2 + 20; } }
+      for (const p of caps) if (!p.held && p.y < FLOOR - p.r - 1) { p.vy = Math.min(8, (p.vy || 0) + .5); p.y += p.vy; }
+      settle(); draw(); raf = requestAnimationFrame(step);
+    };
+    const stop = () => { alive = false; cancelAnimationFrame(raf); removeEventListener('keydown', keys, true); removeEventListener('keyup', keys, true); };
+    clawStop = stop;
+    function drop() { if (st !== 'aim') return; st = 'down'; open = 1; dir = 0; }
+    function win(p) {
+      const rw = clawPrize(play), x0 = derive().have; const before = { ...x0 };
+      add({ id:'clok-' + play, ty:'clawok', e:play, rw }); pushSoon(); st = 'idle'; cx = W / 2 + 20; SND.snap(); SND.perfect();
+      setTimeout(() => {
+        if (rw.fig) { const x = keyCard(rw.fig); showPack(x.a, [rw.fig], before); }
+        else if (rw.part) { const m = modelOf(rw.part[0]); toast(`<b>🧸 ¡Cápsula con repuesto!</b><small>${esc(GARAGE[m.s].parts.find(q => q[0] === rw.part[1])[1])} para el ${esc(m.name)}.</small>`, { cls:'info', ms:5000 }); render(); }
+        else { toast(`<b>🧸 ¡Cápsula con ${rw.vc} vaccoins!</b>`, { cls:'info', ms:3500 }); render(); } }, 500);
+    }
+    v.querySelector('[data-cplay]').onclick = () => { if (st !== 'idle') return; if (derive().coins < CLAW) return toast('<b>Te faltan vaccoins</b>', { cls:'info' });
+      play = 'c' + uid() + Date.now().toString(36); if (!add({ id:play, ty:'claw', cost:CLAW })) return; pushSoon(); st = 'aim'; t0 = performance.now(); open = 1; cy = 40;
+      const hc = $('v-figus').querySelector('.fghead .fgcoins'); if (hc) hc.innerHTML = coinTxt(derive().coins); v.querySelector('[data-cplay]').disabled = derive().coins < CLAW; cv.focus(); };
+    v.querySelector('[data-cgo]').onclick = drop;
+    v.querySelectorAll('[data-cm]').forEach(b => { const d = +b.dataset.cm; const on = e => { e.preventDefault(); dir = d; }, off = () => { if (dir === d) dir = 0; };
+      b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointerleave', off); b.addEventListener('pointercancel', off); });
+    cv.addEventListener('pointermove', e => { if (st !== 'aim' || !(e.buttons || e.pointerType === 'touch')) return; const r = cv.getBoundingClientRect(); cx = Math.max(CH + 14, Math.min(W - 14, (e.clientX - r.left) / r.width * W)); });
+    cv.addEventListener('pointerdown', e => { if (st !== 'aim') return; const r = cv.getBoundingClientRect(); cx = Math.max(CH + 14, Math.min(W - 14, (e.clientX - r.left) / r.width * W)); });
+    var keys = e => { if (!document.body.contains(cv) || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)) return;
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { if (st === 'aim') { e.preventDefault(); e.stopImmediatePropagation(); dir = e.type === 'keydown' ? (e.key === 'ArrowLeft' ? -1 : 1) : 0; } }
+      else if ((e.key === ' ' || e.key === 'ArrowDown' || e.key === 'Enter') && e.type === 'keydown' && st === 'aim') { e.preventDefault(); drop(); } };
+    addEventListener('keydown', keys, true); addEventListener('keyup', keys, true);
+    raf = requestAnimationFrame(step);
+  }
+
   /* ---------------- 🎨 la tapa: diseños que se compran y stickers que se pegan donde quieras ---------------- */
   function coverPanel(v, a, vw) {
     const P = v.querySelector('.bkcovp'), d = derive(), cur = a.cover || 'clasica';
@@ -930,8 +1033,14 @@ const Figus = (() => {
   function zoom(f) { let o = $('fgZoom'); if (!o) { o = document.createElement('div'); o.id = 'fgZoom'; o.onclick = () => o.remove(); }
     const x = keyCard(f.dataset.k || '');
     o.className = tvDev() ? 'fgstatic' : ''; o.innerHTML = `<div class="fgzwrap">${f.outerHTML}${x?.c ? fichaHtml(x.a, x.c) : ''}</div>${x?.c && !tvDev() ? pinBtn('fig', f.dataset.k) : ''}`; document.body.appendChild(o);
-    const big = o.querySelector('.fig'); big.classList.add('big'); big.classList.remove('tilting', 'justin'); big.removeAttribute('tabindex'); bindPin(o); hydrate(o); if (pcDev()) tilt(o);
-    if (tvDev()) { const w = Math.round(Math.min(innerWidth * .32, (innerHeight - 60) * 5 / 7)); big.style.setProperty('width', w + 'px', 'important'); big.style.setProperty('height', Math.round(w * 7 / 5) + 'px', 'important'); figFont(o); } }
+    const big = o.querySelector('.fig'); big.classList.add('big'); big.classList.remove('tilting', 'justin', 'ghost', 'tostick', 'pick', 'near'); big.removeAttribute('tabindex');
+    // 🔍 bien grande: lo que dé la pantalla (la figu del álbum trae su tamaño chiquito pegado, se lo saco)
+    ['width', 'height', 'font-size'].forEach(k => big.style.removeProperty(k));
+    const side = innerWidth > 900, w = Math.round(Math.min(tvDev() ? innerWidth * .32 : side ? innerWidth * .42 : innerWidth * .9, (innerHeight - (side ? 90 : 230)) * 5 / 7, 620));
+    big.style.setProperty('width', w + 'px', 'important'); big.style.setProperty('height', Math.round(w * 7 / 5) + 'px', 'important');
+    o.classList.toggle('side', side); bindPin(o); hydrate(o); if (pcDev()) tilt(o); }
+  // la silueta de una figu que tenés en el mazo también se amplía (con la figu de verdad)
+  function zoomKey(k) { const x = keyCard(k); if (!x?.c) return; const t = document.createElement('div'); t.innerHTML = figHtml(x.a, x.c); zoom(t.firstElementChild); }
 
   function renderEdit(v, a) {
     if (!work) work = JSON.parse(JSON.stringify(a));
@@ -1398,7 +1507,7 @@ const Figus = (() => {
     setInterval(slotTick, 60e3); setTimeout(slotTick, 5000);
     setInterval(() => { try { prode(); } catch {} velezTok(); try { wins(); } catch {} try { achCheck(); } catch {} }, 10 * 60e3);
     let avisado = '';   // 🦴 cuando Vaca vuelve del reparto, aviso (una vez)
-    setInterval(() => { const x = activeExp(); if (!tvDev() && x && Date.now() >= x.end && avisado !== x.id) { avisado = x.id; toast('<b>🦴 ¡Vaca volvió del reparto!</b><small>Tocá para cobrar.</small>', { cls:'info', ms:9000, onclick:() => { Nav.go('figus'); view = { tab:'expe' }; render(); } }); }
+    setInterval(() => { const x = activeExp(); if (!tvDev() && x && Date.now() >= x.end && avisado !== x.id) { avisado = x.id; if (notifOn('figus')) toast('<b>🦴 ¡Vaca volvió del reparto!</b><small>Tocá para cobrar.</small>', { cls:'info', ms:9000, onclick:() => { Nav.go('figus'); view = { tab:'expe' }; render(); } }); }
       if (Nav.current === 'figus' && view.tab === 'expe' && !document.hidden) render(); }, 60e3);
     setTimeout(async () => {
       await pull();
@@ -1416,5 +1525,5 @@ const Figus = (() => {
     if (Nav.current === 'figus' && view.alb && !view.edit) { view = { tab:view.tab || 'albumes' }; render(); setTimeout(() => $('v-figus')?.querySelector('[data-alb]')?.focus(), 50); return true; }
     return false;
   }
-  return { init, render, paseo, back, ECO, get coins() { return derive().coins; } };
+  return { init, render, paseo, back, tab:t => { view = { tab:t }; render(); }, ECO, get coins() { return derive().coins; } };
 })();

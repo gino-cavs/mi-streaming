@@ -39,7 +39,10 @@ const REPO = (() => {
 
 /* ---------- Datos ---------- */
 const DEVICE = S.get('deviceId', null) || (() => { const d = 'd' + Math.random().toString(36).slice(2, 8); S.set('deviceId', d); return d; })();
-const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music', 'prode', 'moments', 'stats', 'rap', 'oauth', 'boxeo', 'series', 'juegos', 'diario', 'tg', 'servicios', 'nav', 'peliculas', 'retro', 'radEdit', 'radPedido', 'secUse', 'secUseSince', 'resume', 'recs', 'remote', 'flashSeen', 'radGeo', 'geo', 'estGeo', 'resWidgets', 'grillaIcal', 't420m', 'humor', 'ytq', 'ytShare', 'plan', 'tandas', 'vacaFotos', 'grafStyle', 'paseos', 'vaca', 'fechas', 'figusGist'];
+const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music', 'prode', 'moments', 'stats', 'rap', 'oauth', 'boxeo', 'series', 'juegos', 'diario', 'tg', 'servicios', 'nav', 'peliculas', 'retro', 'radEdit', 'radPedido', 'secUse', 'secUseSince', 'resume', 'recs', 'remote', 'flashSeen', 'radGeo', 'geo', 'estGeo', 'resWidgets', 'grillaIcal', 't420m', 'humor', 'ytq', 'ytShare', 'plan', 'tandas', 'vacaFotos', 'grafStyle', 'paseos', 'vaca', 'fechas', 'figusGist', 'vistos', 'notifs'];
+// 🔔 qué avisos querés ver (se elige en Ajustes → Notificaciones)
+const NOTIFS = { fulbito:['⚽', 'Goles y resultados de los partidos que elegiste', true], avisos:['🔔', 'Programas, radios y cosas que marcaste con la campanita', true], viaje:['🚆', 'Avisos del viaje (tren y colectivo)', true], efem:['💙', 'Efemérides de Vélez (a las 13)', true], porteno:['🎻', 'Modo porteño: datos de Buenos Aires', true], figus:['🦴', 'Colección: cuando Vaca vuelve del reparto', true], mg:['📍', 'MG News (las noticias de Monte Grande igual quedan en su sección)', false] };
+const notifOn = k => !k || !NOTIFS[k] ? true : ((db.notifs || {})[k] ?? NOTIFS[k][2]);
 const DEFAULTS = () => ({
   cats:['Fútbol', 'Streamers'], chans:[], key:'', refresh:5,
   radios:[], radEdit:{}, radPedido:0, radGeo:{}, geo:{}, estGeo:{},

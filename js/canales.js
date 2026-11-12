@@ -268,13 +268,14 @@ const Canales = (() => {
   const liveCount = () => db.chans.filter(isLive).length;
 
   function render() {
-    const tabs = [{ id:'live', label:'🔴 En vivo ahora', n:liveCount() }, { id:'all', label:'Todos', n:db.chans.length },
+    const tabs = [{ id:'live', label:'🔴 En vivo ahora', n:liveCount() }, { id:'vods', label:'📼 Últimos vivos', n:Vods.unseen() }, { id:'all', label:'Todos', n:db.chans.length },
       ...db.cats.map(k => ({ id:'c:' + k, label:k, n:db.chans.filter(c => c.cat === k).length }))];
     if (db.chans.some(c => !db.cats.includes(c.cat))) tabs.push({ id:'c:', label:'Sin categoría', n:db.chans.filter(c => !db.cats.includes(c.cat)).length });
     if (!tabs.some(t => t.id === tab)) tab = 'live';
     $('tabs').innerHTML = tabs.map(t =>
       `<button class="${t.id === tab ? 'on' : ''} ${t.id === 'live' ? 'livetab' : ''}" data-t="${esc(t.id)}">${esc(t.label)}<span class="cnt">${t.n}</span></button>`).join('');
     const m = $('chanGrid');
+    if (tab === 'vods') { Vods.render(m); return; }
     const gv = S.get('canView', 'cards') === 'guia';
     if ($('btnGuia')) $('btnGuia').textContent = gv ? '▦ Tarjetas' : '📺 Guía';
     if (gv && db.chans.length) {
@@ -465,5 +466,39 @@ const Canales = (() => {
     $('newCat').onkeydown = e => { if (e.key === 'Enter') $('addCat').click(); };
     onChange(render);
   }
+  /* ---------- 📼 Últimos vivos: los programas que ya terminaron, para no perderte ninguno ---------- */
+  const Vods = (() => {
+    let data = S.get('vodsData', null), at = 0, f = S.get('vodsF', { only:'new', ch:'' });
+    const mine = () => new Set(db.chans.filter(c => c.platform === 'youtube' && c.ref?.channelId).map(c => c.ref.channelId));
+    async function load() { if (Date.now() - at < 10 * 60e3) return; at = Date.now();
+      try { const j = await (await fetch(REPO.data + 'vods.json?t=' + Math.floor(Date.now() / 600e3))).json(); if (j?.ch) { data = j; S.set('vodsData', j); if (Nav.current === 'canales') setTimeout(() => Canales.render(), 0); } } catch {} }
+    const seen = v => !!db.vistos?.[v] || (db.resume?.[v] && db.resume[v].t / Math.max(1, db.resume[v].d) > .92);
+    function list() { const M = mine(); return Object.entries(data?.ch || {}).filter(([c]) => M.has(c)).flatMap(([c, o]) => (o.vids || []).map(v => ({ ...v, c, n:db.chans.find(x => x.ref?.channelId === c)?.name || o.n }))).sort((a, b) => Date.parse(b.a) - Date.parse(a.a)); }
+    const unseen = () => { load(); return list().filter(v => !seen(v.id)).length; };
+    const when = iso => { const d = new Date(iso), days = Math.floor((new Date().setHours(0, 0, 0, 0) - new Date(d).setHours(0, 0, 0, 0)) / 864e5);
+      return (days === 0 ? 'hoy' : days === 1 ? 'ayer' : d.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'numeric' })) + ' ' + d.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hour12:false }); };
+    const hm = s => s >= 3600 ? `${Math.floor(s / 3600)} h ${Math.round(s % 3600 / 60)} min` : `${Math.round(s / 60)} min`;
+    function render(m) {
+      load();
+      if (!data) { m.innerHTML = '<div class="empty">Cargando los últimos vivos de tus canales… (los junta GitHub cada un rato; si recién agregaste el canal, aparece en la próxima pasada).</div>'; return; }
+      const all = list(), chans = [...new Map(all.map(v => [v.c, v.n])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
+      const L = all.filter(v => (!f.ch || v.c === f.ch) && (f.only !== 'new' || !seen(v.id)));
+      m.innerHTML = `<div class="vodbar"><div class="chips">${[['new', '🆕 No vistos'], ['all', 'Todos']].map(([k, t]) => `<button class="${f.only === k ? 'on' : ''}" data-vf="${k}">${t}</button>`).join('')}</div>
+          <select data-vch><option value="">Todos los canales</option>${chans.map(([c, n]) => `<option value="${esc(c)}" ${f.ch === c ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
+          <small class="mut">Vivos de las últimas 3 semanas.</small></div>
+        ${L.length ? `<div class="vodlist">${L.map(v => { const r = db.resume?.[v.id], sn = seen(v.id), pct = r ? Math.round(r.t / Math.max(1, r.d) * 100) : 0;
+          return `<div class="vod ${sn ? 'seen' : ''}"><button class="vodth" data-vp="${esc(v.id)}" data-vn="${esc(v.n)}" style="background-image:url('${esc(v.th)}')"><span>${hm(v.d || (Date.parse(v.e) - Date.parse(v.a)) / 1000)}</span>${pct && !sn ? `<i style="width:${pct}%"></i>` : ''}</button>
+            <div class="vodtx"><small>${esc(v.n)} · ${esc(when(v.a))}</small><b>${esc(v.t)}</b>
+              <div class="btns"><span class="vodst">${sn ? '✓ Visto' : pct ? `⏯ Vas por el ${pct}%` : '🆕 No lo viste'}</span><span class="sp"></span><button class="sm" data-vs="${esc(v.id)}">${sn ? 'Marcar no visto' : '✓ Ya lo vi'}</button></div></div></div>`; }).join('')}</div>`
+          : `<div class="empty">${f.only === 'new' ? '🎉 Viste todo. No te perdiste ningún vivo.' : 'No hay vivos terminados en las últimas semanas.'}</div>`}`;
+      m.querySelectorAll('[data-vf]').forEach(b => b.onclick = () => { f.only = b.dataset.vf; S.set('vodsF', f); render(m); });
+      m.querySelector('[data-vch]').onchange = e => { f.ch = e.target.value; S.set('vodsF', f); render(m); };
+      m.querySelectorAll('[data-vp]').forEach(b => b.onclick = () => Player.play({ uid:'sv_' + b.dataset.vp, platform:'youtube', ref:{ video:b.dataset.vp }, name:b.dataset.vn }));
+      m.querySelectorAll('[data-vs]').forEach(b => b.onclick = () => { const v = b.dataset.vs; db.vistos = db.vistos || {}; if (seen(v)) { delete db.vistos[v]; if (db.resume?.[v]) delete db.resume[v]; } else db.vistos[v] = Date.now();
+        const lim = Date.now() - 45 * 864e5; Object.keys(db.vistos).forEach(k => db.vistos[k] < lim && delete db.vistos[k]); save(); render(m); });
+    }
+    return { render, unseen };
+  })();
+
   return { quota, quotaTotal, qDay, checkOne, learn, byNum, numTxt, ensureNums, isLive, init, render, refresh, card, bindGrid, sortChans, status, liveCount, yt, get lastUpd() { return lastUpd; } };
 })();

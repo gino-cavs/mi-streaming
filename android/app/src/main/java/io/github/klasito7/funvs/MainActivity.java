@@ -1,6 +1,16 @@
 package io.github.klasito7.funvs;
 
 import android.app.Activity;
+import android.app.PendingIntent;
+import android.app.PictureInPictureParams;
+import android.app.RemoteAction;
+import android.content.BroadcastReceiver;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.graphics.drawable.Icon;
+import android.util.Rational;
+import android.webkit.JavascriptInterface;
+import java.util.ArrayList;
 import android.app.UiModeManager;
 import android.content.Context;
 import android.content.Intent;
@@ -29,6 +39,10 @@ public class MainActivity extends Activity {
   static final String HOST = "klasito7.github.io";
   WebView web; FrameLayout root; View custom; WebChromeClient.CustomViewCallback customCb;
   boolean tv;
+  // 🪟 ventana flotante de verdad (PiP de Android, con sus controles): solo el video, encima de todo
+  static final String PIP_TOGGLE = "io.github.klasito7.funvs.PIP_TOGGLE";
+  volatile boolean playing = false;
+  BroadcastReceiver pipRcv;
 
   @Override protected void onCreate(Bundle b) {
     super.onCreate(b);
@@ -62,6 +76,14 @@ public class MainActivity extends Activity {
       }
       @Override public void onHideCustomView() { leaveCustom(); }
     });
+    web.addJavascriptInterface(new Bridge(), "FUNVSNative");
+    if (Build.VERSION.SDK_INT >= 26) {
+      pipRcv = new BroadcastReceiver() { @Override public void onReceive(Context c, Intent i) {
+        web.evaluateJavascript("(window.FUNVSApp&&FUNVSApp.pipToggle)?FUNVSApp.pipToggle():false", new ValueCallback<String>() {
+          @Override public void onReceiveValue(String r) { playing = "true".equals(r); updatePip(); } }); } };
+      IntentFilter f = new IntentFilter(PIP_TOGGLE);
+      if (Build.VERSION.SDK_INT >= 33) registerReceiver(pipRcv, f, Context.RECEIVER_NOT_EXPORTED); else registerReceiver(pipRcv, f);
+    }
     web.setFocusable(true); web.setFocusableInTouchMode(true); web.requestFocus();
     if (b != null) web.restoreState(b); else web.loadUrl(HOME);
     immersive();
@@ -116,8 +138,41 @@ public class MainActivity extends Activity {
     return super.dispatchKeyEvent(e);
   }
 
+  /** Lo que la página puede pedirle a la app. */
+  class Bridge {
+    @JavascriptInterface public boolean hasPip() { return canPip(); }
+    @JavascriptInterface public void pip() { runOnUiThread(new Runnable() { @Override public void run() { enterPip(); } }); }
+    @JavascriptInterface public void playing(boolean p) { playing = p; runOnUiThread(new Runnable() { @Override public void run() { updatePip(); } }); }
+  }
+  boolean canPip() { return !tv && Build.VERSION.SDK_INT >= 26 && getPackageManager().hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE); }
+  PictureInPictureParams pipParams() {
+    PictureInPictureParams.Builder b = new PictureInPictureParams.Builder().setAspectRatio(new Rational(16, 9));
+    ArrayList<RemoteAction> acts = new ArrayList<>();
+    int fl = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0);
+    PendingIntent pi = PendingIntent.getBroadcast(this, 1, new Intent(PIP_TOGGLE).setPackage(getPackageName()), fl);
+    acts.add(new RemoteAction(Icon.createWithResource(this, playing ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play), playing ? "Pausa" : "Play", playing ? "Pausa" : "Play", pi));
+    b.setActions(acts);
+    if (Build.VERSION.SDK_INT >= 31) b.setAutoEnterEnabled(playing).setSeamlessResizeEnabled(true);
+    return b.build();
+  }
+  void updatePip() { if (canPip()) try { setPictureInPictureParams(pipParams()); } catch (Exception e) {} }
+  void enterPip() {
+    if (!canPip()) return;
+    if (custom != null) leaveCustom();
+    web.evaluateJavascript("window.FUNVSApp&&FUNVSApp.pipMode&&FUNVSApp.pipMode(true)", null);
+    try { enterPictureInPictureMode(pipParams()); } catch (Exception e) { web.evaluateJavascript("window.FUNVSApp&&FUNVSApp.pipMode&&FUNVSApp.pipMode(false)", null); }
+  }
+  /** Si apretás Inicio mientras mirás algo, queda flotando (en Android 12+ lo hace solo el sistema). */
+  @Override protected void onUserLeaveHint() { super.onUserLeaveHint(); if (playing && canPip() && Build.VERSION.SDK_INT < 31) enterPip(); }
+  @Override public void onPictureInPictureModeChanged(boolean in, Configuration c) {
+    super.onPictureInPictureModeChanged(in, c);
+    web.evaluateJavascript("window.FUNVSApp&&FUNVSApp.pipMode&&FUNVSApp.pipMode(" + in + ")", null);
+    if (!in) immersive();
+  }
+  boolean inPip() { return Build.VERSION.SDK_INT >= 24 && isInPictureInPictureMode(); }
+
   @Override protected void onSaveInstanceState(Bundle o) { super.onSaveInstanceState(o); web.saveState(o); }
-  @Override protected void onPause() { super.onPause(); web.onPause(); }
+  @Override protected void onPause() { super.onPause(); if (!inPip()) web.onPause(); }   // flotando, el video sigue
   @Override protected void onResume() { super.onResume(); web.onResume(); immersive(); }
-  @Override protected void onDestroy() { web.destroy(); super.onDestroy(); }
+  @Override protected void onDestroy() { if (pipRcv != null) try { unregisterReceiver(pipRcv); } catch (Exception e) {} web.destroy(); super.onDestroy(); }
 }
