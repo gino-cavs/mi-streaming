@@ -88,7 +88,7 @@ const Velez = (() => {
             ${!db.key ? '<div class="empty" style="padding:12px">Necesita la clave de YouTube (⚙).</div>'
               : !vids ? '<div class="empty" style="padding:12px">Buscando videos…</div>'
               : vids.items.length ? `<div class="vids" id="vVids">${vids.items.map(vcard).join('')}</div>`
-              : `<div class="empty" style="padding:12px">${vids.err ? esc(vids.err) : 'No encontré videos recientes.'}</div>`}
+              : `<div class="empty" style="padding:12px">${vids.err ? '⚠ ' + esc(niceErr(vids.err)) : 'No encontré videos recientes.'}</div>`}
           </div>
         </div>
         <div>

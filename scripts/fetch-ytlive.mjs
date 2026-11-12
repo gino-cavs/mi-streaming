@@ -61,7 +61,7 @@ for (const c of cids) {
   } catch (e) { console.log('vods:', e.message); if (old) vods.ch[c] = old; }
 }
 out.used += vu;
-await writeFile(dir + '/vods.json', JSON.stringify(vods));
+await writeFile(dir + '/vods.json', JSON.stringify({ ...vods, updated: new Date().toISOString() }));
 console.log(`Últimos vivos: ${Object.values(vods.ch).reduce((a, x) => a + (x.vids?.length || 0), 0)} vivos terminados de ${Object.keys(vods.ch).length} canales (${vu} unidades)`);
 await done();
 console.log(`Vivos: ${n} búsquedas, ${Object.values(out.ch).filter(o => o.lives.length).length}/${cids.length} canales con vivo conocido, ${out.used} unidades hoy`);

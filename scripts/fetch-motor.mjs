@@ -140,12 +140,12 @@ async function nascar() {
 /* ---------- Turismo Carretera (ACTC) ---------- */
 async function tc() {
   const h = await html('https://actc.org.ar/tc/calendario');
-  const t = txt(h);
+  const t = txt(h.replace(/<script[\s\S]*?<\/script>/gi, ' '));   // sin los datos internos de la página (traían JSON pegado al nombre)
   const cal = [];
   for (const m of t.matchAll(/Fecha (\d+) — ([^|]+?) (?:lun|mar|mié|mie|jue|vie|sáb|sab|dom), (\d{1,2}) (\w+) (\d{4}) (.+?) — ([^—]+?)(?= Ver resultados| Próximamente| Faltan| Fecha \d| Fechas anteriores|$)/g)) {
     const [, n, name, d, mes, y, circuit, place] = m;
     if (cal.some(c => c.round === +n)) continue;
-    cal.push({ round:+n, name:title(name.trim()), circuit:circuit.trim(), place:place.trim(), date:isoDay(y, MES[mes.toLowerCase().slice(0, 4)] || MES[mes.toLowerCase().slice(0, 3)], d) + 'T16:00:00Z', dayOnly:true });
+    cal.push({ round:+n, name:title(name.split(/\\?"/)[0].trim()), circuit:circuit.trim(), place:place.trim(), date:isoDay(y, MES[mes.toLowerCase().slice(0, 4)] || MES[mes.toLowerCase().slice(0, 3)], d) + 'T16:00:00Z', dayOnly:true });
   }
   let standings = [];
   try {

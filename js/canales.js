@@ -441,7 +441,7 @@ const Canales = (() => {
       if (c.platform === 'youtube' && db.key && !c.ref.video) {
         msg.className = 'msg'; msg.textContent = 'Buscando el canal…';
         try { await resolveYT(c); if (name) c.name = name; }
-        catch (e) { if (e instanceof TypeError) warn(NET_MSG + ' El canal quedó guardado igual.'); else { msg.className = 'msg err'; msg.textContent = e.message; return; } }
+        catch (e) { if (e instanceof TypeError) warn(NET_MSG + ' El canal quedó guardado igual.'); else { msg.className = 'msg err'; msg.textContent = niceErr(e.message); return; } }
       }
       c.num = Math.max(0, ...db.chans.map(x => +x.num || 0)) + 1;
       db.chans.push(c); save(); $('dlgCh').close(); render(); refresh();

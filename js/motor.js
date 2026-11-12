@@ -15,6 +15,7 @@ const Motor = (() => {
     try {
       const j = await (await fetch(REPO.data + 'motor.json?t=' + Math.floor(Date.now() / 600e3))).json();
       if (!j || !j.cats) return;
+      Object.values(j.cats).forEach(c => (c.cal || []).forEach(x => { x.name = String(x.name || '').split(/\\?"/)[0].trim(); }));   // por si una web mete basura en el nombre
       j._at = Date.now(); data = j; S.set('motorData', j);
       if (Nav.current === 'motor') render();
       Nav.badges();
@@ -59,14 +60,14 @@ const Motor = (() => {
       </div></div>
       <div id="mBody">${tab === 'resumen' ? resumen() : catView(tab)}</div>
       <p class="mut" style="font-size:12px;margin-top:14px">Datos: Jolpica (F1), motogp.com, ESPN (NASCAR), ACTC, tc2000.com.ar, toprace.com.ar · Canales: futbolenvivoargentina.com · Actualizado ${ago(data.updated)} · <a href="https://vueltarapida.com/calendario" target="_blank" rel="noopener" style="color:var(--acc)">Calendario de +50 categorías en Vuelta Rápida ↗</a></p>`;
-    $('mPdf').onclick = e => { e.stopPropagation(); Finde.open(); };
+    $('mPdf').onclick = e => { e.stopPropagation(); need('finde').then(() => Finde.open()); };
     $('mTabs').onclick = e => { const b = e.target.closest('[data-m]'); if (b) { tab = b.dataset.m; S.set('motorTab', tab); render(); } };
     v.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { tab = b.dataset.go; S.set('motorTab', tab); render(); $('scroller').scrollTo(0, 0); });
     const f = $('mFavForm');
     if (f) f.onsubmit = e => { e.preventDefault(); const n = $('mFavIn').value.trim(); if (n && !db.motor.drivers.some(d => norm(d) === norm(n))) { db.motor.drivers.push(n); save(); } render(); };
     v.querySelectorAll('[data-unfav]').forEach(b => b.onclick = () => { db.motor.drivers = db.motor.drivers.filter(d => d !== b.dataset.unfav); save(); render(); });
     const pr = $('mPractice'); if (pr) pr.onchange = () => { db.motor.practice = pr.checked; save(); };
-    if (tab === 'f1') F1Live.mount($('f1Box'), { live:live.some(x => x.id === 'f1') });
+    if (tab === 'f1') need('f1live').then(() => { if ($('f1Box')) F1Live.mount($('f1Box'), { live:live.some(x => x.id === 'f1') }); });
   }
 
   function resumen() {

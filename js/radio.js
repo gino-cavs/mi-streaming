@@ -71,7 +71,7 @@ const Radio = (() => {
         <p class="mut" style="font-size:12px;margin-top:10px">Las radios salen de radio-browser.info, una lista comunitaria y gratuita. Si alguna no suena, probá con otra versión de la misma radio.</p>`;
       $('rForm').onsubmit = e => { e.preventDefault(); search($('rQ').value.trim()); };
       $('rTop').onclick = () => search('');
-      $('rMap').onclick = e => { e.stopPropagation(); RadioMapa.open(); };
+      $('rMap').onclick = e => { e.stopPropagation(); need('mapa').then(() => RadioMapa.open()); };
       $('rLink').onclick = e => { e.stopPropagation(); linkForm(null); };
       $('rView').onclick = e => { const b = e.target.closest('[data-rv]'); if (b) { S.set('radView', b.dataset.rv); render(); } };
       v.addEventListener('click', e => {

@@ -19,7 +19,7 @@ const Buscar = (() => {
     const G = [];
     const grp = (title, arr) => { if (arr.length) G.push(`<h4>${title}</h4>` + arr.slice(0, 6).join('')); };
     // secciones
-    grp('Secciones', ['deportes', 'tv247', 'sonido', 'mas', 'inicio', 'canales', 'radios', 'calendario', 'fulbito', 'prode', 'motor', 'boxeo', 'series', 'peliculas', 'musica', 'rap', '420', 'momentos', 'noticias', 'velez', 'juegos', 'wrapped']
+    grp('Secciones', ['ver', 'deportes', 'escuchar', 'midia', 'jugar', 'inicio', 'canales', 'radios', 'calendario', 'fulbito', 'prode', 'motor', 'boxeo', 'series', 'peliculas', 'musica', 'rap', '420', 'momentos', 'noticias', 'velez', 'juegos', 'wrapped']
       .filter(id => has(Nav.label(id), q)).map(id => item('➡️', Nav.label(id), '', () => Nav.go(id))));
     // canales
     grp('Canales', db.chans.filter(c => has(c.name + ' ' + (c.ref.handle || '') + ' ' + (Canales.status[c.uid]?.title || ''), q)).map(c => { const s = Canales.status[c.uid] || {};

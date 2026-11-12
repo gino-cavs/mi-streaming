@@ -4,9 +4,9 @@
 const Nav = (() => {
   const SECS = [['inicio', '🏠 Ahora'], ['canales', '📺 Canales'], ['radios', '📻 Radios'], ['calendario', '📅 Calendario'], ['fulbito', '⚽ Fulbito'], ['prode', '🎯 Prode'], ['motor', '🏁 Automovilismo'], ['boxeo', '🥊 Boxeo'], ['series', '📼 Series'], ['peliculas', '🎬 Películas'], ['musica', '🎵 Música'], ['rap', '🎤 Rap Battle'], ['420', '🍃 420 time'], ['mg', '📍 MG News'], ['tandas', '📼 Tandas'], ['novelas', '📺 Novelas'], ['porteno', '🎻 Modo porteño'], ['paseo', '🐶 Paseo de Vaca'], ['figus', '🏛️ Colección'], ['fechas', '🎂 Fechas'], ['momentos', '⭐ Momentos'], ['noticias', '📰 Noticias'], ['velez', '💙 Mundo Vélez'], ['juegos', '🎮 Juegos'], ['wrapped', '✨ Wrapped']];
   /* Menú corto: arriba van pocas pestañas; las secciones parecidas viven juntas adentro de un grupo (con pestañitas). */
-  const GROUPS = { deportes:['🏟️ Deportes', ['fulbito', 'velez', 'motor', 'boxeo']], tv247:['📼 24/7', ['series', 'peliculas', 'novelas', 'tandas']], sonido:['🎧 Música y Radios', ['musica', 'radios']],
-    mas:['➕ Más', ['mg', 'paseo', 'fechas', 'porteno', 'calendario', 'noticias', 'prode', 'rap', '420', 'momentos', 'juegos', 'wrapped']] };
-  const TOP = ['inicio', 'canales', 'deportes', 'tv247', 'sonido', 'figus', 'mas'];
+  const GROUPS = { ver:['📺 Ver', ['canales', 'series', 'peliculas', 'novelas', 'tandas']], deportes:['🏟️ Deportes', ['fulbito', 'velez', 'motor', 'boxeo', 'prode']],
+    escuchar:['🎧 Escuchar', ['musica', 'radios', 'porteno']], midia:['🐶 Mi día', ['paseo', 'fechas', 'calendario', 'momentos', 'mg', 'noticias']], jugar:['🎮 Jugar', ['juegos', 'rap', '420', 'wrapped']] };
+  const TOP = ['inicio', 'ver', 'deportes', 'escuchar', 'figus', 'midia', 'jugar'];
   let current = null;
   const renderers = { inicio:() => Inicio.render(), canales:() => Canales.render(), radios:() => Radio.render(), calendario:() => Calendario.render(), motor:() => Motor.render(), boxeo:() => Boxeo.render(), musica:() => Musica.render(), series:() => Series.render(), peliculas:() => Peliculas.render(), rap:() => Rap.render(), '420':() => T420.render(), mg:() => MG.render(), tandas:() => Tanda.render(), novelas:() => Novelas.render(), porteno:() => Porteno.render(), paseo:() => Paseo.render(), figus:() => Figus.render(), fechas:() => Fechas.render(), prode:() => Prode.render(), momentos:() => Momentos.render(), wrapped:() => Stats.render(), fulbito:() => Fulbito.render(), noticias:() => Noticias.render(), velez:() => Velez.render(), juegos:() => Juegos.render() };
   const hidden = () => db.nav?.hidden || [];
@@ -21,7 +21,7 @@ const Nav = (() => {
   function go(s) {
     if (GROUPS[s]) s = visMembers(s).includes(S.get('grpLast', {})[s]) ? S.get('grpLast', {})[s] : visMembers(s)[0] || 'canales';
     if (!renderers[s]) s = hidden().includes('inicio') ? 'canales' : 'inicio';
-    current = s;
+    current = s; document.getElementById('findeDlg')?.remove();
     const g = groupOf(s); if (g) S.set('grpLast', { ...S.get('grpLast', {}), [g]:s });
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('show', v.id === 'v-' + s));
     $('canalTools').style.display = s === 'canales' ? '' : 'none';
@@ -111,6 +111,32 @@ function initSettings() {
   $('setGs').onchange = e => { db.grafStyle = e.target.value; save(); gs(); try { Grafismo.barPop('🎨 ESTILO', `<b>${esc(e.target.selectedOptions[0].text)}</b> Así se ve el zócalo`, { ms:5000 }); } catch {} };
   // 📐 zona segura: el video deja libre arriba (donde van el cartel y el logo FUNVS)
   document.body.classList.toggle('safehud', S.get('safeHud', true));
+  // 🔎 buscador de ajustes: muestra solo los grupos que tienen esa palabra y los abre
+  $('setFind').oninput = e => { const q = norm(e.target.value.trim()); document.querySelectorAll('#dlgSet .sgrp').forEach(g => { const hit = !q || norm(g.textContent).includes(q); g.style.display = hit ? '' : 'none'; if (q && hit) g.open = true; });
+    if (q) { const el = [...document.querySelectorAll('#dlgSet .sgrp label, #dlgSet .sgrp p')].find(x => x.offsetParent && norm(x.textContent).includes(q)); el?.scrollIntoView({ block:'center' }); } };
+  // 💾 copia de seguridad: todo lo que se sincroniza + la Colección, en un archivo
+  // Estado de los datos del robot: cada archivo con su última actualización y aviso si quedó viejo
+  const ST_FILES = [['news','📰 Noticias',2],['mg','🏘️ MG News',3],['actualidad','🗞️ Actualidad',3],['tv','📺 TV de los partidos',3],['motor','🏁 Automovilismo',3],['boxeo','🥊 Boxeo',6],['ytfeeds','▶️ Feeds de canales',3],['ytlive','🔴 Vivos escondidos',3],['vods','📼 Últimos vivos',4],['resumenes','⚽ Resúmenes',6],['grillacal','🗓️ Grilla del calendario',6],['radios','📻 Grilla de radios',800],['tvcanales','📡 TV de aire',30],['guia','📋 Guía del streaming',30],['album','💿 Álbum del día',30],['temas420','🌿 Temas 420',30],['clasicos','🏟️ Clásicos',30],['novelas','📺 Novelas',800],['efemerides','📅 Efemérides',800],['estadios','🏟️ Estadios',800],['juegos','🎲 Datos de juegos',200],['jugo','🤝 ¿Jugó con?',200]];
+  const stWhen = d => { if (!d || typeof d !== 'object') return null; for (const k of ['updated','at','date']) if (d[k]) return d[k]; return null; };
+  $('stChk').onclick = async () => {
+    const out = $('stOut'), btn = $('stChk'); btn.disabled = true; out.innerHTML = '<p class="mut">Revisando…</p>';
+    let robot = '';
+    try { const r = await fetch(`https://api.github.com/repos/${REPO.owner}/${REPO.repo}/commits/datos`, { cache:'no-store' }); if (r.ok) { const c = await r.json(), t = c.commit?.committer?.date; const h = (Date.now() - new Date(t)) / 36e5; robot = `<p class="${h > 2 ? 'stbad' : 'stok'}">${h > 2 ? '⚠️' : '✅'} Última pasada del robot: <b>${ago(t)}</b> (${new Date(t).toLocaleString('es-AR', { dateStyle:'short', timeStyle:'short' })})${h > 2 ? ' — debería pasar cada 30 min; si sigue así, revisá Actions en GitHub.' : ''}</p>`; } } catch {}
+    const rows = await Promise.all(ST_FILES.map(async ([f, name, maxH]) => {
+      try { const r = await fetch(REPO.data + f + '.json?t=' + Date.now(), { cache:'no-store' }); if (!r.ok) return [name, null, 'falta']; const t = stWhen(await r.json()); if (!t) return [name, null, 'ok']; const h = (Date.now() - new Date(t.length === 10 ? t + 'T12:00:00' : t)) / 36e5; return [name, t, h > maxH ? 'viejo' : 'ok']; }
+      catch { return [name, null, 'error']; }
+    }));
+    const bad = rows.filter(r => r[2] !== 'ok').length;
+    out.innerHTML = robot + `<p class="mut">${bad ? `⚠️ ${bad} con problemas` : '✅ Todo al día'}</p><ul class="stlist">` + rows.map(([n, t, s]) => `<li class="st-${s}"><span>${s === 'ok' ? '🟢' : s === 'viejo' ? '🟠' : '🔴'} ${esc(n)}</span><small>${t ? (String(t).length === 10 ? esc(t) : ago(t)) : s === 'falta' ? 'no está' : s === 'error' ? 'no se pudo leer' : 'sin fecha'}</small></li>`).join('') + '</ul>';
+    btn.disabled = false;
+  };
+  $('bkDown').onclick = () => { const o = JSON.parse(payload()); o.figus = (() => { try { return JSON.parse(localStorage.getItem('figus') || 'null'); } catch { return null; } })(); o._copia = new Date().toISOString();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(o)], { type:'application/json' })); a.download = 'funvs-copia-' + new Date().toISOString().slice(0, 10) + '.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast('<b>💾 Copia bajada</b><small>Guardala en un lugar seguro: tiene tus claves.</small>', { ms:5000 }); };
+  $('bkUp').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const o = JSON.parse(await f.text()); if (!o || o.v !== 2) throw new Error('Ese archivo no es una copia de FUNVS');
+      if (!confirm(`¿Restaurar la copia del ${o._copia ? new Date(o._copia).toLocaleString('es-AR') : 'archivo'}? Reemplaza lo que tenés ahora.`)) return;
+      SYNC_KEYS.forEach(k => { if (o[k] !== undefined) db[k] = o[k]; }); db.updatedAt = Date.now(); save(); if (o.figus) localStorage.setItem('figus', JSON.stringify(o.figus));
+      toast('<b>✅ Copia restaurada</b><small>Recargo FUNVS…</small>', { ms:3000 }); setTimeout(() => location.reload(), 1200); } catch (er) { toast(`<b>No pude restaurar</b><small>${esc(er.message)}</small>`, { cls:'info' }); } e.target.value = ''; };
   // 🔔 notificaciones: todas juntas acá
   $('setNotifs').innerHTML = Object.entries(NOTIFS).map(([k, [ic, t]]) => `<label style="display:flex;gap:6px;align-items:center;color:var(--txt)"><input type="checkbox" data-nf="${k}" style="width:auto" ${notifOn(k) ? 'checked' : ''}> ${ic} ${t}</label>`).join('');
   $('setNotifs').onchange = e => { const k = e.target.dataset.nf; if (!k) return; db.notifs = { ...(db.notifs || {}), [k]:e.target.checked }; save(); };

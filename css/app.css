@@ -2289,3 +2289,13 @@ body.pipmode { overflow:hidden !important; background:#000 !important; }
 .fdprev h3 { margin:10px 0 2px; font-size:14px; } .fdprev h4 { margin:8px 0 0; color:#1238b5; } .fdprev p { margin:2px 0; } .fdsub { color:#555; font-style:italic; } .fdbig { font-weight:800; } .fdsmall { color:#666; font-size:11px; margin-top:8px !important; }
 .fdsrc { font-size:12px; }
 .tvapp #musicbar .museek { display:none; }   /* en la tele los controles de la música van en la barra de abajo */
+/* Colección: grupos arriba y pestañitas abajo */
+.fgsub { display:flex; gap:6px; flex-wrap:wrap; margin:-4px 0 14px; padding:6px; background:var(--panel2); border-radius:12px; width:fit-content; max-width:100%; }
+.fgsub button { font-size:13px; padding:5px 12px; border-radius:9px; background:transparent; border:1px solid transparent; }
+.fgsub button.on { background:#1238b5; color:#fff; border-color:#ffffff33; }
+#setFind { width:100%; margin:4px 0 10px; } .sghr { border:none; border-top:1px solid var(--line); margin:12px 0; }
+@media (max-width:560px) { .fgtabs { gap:4px; overflow:visible; } .fgtabs button { flex:1 1 0; min-width:0; padding:7px 2px; font-size:12px; display:flex; flex-direction:column; align-items:center; line-height:1.15; white-space:normal; text-align:center; } }
+.stout p { margin:6px 0; } .stout .stbad { color:#ffb4a8; } .stout .stok { color:#bfe3ff; }
+.stlist { list-style:none; padding:0; margin:6px 0 0; display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:4px 12px; }
+.stlist li { display:flex; justify-content:space-between; gap:8px; padding:5px 8px; background:var(--panel2); border-radius:8px; font-size:13px; } .stlist small { color:var(--mut); white-space:nowrap; }
+.stlist li.st-viejo small, .stlist li.st-falta small, .stlist li.st-error small { color:#ffb4a8; }

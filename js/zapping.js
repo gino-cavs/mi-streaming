@@ -26,7 +26,7 @@ const Zap = (() => {
   function step(d) {
     if (typeof Humor !== 'undefined' && Humor.step(d)) return;
     if (typeof Porteno !== 'undefined' && Porteno.step(d)) return;   // 🎻 otra caminata de noche   // 🎭 sonando un humor: otro video del mismo
-    const all = order(); if (!all.length) return;
+    const all = Canales.byNum(db.chans.slice()); if (!all.length) return;   // en orden de número, como en la tele
     const cur = Player.slots[Player.sel ?? 0] || Player.slots.find(Boolean);
     const o = all.filter(c => onAir(c) || c.uid === cur?.c.uid);
     if (o.length < 2 && cur) return toast('<b>No hay otro canal en vivo ahora</b>', { cls:'info zapt', ms:1800 });

@@ -144,7 +144,7 @@ function make247(C) {
         : list.length ? `<div class="srgrid">${list.map(ch => {
             const n = now(ch.id);
             return `<div class="srcard" data-play="${ch.id}">
-              <div class="thumb" style="${n ? `background-image:url('https://i.ytimg.com/vi/${n.v}/mqdefault.jpg')` : ''}">${n ? '<span class="badge onair">● AL AIRE</span>' : `<span class="badge">${busy[ch.id] ? 'Cargando videos…' : ch.err ? '⚠ ' + esc(ch.err) : 'Sin videos'}</span>`}
+              <div class="thumb" style="${n ? `background-image:url('https://i.ytimg.com/vi/${n.v}/mqdefault.jpg')` : ''}">${n ? '<span class="badge onair">● AL AIRE</span>' : `<span class="badge">${busy[ch.id] ? 'Cargando videos…' : ch.err ? '⚠ ' + esc(niceErr(ch.err)) : 'Sin videos'}</span>`}
                 <button class="sredit" data-edit="${ch.id}" title="Editar">✎</button></div>
               <div class="info"><div class="n">${esc(ch.name || '…')}</div>
                 ${n ? `<div class="t" style="min-height:0">Ahora: ${esc(n.t)}</div>

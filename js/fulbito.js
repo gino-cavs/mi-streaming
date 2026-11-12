@@ -238,7 +238,7 @@ const Fulbito = (() => {
       </details>
       <div id="fList"></div>
       <p class="mut" style="font-size:12px;margin-top:10px">Resultados: datos públicos de ESPN · Canales de TV: futbolenvivoargentina.com</p>`;
-    $('fMap').onclick = () => FulbitoMapa.open();
+    $('fMap').onclick = () => need('mapa').then(() => FulbitoMapa.open());
     // 🌱 Reserva: ESPN no la tiene. Se muestra con los widgets oficiales y gratis de Sofascore (los pegás una vez desde su web);
     //    links a Promiedos (tabla) y LPF Play (los partidos, transmisión oficial).
     $('fRes').onclick = () => Reserva.open();

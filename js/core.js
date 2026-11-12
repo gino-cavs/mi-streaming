@@ -189,7 +189,7 @@ function schedulePush() { if (db.sync && db.sync.token) { clearTimeout(pushTimer
 function syncDone() { syncInfo = { ok:true, at:new Date(), err:'' }; showSync(); }
 function syncFail(e) { syncInfo = { ok:false, at:new Date(), err: e instanceof TypeError ? 'Sin conexión con GitHub.' : e.message }; showSync(); }
 function showSync() {
-  const t = !db.sync.token ? '' : syncInfo.ok ? '☁ Sincronizado' : syncInfo.ok === false ? '☁ ⚠ ' + syncInfo.err : '☁ Conectando…';
+  const t = !db.sync.token ? '' : syncInfo.ok ? '☁ Sincronizado' : syncInfo.ok === false ? '☁ ⚠ ' + niceErr(syncInfo.err) : '☁ Conectando…';
   $('sync').textContent = t;
   $('sync').style.color = syncInfo.ok === false ? '#ffb020' : '';
   const s = $('syncState');
@@ -249,7 +249,17 @@ const DND = (() => {
 setInterval(() => DND.paint(), 60e3);
 
 /* ---------- Avisos ---------- */
-function warn(t) { $('warns').innerHTML = `<div class="warn">${esc(t)}<button onclick="this.parentNode.remove()">OK</button></div>`; }
+// 🧯 los errores técnicos, en criollo (nada de "Unexpected end of JSON input")
+function niceErr(t) {
+  t = String(t ?? '');
+  const R = [[/Failed to execute 'json'[^.]*|Unexpected end of JSON input|Unexpected token[^.]*|JSON\.parse[^.]*/gi, 'la respuesta llegó vacía o cortada (probá en un rato)'],
+    [/Failed to fetch|NetworkError[^.]*|Load failed|net::ERR_[A-Z_]+/gi, 'no hay conexión con el servidor'], [/quota(Exceeded)?|exceeded your quota[^.]*/gi, 'se terminó la cuota de YouTube de hoy (mañana vuelve)'],
+    [/(?:HTTP|status|→)\s*403\b/g, 'no hay permiso (403)'], [/(?:HTTP|status|→)\s*404\b/g, 'no se encontró (404)'], [/(?:HTTP|status|→)\s*5\d\d\b/g, 'el servidor anda mal'],
+    [/TypeError: |Error: /g, ''], [/Cannot read properties of (undefined|null)[^.]*/gi, 'faltan datos']];
+  for (const [re, x] of R) t = t.replace(re, x);
+  return t;
+}
+function warn(t) { $('warns').innerHTML = `<div class="warn">${esc(niceErr(t))}<button onclick="this.parentNode.remove()">OK</button></div>`; }
 /* ⛅ Clima: Open-Meteo combinando tres modelos (ECMWF europeo, GFS de EE.UU. e ICON alemán) y promediándolos.
    El promedio de varios modelos suele acertar más que uno solo. Si algo falla, cae al pronóstico normal de Open-Meteo. */
 const METEO_MODELS = ['ecmwf_ifs025', 'gfs_seamless', 'icon_seamless'];
@@ -311,6 +321,7 @@ function muted(text) {
   return L.some(w => { const k = norm(w).replace(/[^a-z0-9ñ ]+/g, ' ').trim(); return k && t.includes(' ' + k + ' '); });
 }
 function toast(html, { cls = '', ms = 9000, onclick, force } = {}) {
+  html = niceErr(html);
   if (!force && /goal|race/.test(cls) && DND.active()) { DND.add(html); return; }   // No molestar: se guarda para después
   // en la Pantalla TV los avisos salen en la barra de abajo (no tapan el video); el cartelito del zapping sigue igual
   if (document.body.classList.contains('tvlock') && !/zapt/.test(cls) && typeof Grafismo !== 'undefined') return Grafismo.barPop(/goal/.test(cls) ? '⚽ GOL' : 'FUNVS', html, { cls, ms:Math.min(ms, 12000), onclick });
@@ -337,6 +348,8 @@ function beep() {
 
 /* ---------- Carga de librerías externas, una sola vez ---------- */
 const libs = {};
+// ⚡ partes que casi nunca se usan: se cargan recién cuando las abrís (así FUNVS arranca más rápido)
+const need = name => loadScript('js/' + name + '.js?v=' + ((document.querySelector('script[src^="js/core.js"]')?.getAttribute('src') || '').split('v=')[1] || Date.now()));
 function loadScript(src) {
   if (!libs[src]) libs[src] = new Promise((res, rej) => {
     const s = document.createElement('script'); s.src = src; s.async = true;

@@ -18,3 +18,8 @@ Ideas y cosas que quedaron para hacer más adelante.
 - **Protector de pantalla para la tele**: ⚠️ el usuario quiere hacer él el diseño (recordatorio agendado para el 9/11).
 - **TV de aire** (hecho 9/11): El Trece (grilla del día, schema.org) y TV Pública (semana entera) desde sus webs. ESPN, TNT Sports y DSports bloquean la lectura automática; Telefe, América y El Nueve no publican grilla. Sumar más canales si el usuario pide.
 - **TeleRed**: el buscador (`layout/resultados-SearchTVspeed.php`) y la grilla (`layout/grillaTVupd.php`) responden vacío desde GitHub aun con la cookie de sesión; probablemente solo contestan a visitantes de Argentina, y desde el navegador no se puede por CORS. Quedó como link en los avisos de TV junto a mi.tv.
+
+## 🧽 Pulido general (hecho el 12/11)
+- Menú en 7 grupos (Ahora, Ver, Deportes, Escuchar, Colección, Mi día, Jugar); Colección en 5 grupos con sub-pestañas; Ajustes en 5 secciones con buscador y copia de seguridad.
+- Zapping en orden de número, errores en castellano, nombres del TC limpios, carga diferida de PDF del finde / F1 en vivo / mapa.
+- **Robot de datos**: se había trabado desde el 11/11 09:15 UTC (cada pasada se cancelaba con la siguiente). Ahora no se cancelan, cada paso tiene tiempo máximo, parte de los datos anteriores y publica igual aunque falle algo. Para revisarlo: Ajustes → Datos → 🩺 Estado de los datos.
