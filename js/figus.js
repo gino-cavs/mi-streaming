@@ -338,7 +338,7 @@ const Figus = (() => {
     if (ghost || !c) return `<div class="fig ghost st-${a.style || 'panini'} ${small ? 'sm' : ''}" style="${cv(a)}"><span class="fnum">${c ? numOf(c) : '?'}</span>${c?.name ? `<small>${esc(c.name)}</small>` : ''}</div>`;
     const gold = derive().done.has(a.id);
     return `<div class="fig st-${a.style || 'panini'} rar-${r} ${gold ? 'gold' : ''} ${small ? 'sm' : ''} ${back ? 'back' : ''} ${c.role ? 'role-' + c.role : ''}" style="${cv(a)}" data-k="${esc(a.id + ':' + c.n)}"${tvDev() ? ' tabindex="0"' : ''}>
-      <div class="fin"><div class="fimg" data-img="${esc(c.img || '')}"></div>
+      <div class="fin"><div class="fimg" data-img="${esc(c.img || '')}"${c.crop ? ` style="background-size:${esc(c.crop.bs)};background-position:${esc(c.crop.bp)}"` : ''}>${c.stats?.length ? `<div class="fstats">${c.stats.map(x => `<p><span>${esc(x.l)}</span><i><em style="width:${Math.max(0, Math.min(99, +x.v || 0)) / .99}%"></em></i><b>${+x.v || 0}</b></p>`).join('')}</div>` : ''}</div>
       <div class="fband" title="${esc(c.name || '')}"><span class="fnum">${numOf(c)}</span><b>${c.role && ROLEIC[c.role] ? `<i class="frole" title="${esc(ROLES[c.role])}">${ROLEIC[c.role]}</i>` : ''}${esc(c.name || '')}</b></div>
       <span class="falb">${esc(a.name)}</span>${gold ? '<span class="frar fgold">👑 <i>GOLDEN</i></span>' : r !== 'c' ? `<span class="frar">${RARL[r].replace(' ', ' <i>')}</i></span>` : ''}</div>
       ${n > 1 ? `<span class="fdup">×${n}</span>` : ''}</div>`;
@@ -347,8 +347,8 @@ const Figus = (() => {
   /* ---------------- 🖥️ pantalla ---------------- */
   let view = { tab:'inicio' }, work = null;
   // 5 grupos arriba; adentro, pestañitas
-  const TABS = [['inicio', '🏠 Inicio'], ['albumes', '📚 Álbumes'], ['cambios', '🤝 Cambios'], ['garage', '🏎️ Garage'], ['expe', '🦴 Expediciones'], ['licua', '🌀 Licuadora'], ['gancho', '🧸 Gancho'], ['vitrina', '🏛️ Vitrina'], ['trofeos', '🏆 Trofeos'], ['kiosco', '🏪 Kiosco'], ['repes', '🔁 Repetidas'], ['balance', '📒 Balance']];
-  const GRUPOS = [['inicio', '🏠 Inicio', ['inicio']], ['albumes', '📚 Álbumes', ['albumes', 'repes', 'vitrina']], ['jugar', '🎲 Jugar', ['kiosco', 'cambios', 'gancho', 'licua']],
+  const TABS = [['inicio', '🏠 Inicio'], ['albumes', '📚 Álbumes'], ['cambios', '🤝 Cambios'], ['garage', '🏎️ Garage'], ['expe', '🦴 Expediciones'], ['licua', '🌀 Licuadora'], ['gancho', '🧸 Gancho'], ['vitrina', '🏛️ Vitrina'], ['fabrica', '🏭 Fábrica'], ['trofeos', '🏆 Trofeos'], ['kiosco', '🏪 Kiosco'], ['repes', '🔁 Repetidas'], ['balance', '📒 Balance']];
+  const GRUPOS = [['inicio', '🏠 Inicio', ['inicio']], ['albumes', '📚 Álbumes', ['albumes', 'fabrica', 'repes', 'vitrina']], ['jugar', '🎲 Jugar', ['kiosco', 'cambios', 'gancho', 'licua']],
     ['vaca', '🐶 Vaca', ['expe', 'garage']], ['logros', '🏆 Logros', ['trofeos', 'balance']]];
   const grupoDe = t => GRUPOS.find(g => g[2].includes(t)) || GRUPOS[0];
   function header() {
@@ -368,6 +368,134 @@ const Figus = (() => {
       <div class="fgainfo"><b>${esc(a.name)}</b><small>${THEMES[themeOf(a)].t.split(' ')[0]} ${p.got}/${p.tot}${derive().done.has(a.id) ? ' · 👑' : ''}</small>${p.pend && !tvDev() ? `<span class="fgpend">🂠 ${p.pend} para pegar</span>` : ''}
       <div class="fgbar"><i style="width:${p.pct}%"></i></div></div></button>`;
   }
+  /* ---------------- 🏭 Fábrica de figuritas: foto o gif + marco de rareza + título + barras → PNG o directo a los sobres ---------------- */
+  const FAB_AR = .8;   // la foto ocupa un cuadro 4:5 (igual que en el álbum)
+  const FAB_FR = { c:null, r:['#e9eef7', '#8fa3c4', '#f4f7fc', '#7d91b3'], e:['#4a0f8a', '#c23ad8', '#6a1bb0', '#e27bff'], l:['#7a4d00', '#ffd76a', '#b47b00', '#fff1b8'] };
+  const FAB_ACC = { c:'#ffffff', r:'#bcd3ff', e:'#ef9bff', l:'#ffd76a' };
+  let fab = null, fabImg = null, fabRaf = 0, fabReal = false;
+  const fabNew = () => ({ img:'', iw:0, ih:0, gif:false, z:1, x:50, y:50, rar:'r', name:'', sub:'', stats:[{ l:'Carisma', v:80 }, { l:'Bardo', v:55 }, { l:'Aguante', v:90 }], alb:'', slot:'new', c1:'', c2:'' });
+  function fabState() { if (!fab) fab = { ...fabNew(), ...S.get('fabDraft', {}) }; return fab; }
+  const fabSave = () => S.set('fabDraft', fab);
+  const fabCover = s => (s.iw && s.ih && s.iw / s.ih > FAB_AR ? s.iw / s.ih / FAB_AR : 1) * 100;   // ancho (en % del cuadro) para que cubra
+  const fabCrop = s => ({ bs:`${(fabCover(s) * s.z).toFixed(1)}% auto`, bp:`${Math.round(s.x)}% ${Math.round(s.y)}%` });
+  function fabColors(s) { const a = st.albums[s.alb]; const [c1 = '#1238b5', c2 = '#ffffff'] = (a?.colors || []).filter(x => /^#[0-9a-f]{6}$/i.test(x)); return { c1:s.c1 || c1, c2:s.c2 || c2 }; }
+  function fabNum(s) { const a = st.albums[s.alb]; if (!a) return '★'; if (s.slot !== 'new') { const c = (a.cards || []).find(x => String(x.n) === s.slot); if (c) return numOf(c); } return (a.cards || []).length + 1; }
+  function rr(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+  function fitText(g, t, max, size, weight = 800, fam = 'Oswald, Impact, system-ui, sans-serif') { let z = size; do { g.font = `${weight} ${z}px ${fam}`; z -= 1; } while (g.measureText(t).width > max && z > 9); return z + 1; }
+  function fabDraw(cnv, s, k = 1) {
+    const W = 500, H = 700, g = cnv.getContext('2d'); cnv.width = W * k; cnv.height = H * k; g.setTransform(k, 0, 0, k, 0, 0);
+    const { c1, c2 } = fabColors(s), fr = FAB_FR[s.rar], acc = FAB_ACC[s.rar];
+    // marco
+    rr(g, 0, 0, W, H, 26); if (fr) { const gr = g.createLinearGradient(0, 0, W, H); fr.forEach((c, i) => gr.addColorStop(i / (fr.length - 1), c)); g.fillStyle = gr; } else g.fillStyle = c2; g.fill();
+    if (s.rar === 'l' || s.rar === 'e') { g.save(); rr(g, 0, 0, W, H, 26); g.clip(); g.globalAlpha = .35; const sh = g.createLinearGradient(0, H * .2, W, H * .6); sh.addColorStop(0, '#fff0'); sh.addColorStop(.5, '#fff'); sh.addColorStop(1, '#fff0'); g.fillStyle = sh; g.fillRect(0, 0, W, H); g.restore(); }
+    const X = 16, Y = 16, AW = W - 32, AH = AW / FAB_AR;
+    rr(g, X, Y, AW, H - 32, 16); g.fillStyle = c1; g.fill();
+    // foto con su encuadre (mismo cálculo que background-size/position del álbum)
+    g.save(); rr(g, X, Y, AW, AH, 16); g.clip(); g.fillStyle = '#000'; g.fillRect(X, Y, AW, AH);
+    if (fabImg && s.img && fabImg.naturalWidth) { const dw = AW * fabCover(s) / 100 * s.z, dh = dw * fabImg.naturalHeight / fabImg.naturalWidth;
+      g.drawImage(fabImg, X + (AW - dw) * s.x / 100, Y + (AH - dh) * s.y / 100, dw, dh); }
+    else { g.fillStyle = '#ffffff55'; g.font = '700 22px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText('Arrastrá, pegá o subí una foto o gif', X + AW / 2, Y + AH / 2); g.textAlign = 'left'; }
+    // barras de puntaje sobre la foto
+    const SS = (s.stats || []).filter(x => x.l || x.v);
+    if (SS.length) { const hh = 22 + SS.length * 34, y0 = Y + AH - hh, gr = g.createLinearGradient(0, y0 - 40, 0, Y + AH); gr.addColorStop(0, '#0000'); gr.addColorStop(.35, '#000a'); gr.addColorStop(1, '#000d'); g.fillStyle = gr; g.fillRect(X, y0 - 40, AW, hh + 40);
+      SS.forEach((x, i) => { const yy = y0 + 14 + i * 34, v = Math.max(0, Math.min(99, +x.v || 0));
+        g.fillStyle = '#fff'; fitText(g, String(x.l || '').toUpperCase(), 130, 17, 700); g.fillText(String(x.l || '').toUpperCase(), X + 16, yy + 13);
+        rr(g, X + 160, yy, 236, 16, 8); g.fillStyle = '#ffffff30'; g.fill();
+        if (v) { rr(g, X + 160, yy, Math.max(16, 236 * v / 99), 16, 8); const bg = g.createLinearGradient(X + 160, 0, X + 396, 0); bg.addColorStop(0, acc); bg.addColorStop(1, '#ffffff'); g.fillStyle = bg; g.fill(); }
+        g.fillStyle = '#fff'; g.font = '800 20px Oswald, Impact, system-ui, sans-serif'; g.textAlign = 'right'; g.fillText(String(v), X + AW - 14, yy + 15); g.textAlign = 'left'; }); }
+    g.restore();
+    // etiquetas de arriba
+    const alb = st.albums[s.alb]?.name || 'FUNVS'; g.font = '700 14px system-ui, sans-serif'; const aw = Math.min(260, g.measureText(alb.toUpperCase()).width + 18);
+    rr(g, X + 10, Y + 10, aw, 24, 6); g.fillStyle = '#000a'; g.fill(); g.fillStyle = '#fff'; fitText(g, alb.toUpperCase(), aw - 16, 14, 700, 'system-ui, sans-serif'); g.fillText(alb.toUpperCase(), X + 18, Y + 27);
+    if (s.rar !== 'c') { const t = RARL[s.rar]; g.font = '900 15px system-ui, sans-serif'; const tw = g.measureText(t).width + 20; rr(g, X + AW - tw - 10, Y + 10, tw, 26, 6); g.fillStyle = '#fff'; g.fill();
+      g.fillStyle = s.rar === 'l' ? '#7a4d00' : s.rar === 'e' ? '#6a1bb0' : '#29456f'; g.fillText(t, X + AW - tw, Y + 28); }
+    // banda con número y nombre
+    const by = Y + AH + 8, bh = H - 16 - by - 8;
+    const num = String(fabNum(s)); g.font = '900 34px Oswald, Impact, system-ui, sans-serif'; const nw = Math.max(54, g.measureText(num).width + 22);
+    rr(g, X + 12, by + (bh - 50) / 2, nw, 50, 8); g.fillStyle = c2; g.fill(); g.fillStyle = c1; g.textAlign = 'center'; g.fillText(num, X + 12 + nw / 2, by + bh / 2 + 12); g.textAlign = 'left';
+    const tx = X + 24 + nw, tmax = X + AW - 14 - tx, name = s.name || 'Sin nombre';
+    g.fillStyle = '#fff'; fitText(g, name.toUpperCase(), tmax, s.sub ? 34 : 40, 800); g.fillText(name.toUpperCase(), tx, by + (s.sub ? bh / 2 + 2 : bh / 2 + 13));
+    if (s.sub) { g.fillStyle = '#ffffffcc'; fitText(g, s.sub, tmax, 18, 600, 'system-ui, sans-serif'); g.fillText(s.sub, tx, by + bh / 2 + 26); }
+  }
+  function fabHtml() {
+    const s = fabState(), A = albums(), a = st.albums[s.alb], { c1, c2 } = fabColors(s);
+    const empties = a ? (a.cards || []).filter(c => !c.img) : [];
+    return `<div class="fab">
+      <div class="fabprev"><div class="fabdrop ${fabReal ? 'real' : ''}" id="fabDrop"><canvas id="fabCv" width="500" height="700"></canvas></div>
+        <div class="fabsize"><button data-fabreal class="${fabReal ? 'on' : ''}">📏 Tamaño real (5,3 × 7,4 cm)</button></div>
+        ${s.img ? '<p class="mut fabhint">🖐️ Arrastrá la foto para encuadrarla · rueda o barra para el zoom</p>' : ''}</div>
+      <div class="fabctl">
+        <div class="box"><h3>1 · La foto o gif</h3>
+          <div class="btns"><label class="btn pri"><input type="file" accept="image/*,.gif" data-fabfile hidden>＋ Subir</label><button data-fabpaste>📋 Pegar</button>${s.img ? '<button data-fabclr>✕ Sacar</button>' : ''}</div>
+          ${s.img ? `<label>🔍 Zoom <input type="range" min="1" max="3" step=".02" data-fabz value="${s.z}"></label>
+            <div class="fab2"><label>↔ <input type="range" min="0" max="100" data-fabx value="${s.x}"></label><label>↕ <input type="range" min="0" max="100" data-faby value="${s.y}"></label></div>` : '<p class="mut">También podés arrastrarla encima de la figu o hacer Ctrl+V.</p>'}
+          ${s.gif ? '<p class="mut">🎞️ Es un gif: en el álbum se mueve; el PNG sale con un cuadro.</p>' : ''}</div>
+        <div class="box"><h3>2 · Rareza y título</h3>
+          <div class="fabrar">${Object.entries(RAR).map(([k, t]) => `<button data-fabrar="${k}" class="rar-${k} ${s.rar === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+          <label>Título</label><input data-fabf="name" value="${esc(s.name)}" maxlength="40" placeholder="Ej.: El Turco García">
+          <label>Bajada <small class="mut">(opcional)</small></label><input data-fabf="sub" value="${esc(s.sub)}" maxlength="50" placeholder="Ej.: Ídolo · 1993">
+          <div class="fab2"><label>Color principal <input type="color" data-fabc="c1" value="${c1}"></label><label>Color del número <input type="color" data-fabc="c2" value="${c2}"></label></div></div>
+        <div class="box"><h3>3 · Barras de puntaje <small class="mut">(0 a 99, hasta 5)</small></h3>
+          <div class="fabstats">${s.stats.map((x, i) => `<div class="fabst"><input data-fabsl="${i}" value="${esc(x.l)}" maxlength="16" placeholder="Nombre"><input type="range" min="0" max="99" data-fabsv="${i}" value="${+x.v || 0}"><b>${+x.v || 0}</b><button data-fabsd="${i}" title="Sacar">✕</button></div>`).join('')}</div>
+          ${s.stats.length < 5 ? '<button data-fabsa>＋ Barra</button>' : ''}</div>
+        <div class="box"><h3>4 · Listo</h3>
+          <label>Álbum</label><select data-fabalb><option value="">— Elegí un álbum —</option>${A.map(x => `<option value="${esc(x.id)}" ${s.alb === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
+          ${a ? `<label>Dónde va</label><select data-fabslot><option value="new">＋ Figu nueva al final (#${(a.cards || []).length + 1})</option>${empties.map(c => `<option value="${esc(String(c.n))}" ${s.slot === String(c.n) ? 'selected' : ''}>#${numOf(c)} ${esc(c.name || '')} (sin imagen)</option>`).join('')}</select>` : ''}
+          <div class="btns"><button data-fabdl>⬇ Bajar PNG</button><button class="pri" data-fabsend ${a && s.img ? '' : 'disabled'}>📦 Mandar a los sobres</button><span class="sp"></span><button data-fabreset>🧹 Empezar otra</button></div>
+          ${!A.length ? '<p class="mut">Para mandarla a los sobres primero creá un álbum en 📚 Álbumes.</p>' : !s.img ? '<p class="mut">Cargale una foto para poder mandarla.</p>' : ''}</div>
+      </div></div>`;
+  }
+  function bindFab(v) {
+    const cnv = v.querySelector('#fabCv'); if (!cnv) { cancelAnimationFrame(fabRaf); return; }
+    const s = fabState(), drawNow = () => fabDraw(cnv, s);
+    const loadImg = () => { if (!s.img) { fabImg = null; return drawNow(); } const u = urlCache[s.img]; const go = u => { const im = new Image(); im.dataset.id = s.img; im.onload = () => { fabImg = im; drawNow(); }; im.src = u; };
+      if (u) go(u); else imgGet(s.img).then(x => { if (x) { urlCache[s.img] = x; go(x); } }).catch(() => {}); };
+    if (!fabImg || fabImg.dataset?.id !== s.img) loadImg(); else drawNow();
+    cancelAnimationFrame(fabRaf); if (s.gif) { let t0 = 0; const loop = t => { if (!document.body.contains(cnv)) return; if (t - t0 > 80) { t0 = t; drawNow(); } fabRaf = requestAnimationFrame(loop); }; fabRaf = requestAnimationFrame(loop); }
+    const re = () => { fabSave(); const y = scrollY; render(); scrollTo(0, y); };
+    const setImg = async file => { try { const u = await readImg(file), id = 'i' + uid() + Date.now().toString(36); await imgPut(id, u); urlCache[id] = u;
+      const im = new Image(); await new Promise(ok => { im.onload = ok; im.onerror = ok; im.src = u; }); Object.assign(s, { img:id, iw:im.naturalWidth, ih:im.naturalHeight, gif:/^data:image\/gif/.test(u), z:1, x:50, y:50 }); fabImg = null; re(); }
+      catch (e) { toast(`<b>${esc(e.message)}</b>`, { cls:'info' }); } };
+    v.querySelector('[data-fabfile]').onchange = e => e.target.files[0] && setImg(e.target.files[0]);
+    v.querySelector('[data-fabpaste]').onclick = async () => { try { const [f] = await clipImages(); setImg(f); } catch (er) { toast(`<b>${esc(er.message)}</b>`, { cls:'info' }); } };
+    pasteFn = e => { if (!document.body.contains(cnv)) return; const [f] = pastedImages(e); if (f) { e.preventDefault(); setImg(f); } };
+    const drop = v.querySelector('#fabDrop');
+    drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); }; drop.ondragleave = () => drop.classList.remove('over');
+    drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); const f = [...(e.dataTransfer?.files || [])].find(f => f.type.startsWith('image/')); if (f) setImg(f); };
+    v.querySelector('[data-fabclr]')?.addEventListener('click', () => { Object.assign(s, { img:'', iw:0, ih:0, gif:false }); fabImg = null; re(); });
+    const sync = () => { v.querySelector('[data-fabz]') && (v.querySelector('[data-fabz]').value = s.z); v.querySelector('[data-fabx]') && (v.querySelector('[data-fabx]').value = s.x); v.querySelector('[data-faby]') && (v.querySelector('[data-faby]').value = s.y); };
+    [['fabz', 'z'], ['fabx', 'x'], ['faby', 'y']].forEach(([d, k]) => { const el = v.querySelector(`[data-${d}]`); if (el) el.oninput = () => { s[k] = +el.value; drawNow(); fabSave(); }; });
+    // 🖐️ encuadrar arrastrando y zoom con la rueda
+    let pd = null;
+    cnv.onpointerdown = e => { if (!s.img) return v.querySelector('[data-fabfile]').click(); pd = { x:e.clientX, y:e.clientY, sx:s.x, sy:s.y }; cnv.setPointerCapture(e.pointerId); };
+    cnv.onpointermove = e => { if (!pd || !s.iw) return; const k = 500 / cnv.getBoundingClientRect().width, AW = 468, AH = AW / FAB_AR, dw = AW * fabCover(s) / 100 * s.z, dh = dw * s.ih / s.iw;
+      if (dw > AW + 1) s.x = Math.max(0, Math.min(100, pd.sx - (e.clientX - pd.x) * k / (dw - AW) * 100));
+      if (dh > AH + 1) s.y = Math.max(0, Math.min(100, pd.sy - (e.clientY - pd.y) * k / (dh - AH) * 100)); drawNow(); sync(); };
+    cnv.onpointerup = cnv.onpointercancel = () => { if (pd) { pd = null; fabSave(); } };
+    cnv.onwheel = e => { if (!s.img) return; e.preventDefault(); s.z = Math.max(1, Math.min(3, s.z * (e.deltaY < 0 ? 1.06 : 1 / 1.06))); drawNow(); sync(); fabSave(); };
+    v.querySelectorAll('[data-fabrar]').forEach(b => b.onclick = () => { s.rar = b.dataset.fabrar; re(); });
+    v.querySelectorAll('[data-fabf]').forEach(x => x.oninput = () => { s[x.dataset.fabf] = x.value; drawNow(); fabSave(); });
+    v.querySelectorAll('[data-fabc]').forEach(x => x.oninput = () => { s[x.dataset.fabc] = x.value; drawNow(); fabSave(); });
+    v.querySelectorAll('[data-fabsl]').forEach(x => x.oninput = () => { s.stats[+x.dataset.fabsl].l = x.value; drawNow(); fabSave(); });
+    v.querySelectorAll('[data-fabsv]').forEach(x => x.oninput = () => { s.stats[+x.dataset.fabsv].v = +x.value; x.nextElementSibling.textContent = x.value; drawNow(); fabSave(); });
+    v.querySelectorAll('[data-fabsd]').forEach(b => b.onclick = () => { s.stats.splice(+b.dataset.fabsd, 1); re(); });
+    v.querySelector('[data-fabsa]')?.addEventListener('click', () => { s.stats.push({ l:'', v:50 }); re(); });
+    v.querySelector('[data-fabalb]').onchange = e => { s.alb = e.target.value; s.slot = 'new'; s.c1 = ''; s.c2 = ''; re(); };
+    v.querySelector('[data-fabslot]')?.addEventListener('change', e => { s.slot = e.target.value; const c = (st.albums[s.alb]?.cards || []).find(x => String(x.n) === s.slot); if (c?.name && !s.name) s.name = c.name; if (c?.rar) s.rar = c.rar; re(); });
+    v.querySelector('[data-fabreal]').onclick = () => { fabReal = !fabReal; re(); };
+    v.querySelector('[data-fabreset]').onclick = () => { if (s.img && !confirm('¿Empezar una figu nueva? Esta se borra de la fábrica.')) return; fab = { ...fabNew(), alb:s.alb, stats:s.stats.map(x => ({ l:x.l, v:50 })) }; fabImg = null; re(); };
+    v.querySelector('[data-fabdl]').onclick = () => { const big = document.createElement('canvas'); fabDraw(big, s, 2.4);
+      big.toBlob(b => b && saveFile(b, `figu-${(s.name || 'funvs').toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'funvs'}.png`), 'image/png'); };
+    v.querySelector('[data-fabsend]').onclick = () => { const a = st.albums[s.alb]; if (!a || !s.img) return;
+      const SS = s.stats.filter(x => x.l).map(x => ({ l:x.l, v:+x.v || 0 })), base = { img:s.img, name:s.name.trim(), rar:s.rar, crop:fabCrop(s), ...(SS.length ? { stats:SS } : {}), ...(s.sub.trim() ? { sub:s.sub.trim() } : {}) };
+      a.cards = a.cards || []; let c = s.slot !== 'new' && a.cards.find(x => String(x.n) === s.slot);
+      if (c) { delete c.stats; delete c.sub; Object.assign(c, base); }
+      else { const pages = a.pages?.length ? a.pages : [{ t:'', txt:'' }]; c = { n:Math.max(0, ...a.cards.map(x => x.n)) + 1, num:a.cards.length + 1, page:pages.length - 1, ...base }; a.cards.push(c); }
+      a.upd = Date.now(); markDirty(a.id); saveSt(); pushSoon(); SND.snap();
+      toast(`<b>📦 «${esc(c.name || 'Figu #' + numOf(c))}» ya está en los sobres</b><small>${esc(a.name)} · #${numOf(c)} · ${RAR[c.rar]}. Sale en el kiosco como cualquier otra.</small>`, { ms:6000 });
+      fab = { ...fabNew(), alb:s.alb, stats:s.stats.map(x => ({ l:x.l, v:50 })) }; fabImg = null; re(); };
+  }
+
   function render() {
     const v = $('v-figus'); if (!v) return;
     if (!tvDev()) try { achCheck(); } catch {}
@@ -416,6 +544,8 @@ const Figus = (() => {
       body = ganchoHtml();
     } else if (view.tab === 'vitrina') {
       body = vitrinaHtml();
+    } else if (view.tab === 'fabrica') {
+      body = fabHtml();
     } else if (view.tab === 'licua') {
       body = licuaHtml();
     } else if (view.tab === 'trofeos') {
@@ -433,7 +563,7 @@ const Figus = (() => {
     bindCommon(v); v.querySelectorAll('.fgbn-it .fig[data-k]').forEach(f => f.onclick = () => zoom(f));
     v.querySelectorAll('[data-alb]').forEach(b => b.onclick = () => { view = { tab:view.tab, alb:b.dataset.alb }; render(); });
     v.querySelectorAll('[data-new]').forEach(b => b.onclick = newAlbum);
-    bindExpe(v); bindLicua(v); bindCambios(v); bindWk(v); bindVitrina(v); bindGancho(v);
+    bindExpe(v); bindLicua(v); bindCambios(v); bindWk(v); bindVitrina(v); bindGancho(v); bindFab(v);
     v.querySelectorAll('[data-gs]').forEach(b => b.onclick = () => { view.gs = b.dataset.gs; render(); });
     v.querySelectorAll('[data-gbox]').forEach(b => b.onclick = () => buyBox(b.dataset.gbox));
     v.querySelectorAll('[data-gmod]').forEach(b => b.onclick = () => modelZoom(b.dataset.gmod));
@@ -1031,8 +1161,9 @@ const Figus = (() => {
       if (x.ty === 'quote') return `<p class="fmule">“${esc(val(x))}”</p>`;
       if (x.ty === 'long') return `<p>${esc(val(x)).replace(/\n/g, '<br>')}</p>`;
       return `<p><b>${esc(x.l)}:</b> ${esc(val(x))}</p>`; }).join('');
-    return `<div class="fgficha" style="${cv(a)}"><h3>${esc(c.name || 'Figu #' + numOf(c))}</h3><div>${chips}</div>${rows}
-      ${!rows && !chips ? '<p class="mut">Todavía no le cargaste la ficha (✎ Editar álbum → 📝 Ficha).</p>' : ''}
+    const bars = (c.stats || []).map(x => `<p class="fstat"><b>${esc(x.l)}</b><i><em style="width:${Math.max(0, Math.min(99, +x.v || 0)) / .99}%"></em></i><span>${+x.v || 0}</span></p>`).join('');
+    return `<div class="fgficha" style="${cv(a)}"><h3>${esc(c.name || 'Figu #' + numOf(c))}</h3>${c.sub ? `<p class="mut" style="margin-top:-4px">${esc(c.sub)}</p>` : ''}<div>${chips}</div>${bars}${rows}
+      ${!rows && !chips && !bars ? '<p class="mut">Todavía no le cargaste la ficha (✎ Editar álbum → 📝 Ficha).</p>' : ''}
       <small class="mut">#${numOf(c)} · ${esc(a.name)} · ${RAR[c.rar || 'c']}</small></div>`;
   }
   function zoom(f) { let o = $('fgZoom'); if (!o) { o = document.createElement('div'); o.id = 'fgZoom'; o.onclick = () => o.remove(); }
@@ -1135,9 +1266,9 @@ const Figus = (() => {
     v.querySelectorAll('[data-cp]').forEach(x => x.onchange = () => { W.cards[+x.dataset.cp].page = +x.value; dirty(); });
     v.querySelectorAll('[data-cr]').forEach(x => x.onchange = () => { W.cards[+x.dataset.cr].rar = x.value; x.closest('.fgced').className = 'fgced rar-' + x.value; dirty(); });
     const up = async (file, set, max) => { try { const u = await readImg(file, max), id = 'i' + uid() + Date.now().toString(36); await imgPut(id, u); urlCache[id] = u; set(id); re(); } catch (e) { toast(`<b>${esc(e.message)}</b>`, { cls:'info' }); } };
-    v.querySelectorAll('[data-cimg]').forEach(x => x.onchange = () => x.files[0] && up(x.files[0], id => { W.cards[+x.dataset.cimg].img = id; }));
+    v.querySelectorAll('[data-cimg]').forEach(x => x.onchange = () => x.files[0] && up(x.files[0], id => { W.cards[+x.dataset.cimg].img = id; delete W.cards[+x.dataset.cimg].crop; }));
     // 📋 pegar: a qué cuadro va, y después saltar a la próxima figu vacía
-    const setFor = key => { const [t, i] = key.split(':'); return t === 'cimg' ? id => { W.cards[+i].img = id; } : t === 'logo' ? id => { W.logo = id; } : id => { pages[+i].bg = id; }; };
+    const setFor = key => { const [t, i] = key.split(':'); return t === 'cimg' ? id => { W.cards[+i].img = id; delete W.cards[+i].crop; } : t === 'logo' ? id => { W.logo = id; } : id => { pages[+i].bg = id; }; };
     const nextEmpty = (from = -1) => { const i = W.cards.findIndex((c, j) => j > from && !c.img); return i >= 0 ? 'cimg:' + i : null; };
     const pasteIn = (key, file) => { if (!key) return toast('<b>Todas las figus ya tienen imagen</b><small>Pasá el mouse por la que quieras cambiar y pegá.</small>', { cls:'info' });
       if (key.startsWith('cimg:')) pasteTo = nextEmpty(+key.split(':')[1]); up(file, setFor(key), key.startsWith('pbg') ? 1280 : undefined); };

@@ -143,6 +143,25 @@ public class MainActivity extends Activity {
     @JavascriptInterface public boolean hasPip() { return canPip(); }
     @JavascriptInterface public void pip() { runOnUiThread(new Runnable() { @Override public void run() { enterPip(); } }); }
     @JavascriptInterface public void playing(boolean p) { playing = p; runOnUiThread(new Runnable() { @Override public void run() { updatePip(); } }); }
+    // guardar un archivo (figu en PNG, copia de seguridad) en Descargas
+    @JavascriptInterface public String save(String b64, String name, String mime) {
+      try {
+        byte[] data = android.util.Base64.decode(b64, android.util.Base64.DEFAULT);
+        if (Build.VERSION.SDK_INT >= 29) {
+          android.content.ContentValues v = new android.content.ContentValues();
+          v.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, name);
+          v.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mime);
+          v.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS + "/FUNVS");
+          Uri u = getContentResolver().insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+          if (u == null) return "";
+          java.io.OutputStream o = getContentResolver().openOutputStream(u); o.write(data); o.close();
+          return "Descargas/FUNVS/" + name;
+        }
+        java.io.File d = getExternalFilesDir(null); java.io.File f = new java.io.File(d, name);
+        java.io.FileOutputStream o = new java.io.FileOutputStream(f); o.write(data); o.close();
+        return f.getAbsolutePath();
+      } catch (Exception e) { return ""; }
+    }
   }
   boolean canPip() { return !tv && Build.VERSION.SDK_INT >= 26 && getPackageManager().hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE); }
   PictureInPictureParams pipParams() {

@@ -8,6 +8,13 @@ const S = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
 // 📋 imágenes copiadas: del evento "pegar" (Ctrl+V) o leyendo el portapapeles (botón Pegar, sirve en el celu)
+// bajar un archivo: en la app del celu va a Descargas/FUNVS (la app no baja blobs); en el navegador, descarga normal
+async function saveFile(blob, name) {
+  const N = window.FUNVSNative;
+  if (N && N.save) { const b64 = await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.readAsDataURL(blob); });
+    const where = N.save(b64, name, blob.type || 'application/octet-stream'); if (where) { toast(`<b>💾 Guardado</b><small>${esc(where)}</small>`, { ms:5000 }); return true; } toast('<b>No pude guardar el archivo</b>', { cls:'info' }); return false; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); return true;
+}
 function pastedImages(e) { return [...(e.clipboardData?.items || [])].filter(i => i.kind === 'file' && i.type.startsWith('image/')).map(i => i.getAsFile()).filter(Boolean); }
 async function clipImages() {
   if (!navigator.clipboard?.read) throw new Error('Este navegador no deja leer el portapapeles: usá Ctrl+V o mantené apretado y Pegar');
@@ -39,7 +46,7 @@ const REPO = (() => {
 
 /* ---------- Datos ---------- */
 const DEVICE = S.get('deviceId', null) || (() => { const d = 'd' + Math.random().toString(36).slice(2, 8); S.set('deviceId', d); return d; })();
-const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music', 'prode', 'moments', 'stats', 'rap', 'oauth', 'boxeo', 'series', 'juegos', 'diario', 'tg', 'servicios', 'nav', 'peliculas', 'retro', 'radEdit', 'radPedido', 'secUse', 'secUseSince', 'resume', 'recs', 'remote', 'flashSeen', 'radGeo', 'geo', 'estGeo', 'resWidgets', 'grillaIcal', 't420m', 'humor', 'ytq', 'ytShare', 'plan', 'tandas', 'vacaFotos', 'grafStyle', 'paseos', 'vaca', 'fechas', 'figusGist', 'vistos', 'notifs'];
+const SYNC_KEYS = ['cats', 'chans', 'key', 'refresh', 'radios', 'futbol', 'news', 'velez', 'programs', 'motor', 'music', 'prode', 'moments', 'stats', 'rap', 'oauth', 'boxeo', 'series', 'juegos', 'diario', 'tg', 'servicios', 'nav', 'peliculas', 'retro', 'radEdit', 'radPedido', 'secUse', 'secUseSince', 'resume', 'recs', 'remote', 'flashSeen', 'radGeo', 'geo', 'estGeo', 'resWidgets', 'grillaIcal', 't420m', 'humor', 'ytq', 'ytShare', 'plan', 'tandas', 'vacaFotos', 'grafStyle', 'paseos', 'vaca', 'fechas', 'figusGist', 'vistos', 'notifs', 'nichos'];
 // 🔔 qué avisos querés ver (se elige en Ajustes → Notificaciones)
 const NOTIFS = { fulbito:['⚽', 'Goles y resultados de los partidos que elegiste', true], avisos:['🔔', 'Programas, radios y cosas que marcaste con la campanita', true], viaje:['🚆', 'Avisos del viaje (tren y colectivo)', true], efem:['💙', 'Efemérides de Vélez (a las 13)', true], porteno:['🎻', 'Modo porteño: datos de Buenos Aires', true], figus:['🦴', 'Colección: cuando Vaca vuelve del reparto', true], mg:['📍', 'MG News (las noticias de Monte Grande igual quedan en su sección)', false] };
 const notifOn = k => !k || !NOTIFS[k] ? true : ((db.notifs || {})[k] ?? NOTIFS[k][2]);

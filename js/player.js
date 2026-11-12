@@ -40,6 +40,10 @@ const Player = (() => {
   // v = video, ch = chat embebido oscuro, out = chat en ventana aparte
   // sin la barra ni el título de YouTube (se maneja todo con los botones de FUNVS). Se apaga en Ajustes.
   const clean = () => S.get('ytClean', true) ? '&controls=0&rel=0&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0' : '&rel=0&cc_load_policy=0';
+  // 📼 videos y vivos ya emitidos: con la barra de YouTube para adelantar y atrasar (on demand)
+  const cleanVod = () => '&controls=1&rel=0&iv_load_policy=3&fs=0&cc_load_policy=0';
+  // 💬 sin subtítulos: YouTube los prende solo si tu cuenta los tiene activados
+  const noCC = p => { try { p.unloadModule('captions'); } catch {} try { p.unloadModule('cc'); } catch {} try { p.setOption('captions', 'track', {}); } catch {} };
   function embedOf(c) {
     const s = Canales.status[c.uid] || {};
     if (c.platform === 'twitch') return { kind:'twitch', id:c.ref.name,
@@ -56,7 +60,7 @@ const Player = (() => {
         v:`https://www.youtube.com/embed/live_stream?channel=${c.ref.channelId}&autoplay=1&playsinline=1&enablejsapi=1${clean()}&origin=${encodeURIComponent(location.origin)}`, ch:null };
     const vid = isLive ? s.vid : (c.ref.video || s.vid);
     if (vid) return { kind:'youtube', id:vid,
-      v:`https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1${clean()}&origin=${encodeURIComponent(location.origin)}${c.ref.more?.length && !isLive ? '&playlist=' + c.ref.more.join(',') : ''}`,
+      v:`https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1${isLive ? clean() : cleanVod()}&origin=${encodeURIComponent(location.origin)}${c.ref.more?.length && !isLive ? '&playlist=' + c.ref.more.join(',') : ''}`,
       ch: isLive || c.ref.video ? `https://www.youtube.com/live_chat?v=${vid}&embed_domain=${HOST}&dark_theme=1` : null,
       out:`https://www.youtube.com/live_chat?v=${vid}&dark_theme=1` };
     if (c.ref.channelId) return { kind:'youtube', id:null,
@@ -150,11 +154,11 @@ const Player = (() => {
         // 🎧 y que no quede muda: si este es el que tiene que sonar y YouTube lo dejó silenciado (pasaba en el celu con auriculares), lo destrabo
         const pinVol = () => { let n = 0; const t = setInterval(() => { if (s.seq !== my || ++n > 16) return clearInterval(t); try { if (Math.abs(p.getVolume() - wantVol()) > 2) p.setVolume(wantVol());
           if (AudioMgr.active === sid && !s.mutedByApp && !s.audioOff && p.isMuted()) { p.unMute(); if (p.getVolume() < 5) p.setVolume(wantVol() || 100); } } catch {} }, 500); };
-        const p = new YT.Player(f, { events:{ onReady:() => { try { p.setVolume(wantVol()); } catch {} pinVol(); }, onStateChange:e => {
+        const p = new YT.Player(f, { events:{ onReady:() => { try { p.setVolume(wantVol()); } catch {} pinVol(); noCC(p); }, onApiChange:() => noCC(p), onStateChange:e => {
           // solo cuenta como "empezó a sonar" si veníamos de pausa/inicio (no al terminar de cargar)
           if (e.data === 1 || e.data === 2) snowOff(s, my);
           if (e.data === 3) return;
-          if (e.data === 1 && last === null) { Calidad.applyYouTube(p); try { p.setVolume(wantVol()); } catch {} pinVol(); }   // YouTube recuerda el último volumen (ej. el del despertador): siempre arranca con el tuyo
+          if (e.data === 1 && last === null) { noCC(p); Calidad.applyYouTube(p); try { p.setVolume(wantVol()); } catch {} pinVol(); }   // YouTube recuerda el último volumen (ej. el del despertador): siempre arranca con el tuyo
           if (e.data === 0 && s.c.t247) {          // canal 24/7: termina un video y sigue la grilla
             const n = T247any.nextFor(s.c.t247);
             if (n) { s.e.id = n.v; try { p.loadVideoById({ videoId:n.v, startSeconds:n.off }); } catch {} paintActs(); }

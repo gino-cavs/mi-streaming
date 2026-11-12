@@ -23,3 +23,6 @@ Ideas y cosas que quedaron para hacer más adelante.
 - Menú en 7 grupos (Ahora, Ver, Deportes, Escuchar, Colección, Mi día, Jugar); Colección en 5 grupos con sub-pestañas; Ajustes en 5 secciones con buscador y copia de seguridad.
 - Zapping en orden de número, errores en castellano, nombres del TC limpios, carga diferida de PDF del finde / F1 en vivo / mapa.
 - **Robot de datos**: se había trabado desde el 11/11 09:15 UTC (cada pasada se cancelaba con la siguiente). Ahora no se cancelan, cada paso tiene tiempo máximo, parte de los datos anteriores y publica igual aunque falle algo. Para revisarlo: Ajustes → Datos → 🩺 Estado de los datos.
+- 🏭 **Fábrica de figuritas** (12/11, Colección → Álbumes → Fábrica): foto o gif, marco de rareza, título, bajada y barras de puntaje; baja PNG (en la app del celu va a Descargas/FUNVS, app 1.3) o va directo a los sobres de un álbum.
+- 🧭 **Nichos** (12/11, Ver → Nichos): base de links propia + 🎲 por tiempo disponible y rareza.
+- 📼 Vivos ya emitidos y videos: con la barra de YouTube para adelantar/atrasar; subtítulos apagados siempre.

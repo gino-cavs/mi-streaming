@@ -2299,3 +2299,47 @@ body.pipmode { overflow:hidden !important; background:#000 !important; }
 .stlist { list-style:none; padding:0; margin:6px 0 0; display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:4px 12px; }
 .stlist li { display:flex; justify-content:space-between; gap:8px; padding:5px 8px; background:var(--panel2); border-radius:8px; font-size:13px; } .stlist small { color:var(--mut); white-space:nowrap; }
 .stlist li.st-viejo small, .stlist li.st-falta small, .stlist li.st-error small { color:#ffb4a8; }
+/* 🏭 Fábrica de figuritas */
+.fab { display:grid; grid-template-columns:minmax(260px, 380px) 1fr; gap:22px; align-items:start; }
+.fabprev { position:sticky; top:70px; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.fabdrop { width:min(360px, 86vw); border-radius:20px; transition:outline-color .2s; outline:3px dashed transparent; outline-offset:6px; }
+.fabdrop.real { width:5.3cm; } .fabdrop.over { outline-color:#ffffffaa; }
+.fabdrop canvas { width:100%; height:auto; display:block; border-radius:3.7% / 2.6%; box-shadow:0 14px 34px #000a; cursor:grab; touch-action:none; }
+.fabdrop canvas:active { cursor:grabbing; }
+.fabsize button { font-size:12px; padding:4px 10px; } .fabsize button.on { background:#1238b5; color:#fff; } .fabhint { font-size:12px; text-align:center; margin:0; }
+.fabctl { display:grid; gap:12px; } .fabctl .box { padding:14px 16px; } .fabctl h3 { margin:0 0 8px; font-size:15px; }
+.fabctl label { display:block; font-size:13px; color:var(--mut); margin:8px 0 3px; } .fabctl input[type=range] { width:100%; }
+.fab2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; } .fab2 input[type=color] { width:100%; height:34px; }
+.fabrar { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; } .fabrar button { padding:8px 4px; font-weight:700; border:2px solid transparent; }
+.fabrar .rar-r { color:#bcd3ff; } .fabrar .rar-e { color:#ef9bff; } .fabrar .rar-l { color:#ffd76a; } .fabrar button.on { border-color:currentColor; background:#ffffff14; }
+.fabstats { display:grid; gap:6px; margin-bottom:8px; } .fabst { display:grid; grid-template-columns:minmax(80px, 140px) 1fr 30px 30px; gap:8px; align-items:center; }
+.fabst b { text-align:right; font-family:Oswald, system-ui, sans-serif; } .fabst button { padding:2px 6px; }
+@media (max-width:760px) { .fab { grid-template-columns:minmax(0, 1fr); } .fabprev { position:static; } }
+.fabctl, .fabctl .box { min-width:0; } .fabctl input:not([type=range]):not([type=color]) { width:100%; box-sizing:border-box; }
+.fabrar { grid-template-columns:repeat(4, minmax(0, 1fr)); } .fab2 { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+.fabctl label.btn { display:inline-flex; align-items:center; margin:0; padding:8px 14px; border-radius:10px; background:#1238b5; color:#fff; font-size:14px; font-weight:600; cursor:pointer; }
+@media (max-width:560px) { .fabrar { grid-template-columns:repeat(2, minmax(0, 1fr)); } .fabst { grid-template-columns:minmax(0, 110px) minmax(0, 1fr) 26px 28px; gap:6px; } }
+.fig .fimg { position:relative; } .fig .fstats { display:none; }
+.fig.big .fstats { display:grid; gap:.5em; position:absolute; left:0; right:0; bottom:0; padding:2.4em .9em .8em; background:linear-gradient(#0000, #000b 40%, #000d); font-size:.85em; }
+.fig.big .fstats p { margin:0; display:grid; grid-template-columns:7em 1fr 2em; align-items:center; gap:.6em; }
+.fig.big .fstats span { text-transform:uppercase; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fig.big .fstats i, .fgficha .fstat i { display:block; height:.7em; border-radius:1em; background:#ffffff30; overflow:hidden; }
+.fig.big .fstats em, .fgficha .fstat em { display:block; height:100%; border-radius:1em; background:linear-gradient(90deg, var(--c2, #fff), #fff); }
+.fig.big .fstats b { text-align:right; font-family:Oswald, system-ui, sans-serif; }
+.fgficha .fstat { display:grid; grid-template-columns:8em 1fr 2.2em; gap:.6em; align-items:center; margin:4px 0; } .fgficha .fstat span { text-align:right; font-weight:800; }
+/* 🧭 Nichos */
+.nchpick { display:grid; gap:10px; padding:16px; border-radius:16px; background:linear-gradient(135deg, #0b1f5c, #05091a); border:1px solid #ffffff22; }
+.nchrow { display:grid; grid-template-columns:170px 1fr; gap:10px; align-items:center; } .nchrow > span { font-weight:700; } .nchrow.sm > span { font-weight:500; color:var(--mut); }
+.nchrow .chips { display:flex; flex-wrap:wrap; gap:6px; } .nchrow .chip.on { background:#fff; color:#0b1f5c; }
+.nchgo { justify-self:start; font-size:18px; padding:12px 22px; border-radius:14px; } .nchgo small { display:block; font-size:12px; opacity:.8; font-weight:400; }
+.nchres { margin:14px 0; padding:16px; border-radius:16px; background:var(--panel); border:2px solid #fff; animation:nchIn .35s ease-out; }
+@keyframes nchIn { from { transform:scale(.96); opacity:0; } to { transform:none; opacity:1; } }
+.nchit { display:flex; gap:12px; align-items:flex-start; } .nchic { font-size:28px; line-height:1; } .nchit.big .nchic { font-size:44px; }
+.nchtx { min-width:0; } .nchtx b { display:block; overflow-wrap:anywhere; } .nchit.big .nchtx b { font-size:20px; } .nchtx small { color:var(--mut); } .nchtx p { margin:6px 0 0; font-size:14px; }
+.nchres .btns { margin-top:12px; }
+.nchadd { display:grid; gap:8px; padding:14px; } .nchf { display:flex; gap:6px; } .nchf input { flex:1; min-width:0; }
+.nchf3 { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; } .nchf3 label { font-size:12px; color:var(--mut); display:grid; gap:3px; }
+.nchq { width:100%; margin-bottom:8px; } .nchlist { display:grid; gap:6px; }
+.nchli { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:10px 12px; border-radius:12px; background:var(--panel2); } .nchli .btns { flex:none; }
+@media (max-width:560px) { .nchrow { grid-template-columns:1fr; gap:4px; } .nchf3 { grid-template-columns:1fr 1fr; } .nchli { flex-direction:column; align-items:stretch; } }
+.tvapp .nchres { animation:none; }
