@@ -1,0 +1,28 @@
+Set up job | completed success 2026-11-11T23:41:12Z 2026-11-11T23:41:12Z
+Run actions/checkout@v4 | completed success 2026-11-11T23:41:12Z 2026-11-11T23:41:13Z
+Run actions/setup-node@v4 | completed success 2026-11-11T23:41:13Z 2026-11-11T23:41:16Z
+Buscar noticias | completed success 2026-11-11T23:41:16Z 2026-11-11T23:41:38Z
+Efemérides fortineras (Wikipedia + Wikidata, una vez por mes) | completed success 2026-11-11T23:41:38Z 2026-11-11T23:41:38Z
+Estadios de Fulbito (ESPN + Wikidata, una vez por mes) | completed success 2026-11-11T23:41:38Z 2026-11-11T23:41:38Z
+Álbum del día (Wikidata + YouTube, una vez por día) | completed success 2026-11-11T23:41:38Z 2026-11-11T23:41:38Z
+MG News (Monte Grande y Esteban Echeverría) | completed success 2026-11-11T23:41:38Z 2026-11-11T23:41:44Z
+Feeds de tus canales de YouTube (gratis, para ahorrar cuota) | completed success 2026-11-11T23:41:44Z 2026-11-11T23:41:46Z
+Temas de 420 time (3 por día, eclécticos) | completed success 2026-11-11T23:41:46Z 2026-11-11T23:41:46Z
+Vivos escondidos de tus canales (24/7 que no aparecen entre los últimos videos) | completed success 2026-11-11T23:41:46Z 2026-11-11T23:41:49Z
+Novelas argentinas (playlists oficiales, una vez por mes) | completed success 2026-11-11T23:41:49Z 2026-11-11T23:41:49Z
+Grilla desde tu calendario (link iCal guardado en FUNVS) | completed success 2026-11-11T23:41:49Z 2026-11-11T23:41:50Z
+Grilla de radios (webs de cada radio, una vez por mes) | completed success 2026-11-11T23:41:50Z 2026-11-11T23:41:51Z
+TV de aire (El Trece y TV Pública, desde sus webs, una vez por día) | completed success 2026-11-11T23:41:51Z 2026-11-11T23:41:51Z
+Grilla de canales de streaming (laguiadelstreaming.com, una vez por día) | completed success 2026-11-11T23:41:51Z 2026-11-11T23:41:51Z
+Actualidad (los temas que cubren todos los medios) | completed success 2026-11-11T23:41:51Z 2026-11-11T23:41:52Z
+Guía de TV (canales de cada partido, futbolenvivoargentina.com) | completed success 2026-11-11T23:41:52Z 2026-11-11T23:41:53Z
+Automovilismo (F1, MotoGP, NASCAR, TC, TC2000, Top Race) | completed success 2026-11-11T23:41:53Z 2026-11-11T23:42:03Z
+Boxeo de Primera (TyC Sports) | completed success 2026-11-11T23:42:03Z 2026-11-11T23:42:12Z
+Datos para Juegos (Wikidata, una vez por semana) | completed success 2026-11-11T23:42:12Z 2026-11-11T23:42:13Z
+Resúmenes automáticos (YouTube, con la clave guardada en FUNVS) | completed success 2026-11-11T23:42:13Z 2026-11-11T23:42:14Z
+Mundo Clásicos (Wikipedia, Wikidata y ESPN) | completed success 2026-11-11T23:42:14Z 2026-11-11T23:42:31Z
+Datos para "¿Jugó con?" (Wikidata, una vez por semana) | completed success 2026-11-11T23:42:31Z 2026-11-11T23:42:31Z
+Publicar en la rama "datos" | completed success 2026-11-11T23:42:31Z 2026-11-11T23:42:34Z
+Post Run actions/setup-node@v4 | completed success 2026-11-11T23:42:34Z 2026-11-11T23:42:34Z
+Post Run actions/checkout@v4 | completed success 2026-11-11T23:42:34Z 2026-11-11T23:42:34Z
+Complete job | completed success 2026-11-11T23:42:34Z 2026-11-11T23:42:34Z
