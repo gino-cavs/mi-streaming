@@ -44,6 +44,17 @@ const Player = (() => {
   const cleanVod = () => '&controls=1&rel=0&iv_load_policy=3&fs=0&cc_load_policy=0';
   // 💬 sin subtítulos: YouTube los prende solo si tu cuenta los tiene activados
   const noCC = p => { try { p.unloadModule('captions'); } catch {} try { p.unloadModule('cc'); } catch {} try { p.setOption('captions', 'track', {}); } catch {} };
+  // ▶️ abrir en la app oficial de YouTube: ahí estás con tu cuenta (Premium = sin anuncios y sigue en segundo plano).
+  // En la app de FUNVS cualquier link de afuera se abre con la app que corresponda (en la tele, YouTube para Fire TV).
+  const ytUrl = (c, e, t) => e.id ? `https://www.youtube.com/watch?v=${e.id}${t ? '&t=' + Math.floor(t) + 's' : ''}` : c.ref?.channelId ? `https://www.youtube.com/channel/${c.ref.channelId}/live` : '';
+  const inApp = () => /FUNVSApp/.test(navigator.userAgent);
+  const ytAppOn = () => S.get('ytApp', Device.mode === 'tv');
+  function openYT(c, e, t) {
+    const u = ytUrl(c, e, t); if (!u) return false;
+    toast(`<b>▶️ Abriendo en YouTube</b><small>Con tu cuenta${Device.mode === 'tv' ? ' · para volver a FUNVS tocá Atrás' : ''}</small>`, { ms:3500 });
+    if (inApp()) location.href = u; else window.open(u, '_blank', 'noopener');
+    return true;
+  }
   function embedOf(c) {
     const s = Canales.status[c.uid] || {};
     if (c.platform === 'twitch') return { kind:'twitch', id:c.ref.name,
@@ -271,6 +282,7 @@ const Player = (() => {
       <button data-a="snd" class="${AudioMgr.current === 'slot' + focus ? 'on' : ''}" title="Escuchar esta pantalla">🔊</button>
       ${s.e.kind === 'youtube' && s.e.id ? Likes.btn(s.e.id, s.c.name) : ''}
       <button data-a="audio" class="${s.audio ? 'on' : ''}" title="Solo audio (sin video)">🎧 Solo audio</button>
+      ${s.e.kind === 'youtube' && (s.e.id || s.c.ref?.channelId) ? `<button data-a="yt" title="Seguir en la app de YouTube con tu cuenta: Premium sin anuncios y en segundo plano">▶️ En YouTube</button>` : ''}
       ${s.e.ch ? `<button data-a="chat" class="${s.chat ? 'on' : ''}" title="Mostrar u ocultar el chat">💬 ${s.chat ? 'Ocultar chat' : 'Mostrar chat'}</button>` : ''}
       ${s.e.out ? `<button data-a="out" title="Abrir el chat en otra ventana">↗ Chat aparte</button>` : ''}
       ${s.c.t247 ? '<button data-a="skip" title="Pasar a otro video al azar">⏭ Otro video</button>' : ''}
@@ -298,6 +310,7 @@ const Player = (() => {
     if (a === 'out') { window.open(s.e.out, '_blank', 'noopener,width=420,height=720'); return; }
     if (a === 'audio') { s.audio = !s.audio; setAudioQuality(s, s.audio); if (s.audio && s.chat) setChat(i, false); }
     if (a === 'pip') return openPip(i);
+    if (a === 'yt') { let t = 0; try { t = s.api?.p?.getCurrentTime?.() || 0; s.api?.p?.pauseVideo?.(); } catch {} return openYT(s.c, s.e, t > 5 ? t : 0); }
     if (a === 'star') return Momentos.capture('slot' + i);
     if (a === 'skip' && s.c.t247) { const n = T247any.randomFor(s.c.t247); if (n && s.api && s.api.p) { s.e.id = n.v; try { s.api.p.loadVideoById({ videoId:n.v }); } catch {} paintActs(); } return; }
     paintBar(i);
@@ -431,6 +444,12 @@ const Player = (() => {
     const r = c.ref?.video && !c.t247 && !c.noResume && opts.start == null && db.resume?.[c.ref.video];
     if (r && r.t > 30) { opts = { ...opts, start:Math.max(0, r.t - 5) }; toast(`⏯ Seguís desde ${Math.floor(r.t / 60)}:${String(r.t % 60).padStart(2, '0')}`, { ms:2500 }); }
     const e = embedOf(c), st = Canales.status[c.uid] || {};
+    if (inApp() && ytAppOn() && e.kind === 'youtube' && !c.humor && !opts.audio && !opts.inside && layout === 1 && openYT(c, e, opts.start)) {
+      // si en la tele no hay app de YouTube que lo agarre (FUNVS nunca se fue a segundo plano), lo pongo adentro como siempre
+      let left = false; const h = () => { if (document.hidden) left = true; }; document.addEventListener('visibilitychange', h);
+      setTimeout(() => { document.removeEventListener('visibilitychange', h); if (!left && !document.hidden) { toast('<b>No encontré la app de YouTube</b><small>Lo pongo acá adentro</small>', { cls:'info', ms:3000 }); play(c, { ...opts, inside:true }); } }, 4500);
+      return;
+    }
     const target = sel;
     if (slots[sel]?.c && slots[sel].c.uid !== c.uid && !slots[sel].c.humor) prevC = slots[sel].c;   // para "volver al anterior" (⌫ en el teclado)
     if (opts.start && e.kind === 'youtube') e.v += '&start=' + Math.floor(opts.start);

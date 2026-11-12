@@ -90,6 +90,7 @@ function initSettings() {
   document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
   $('setHud').onchange = e => TV.setOn(e.target.checked);
   const zf = () => S.get('zapFx', { on:true, sound:false });
+  $('setYtApp').onchange = e => { S.set('ytApp', e.target.checked); toast(e.target.checked ? '▶️ YouTube se va a abrir en su app, con tu cuenta' : '📺 YouTube se ve adentro de FUNVS', { ms:2500 }); };
   $('setYtClean').onchange = e => { S.set('ytClean', e.target.checked); toast('🧼 Se aplica al próximo video que pongas', { ms:2500 }); };
   $('setZfx').onchange = e => { S.set('zapFx', { ...zf(), on:e.target.checked }); if (e.target.checked && Player.slots[Player.sel]) Player.zapFx(Player.sel, Player.slots[Player.sel].c); };
   $('setZfxS').onchange = e => S.set('zapFx', { ...zf(), sound:e.target.checked });
@@ -156,7 +157,7 @@ function initSettings() {
   addEventListener('paste', e => { if (!$('petList')?.offsetParent) return; const f = pastedImages(e); if (f.length) { e.preventDefault(); addPets(f); } });
   $('btnSettings').addEventListener('click', petPaint);
   $('btnSettings').onclick = () => {
-    $('setHud').checked = TV.on; $('setZfx').checked = S.get('zapFx', { on:true }).on; $('setYtClean').checked = S.get('ytClean', true); $('setLite').checked = Lite.on; $('setZfxS').checked = !!S.get('zapFx', {}).sound;
+    $('setHud').checked = TV.on; $('setZfx').checked = S.get('zapFx', { on:true }).on; $('setYtClean').checked = S.get('ytClean', true); $('setYtApp').checked = S.get('ytApp', Device.mode === 'tv'); $('setLite').checked = Lite.on; $('setZfxS').checked = !!S.get('zapFx', {}).sound;
     $('setKey').value = db.key;
     $('setRef').value = String(db.refresh);
     { const tot = Canales.quotaTotal(), L = { pc:'🖥️ compu', tv:'📺 tele', celu:'📱 celu' }, pct = Math.min(100, tot / 100);
