@@ -22,7 +22,7 @@ const Figus = (() => {
   const F = (k, l, ty = 'text', ic = '') => ({ k, l, ty, ic });
   const F_PROG = [F('area', 'Área', 'area'), F('horario', '🕒 Horario'), F('mule', 'Muletilla o frase célebre', 'quote'), F('bardo', 'Nivel de bardo', 'scale', '🔥'), F('extra', 'Algo más', 'long')];
   const THEMES = {
-    programa:{ t:'📺 Programa o canal', d:'Conducción, panel e invitados, con la mesa del programa', kind:'canal', pages:[['El programa', 'mesa'], ['Invitados']], fields:F_PROG, story:'Contá la historia del canal: cuándo nació, quiénes están, qué lo hace especial…' },
+    programa:{ t:'📺 Programa o canal', d:'Logos, conducción, panel, invitados y momentos, con la mesa del programa', kind:'canal', pages:[['El programa', 'mesa'], ['Invitados'], ['Momentos']], fields:F_PROG, story:'Contá la historia del canal: cuándo nació, quiénes están, qué lo hace especial…' },
     vaca:{ t:'🐶 Vaca', d:'Sus fotos, paseos, siestas y travesuras', kind:'vaca', pages:[['De cachorra', 'hero'], ['Paseos'], ['Siestas'], ['Travesuras'], ['Con la familia']], fields:[F('fecha', '📅 Cuándo'), F('lugar', '📍 Dónde'), F('que', 'Qué pasó', 'long'), F('ternura', 'Nivel de ternura', 'scale', '🥰')], story:'La historia de Vaca: cuándo llegó, cómo es, sus mañas…' },
     velez:{ t:'💙 Vélez', d:'Plantel, ídolos, el Amalfitani, partidos y títulos', kind:'velez', pages:[['Plantel 2026'], ['Ídolos', 'hero'], ['El Amalfitani'], ['Partidos inolvidables'], ['Títulos']], fields:[F('pos', '⚽ Posición'), F('num', '👕 Número'), F('epoca', '📅 Época'), F('dato', 'Dato', 'long'), F('idolo', 'Nivel de ídolo', 'scale', '💙')], story:'El Fortín: su historia, sus ídolos, sus noches…' },
     musica:{ t:'🎸 Música', d:'Bandas, discos, recitales', kind:'canal', pages:[['Bandas'], ['Discos'], ['Recitales']], fields:[F('anio', '📅 Año'), F('tema', '🎵 Tema favorito'), F('dato', 'Dato', 'long')], story:'' },
@@ -40,7 +40,8 @@ const Figus = (() => {
   const COVERS = { clasica:'📕 Clásica', cuero:'📜 Libro antiguo de cuero', retro:'📼 Retro de los 90', neon:'🌃 Neón cyberpunk' };
   const STK = ['⭐', '💙', '🐶', '🦴', '⚽', '🏆', '🔥', '👑', '✨', '🎸', '📺', '🏎️', '🏍️', '❤️', '🌙', '☀️', '💥', '🎉', '🍀', '🎙️', '📼', '🌈', '🐾', '😎'];
   const pcDev = () => Device.mode !== 'tv' && Device.mode !== 'celu' && matchMedia('(pointer:fine)').matches;
-  const ROLES = { '':'Figu común', conductor:'🎙️ Conducción', panel:'💬 Panelista', invitado:'⭐ Invitado' };
+  const ROLES = { '':'Figu común', logo:'🔷 Logo', conductor:'🎙️ Conducción', panel:'💬 Panelista', invitado:'⭐ Invitado', momento:'🎬 Momento' };
+  const ROLEIC = { logo:'🔷', conductor:'🎙️', panel:'💬', invitado:'⭐', momento:'🎬' };
   const AREAS = { '':'—', deportes:'⚽ Deportes', politica:'🏛️ Política', espectaculos:'🎬 Espectáculos', humor:'😂 Humor', economia:'💼 Economía', policiales:'🚨 Policiales', musica:'🎸 Música', tecnologia:'💻 Tecnología', otra:'📌 Otra' };
   const tvDev = () => Device.mode === 'tv';
   const ymdOf = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
@@ -329,9 +330,9 @@ const Figus = (() => {
     const r = c?.rar || 'c';
     if (ghost || !c) return `<div class="fig ghost st-${a.style || 'panini'} ${small ? 'sm' : ''}" style="${cv(a)}"><span class="fnum">${c ? numOf(c) : '?'}</span>${c?.name ? `<small>${esc(c.name)}</small>` : ''}</div>`;
     const gold = derive().done.has(a.id);
-    return `<div class="fig st-${a.style || 'panini'} rar-${r} ${gold ? 'gold' : ''} ${small ? 'sm' : ''} ${back ? 'back' : ''}" style="${cv(a)}" data-k="${esc(a.id + ':' + c.n)}"${tvDev() ? ' tabindex="0"' : ''}>
+    return `<div class="fig st-${a.style || 'panini'} rar-${r} ${gold ? 'gold' : ''} ${small ? 'sm' : ''} ${back ? 'back' : ''} ${c.role ? 'role-' + c.role : ''}" style="${cv(a)}" data-k="${esc(a.id + ':' + c.n)}"${tvDev() ? ' tabindex="0"' : ''}>
       <div class="fin"><div class="fimg" data-img="${esc(c.img || '')}"></div>
-      <div class="fband"><span class="fnum">${numOf(c)}</span><b>${esc(c.name || '')}</b></div>
+      <div class="fband"><span class="fnum">${numOf(c)}</span><b>${c.role && ROLEIC[c.role] ? `<i class="frole" title="${esc(ROLES[c.role])}">${ROLEIC[c.role]}</i>` : ''}${esc(c.name || '')}</b></div>
       <span class="falb">${esc(a.name)}</span>${gold ? '<span class="frar fgold">👑 GOLDEN</span>' : r !== 'c' ? `<span class="frar">${RARL[r]}</span>` : ''}</div>
       ${n > 1 ? `<span class="fdup">×${n}</span>` : ''}</div>`;
   }
@@ -457,6 +458,9 @@ const Figus = (() => {
       const a = st.albums[id] = { id, name:N.name.trim() || T.t.replace(/^\S+\s/, ''), theme:N.th, kind:N.kind || T.kind, style:Object.keys(STYLES)[k % 5], colors:['#1238b5', '#ffffff'], per:6,
         story:'', pages, fields:JSON.parse(JSON.stringify(T.fields)), cards:[], cr:Date.now(), upd:Date.now() };
       for (let i = 1; i <= N.n; i++) a.cards.push({ n:i, name:'', page:Math.min(pages.length - 1, Math.floor((i - 1) * pages.length / N.n)), rar:i % 10 === 0 ? 'l' : i % 7 === 0 ? 'e' : i % 4 === 0 ? 'r' : 'c', img:'' });
+      if (N.th === 'programa') {   // 📺 cada figu ya arranca con su tipo: logo y conducción en la mesa, después panel, invitados y momentos
+        let first = true, cond = true; a.cards.forEach(c => { const pt = (pages[c.page]?.t || '').toLowerCase();
+          c.role = pt.includes('invitad') ? 'invitado' : pt.includes('moment') ? 'momento' : first ? (first = false, 'logo') : cond ? (cond = false, 'conductor') : 'panel'; }); }
       saveSt(); schedule(); view = { tab:'albumes', alb:id, edit:true }; work = null; render(); });
   }
   function checkDone(a) {
@@ -863,13 +867,14 @@ const Figus = (() => {
     const cell = c => cellHtml(a, c, h);
     const head = `${pg.t ? `<h3>${esc(pg.t)}</h3>` : ''}${pg.txt ? `<p>${esc(pg.txt).replace(/\n/g, '<br>')}</p>` : ''}`;
     if (pg.lay !== 'mesa') return `<div class="fgpage">${head}<div class="fggrid">${cards.map(cell).join('')}</div></div>`;
-    const cond = cards.filter(c => c.role === 'conductor'), resto = cards.filter(c => c.role !== 'conductor');
+    const cond = cards.filter(c => c.role === 'conductor'), logos = cards.filter(c => c.role === 'logo'), moms = cards.filter(c => c.role === 'momento');
+    const resto = cards.filter(c => !['conductor', 'logo', 'momento'].includes(c.role));
     const izq = resto.filter((_, i) => i % 2 === 0), der = resto.filter((_, i) => i % 2 === 1);
     return `<div class="fgpage fgmesa" style="${pg.col ? `--pc:${esc(pg.col)};` : ''}">
       <div class="fgspread"><div class="fgbg" data-img="${esc(pg.bg || '')}"></div>
-        <div class="fgmesahead">${head}</div>
+        <div class="fgmesahead">${logos.length ? `<div class="fglogos">${logos.map(cell).join('')}</div>` : ''}${head}</div>
         <div class="fgdesk"><div class="fgside">${izq.map(cell).join('')}</div><div class="fgcenter">${cond.map(cell).join('') || ''}</div><div class="fgside">${der.map(cell).join('')}</div></div>
-        <div class="fgtable"></div></div></div>`;
+        <div class="fgtable"></div>${moms.length ? `<div class="fgmoms"><small>🎬 Momentos</small><div>${moms.map(cell).join('')}</div></div>` : ''}</div></div>`;
   }
   // 🪪 la ficha del personaje (al tocar una figu pegada)
   function fichaHtml(a, c) {
@@ -929,7 +934,7 @@ const Figus = (() => {
           <input data-cn="${i}" value="${esc(c.name || '')}" placeholder="Nombre">
           <select data-cp="${i}">${pages.map((p, j) => `<option value="${j}" ${(c.page || 0) === j ? 'selected' : ''}>${esc(p.t || 'Página ' + (j + 1))}</option>`).join('')}</select>
           <select data-cr="${i}">${Object.entries(RAR).map(([k, t]) => `<option value="${k}" ${(c.rar || 'c') === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
-          ${mesa ? `<select data-crol="${i}">${Object.entries(ROLES).map(([k, t]) => `<option value="${k}" ${(c.role || '') === k ? 'selected' : ''}>${t}</option>`).join('')}</select>` : ''}
+          ${mesa || themeOf(W) === 'programa' || c.role ? `<label class="fgrolel">Tipo<select data-crol="${i}">${Object.entries(ROLES).map(([k, t]) => `<option value="${k}" ${(c.role || '') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>` : ''}
           ${FS.length ? `<details class="fgfed"><summary>📝 Ficha</summary>${FS.map(x => { const val = c.ficha?.[x.k] ?? '', key = `${i}|${esc(x.k)}`;
             if (x.ty === 'area') return `<select data-ff="${key}">${Object.entries(AREAS).map(([k, t]) => `<option value="${k}" ${val === k ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
             if (x.ty === 'scale') return `<label class="mut" style="font-size:12px">${esc(x.ic || '⭐')} ${esc(x.l)}: <input type="range" min="0" max="5" data-ff="${key}" value="${+val || 0}"></label>`;

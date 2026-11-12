@@ -2125,3 +2125,15 @@ html.lite #negro .ngbar { transition:opacity 2s ease !important; } html.lite #ne
 .bkp.wear3 { background-image:linear-gradient(225deg, #cfc2a2 0 22px, #00000033 22px 25px, transparent 25px), radial-gradient(circle at 78% 70%, transparent 34px, #7a501d33 35px 38px, transparent 39px), radial-gradient(ellipse at 100% 100%, #a0782855, transparent 55%), radial-gradient(ellipse at 0 0, #a0782838, transparent 45%), linear-gradient(#e9dcc0, var(--paper)); }
 .bkp.cov.wear2, .bkp.cov.wear3 { background-image:none; } .bkp.cov.wear2 .bkcover, .bkp.cov.wear3 .bkcover { box-shadow:inset 0 0 40px #0006; }
 .bkp.l.wear2, .bkp.l.wear3 { background-position:0 0; }
+
+/* ---- Colección: tipos de figu en programas (logo, conducción, panel, invitado, momento) ---- */
+.frole { font-style:normal; margin-right:3px; }
+.fig.role-logo .fimg { background-size:contain; background-color:#fff; background-origin:content-box; padding:10%; }
+.fig.role-momento .fimg { filter:contrast(1.05) saturate(1.1); }
+.fig.role-momento .fin::before { content:'🎬 MOMENTO'; position:absolute; left:6px; bottom:30px; z-index:2; font:800 9px Oswald, system-ui; letter-spacing:1px; background:#000c; color:#fff; padding:1px 5px; border-radius:3px; }
+.fig.sm.role-momento .fin::before { display:none; }
+.fgcell.r-logo .fig { box-shadow:0 0 0 2px #fff, 0 6px 16px #0008; } .fgcell.r-invitado .fig { box-shadow:0 0 0 2px #ffd400aa, 0 8px 18px #000a; }
+.fglogos { display:flex; justify-content:center; gap:8px; margin-bottom:6px; } .fglogos .fgcell { width:min(90px, 14%); }
+.fgmoms { position:relative; z-index:2; padding:6px 10px 12px; } .fgmoms small { color:#fff; font:700 11px Oswald, system-ui; letter-spacing:1px; opacity:.8; }
+.fgmoms > div { display:flex; gap:8px; overflow-x:auto; padding-top:4px; } .fgmoms .fgcell { width:min(84px, 16%); flex:none; }
+.fgrolel { display:flex; flex-direction:column; gap:2px; font-size:11px; color:var(--mut); }
