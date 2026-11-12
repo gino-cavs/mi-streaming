@@ -349,7 +349,7 @@ const Figus = (() => {
     if (!tvDev()) try { achCheck(); } catch {}
     v.classList.toggle('fgstatic', tvDev());
     if (tvDev()) {   // 📺 en la tele: solo mirar álbumes, pasar hojas y ver las fichas (sin animaciones)
-      if (view.alb) return renderAlbum(v);
+      if (view.alb) { try { return renderAlbum(v); } catch (er) { v.innerHTML = `<div class="empty">⚠️ No pude mostrar el álbum en la tele: ${esc(er.message)}<br><small>${esc((navigator.userAgent.match(/Chrome\/[\d.]+/) || [''])[0])}</small></div>`; return; } }
       v.innerHTML = `<div class="fghead tvh"><h2>🏛️ Colección</h2><small class="mut">En la tele se miran los álbumes. Para abrir sobres y pegar figus, usá la compu o el celu.</small></div>
         <div class="fgalbs">${albums().map(albumTile).join('') || '<div class="empty">Todavía no hay álbumes.</div>'}</div>`;
       v.querySelectorAll('[data-alb]').forEach(b => b.onclick = () => { view = { tab:'albumes', alb:b.dataset.alb }; render(); });
@@ -505,18 +505,18 @@ const Figus = (() => {
     const TV = tvDev(), PC = pcDev(), L = leaves(a), SP = spreads(L);
     let si = Math.max(0, SP.findIndex(sp => [sp.one, sp.solo, sp.wide, sp.l, sp.r].includes(view.leaf ?? 0)));
     const d = derive(), inv = !TV ? (a.cards || []).filter(c => d.have[a.id + ':' + c.n] && !d.stuck.has(a.id + ':' + c.n)) : [];
-    v.innerHTML = (TV ? `<div class="fghead tvh"><h2>🏛️ ${esc(a.name)}</h2><small class="mut">◀ ▶ pasan las hojas · ☰ Menú vuelve</small></div>` : header()) + `<div class="fgbook st-${a.style || 'panini'} ${PC ? 'pc' : ''}" style="${cv(a)}">
-      <div class="btns"><button data-back>← Volver</button><span class="sp"></span>${PC ? `<button data-snd title="Sonidos">${S.get('figusSnd', true) ? '🔊' : '🔇'}</button><button data-cov>🎨 Tapa</button>` : ''}${TV ? '' : '<button data-edit>✎ Editar álbum</button>'}</div>
+    v.innerHTML = (TV ? '' : header()) + `<div class="fgbook st-${a.style || 'panini'} ${PC ? 'pc' : ''} ${TV ? 'tvb' : ''}" style="${cv(a)}">
+      <div class="btns" ${TV ? 'style="display:none"' : ''}><button data-back>← Volver</button><span class="sp"></span>${PC ? `<button data-snd title="Sonidos">${S.get('figusSnd', true) ? '🔊' : '🔇'}</button><button data-cov>🎨 Tapa</button>` : ''}${TV ? '' : '<button data-edit>✎ Editar álbum</button>'}</div>
       <div class="bkstage"><button class="bknav" data-bk="-1" aria-label="Hoja anterior">‹</button><div class="bkview"></div><button class="bknav" data-bk="1" aria-label="Hoja siguiente">›</button>
       ${inv.length ? `<div class="bktray ${PC ? '' : 'phone'}" title="${PC ? 'Agarrala y soltala sobre su silueta. Justo encima = ¡pegado perfecto! y vaccoins. Un toque te lleva a su página.' : ''}"><b>🂠 Mazo · ${inv.length} para pegar</b><small>${PC ? 'Arrastralas a su silueta' : 'Tocá una figu y después tocá su lugar en la hoja'}</small>
         <div class="bktrayl">${inv.map(c => `<div class="bktit ${pickK === a.id + ':' + c.n ? 'on' : ''}" data-drag="${esc(a.id + ':' + c.n)}">${figHtml(a, c, { small:true })}<small>#${c.n}</small></div>`).join('')}</div></div>` : ''}</div>
-      <div class="bkfoot"><input type="range" min="0" max="${SP.length - 1}" value="${si}" data-bkr ${TV ? 'tabindex="-1"' : ''}><small data-bkn></small></div>
+      <div class="bkfoot"><input type="range" min="0" max="${SP.length - 1}" value="${si}" data-bkr ${TV ? 'tabindex="-1"' : ''}><small data-bkn></small>${TV ? '<small class="bktvh">◀ ▶ pasan las hojas · OK sobre una figu: su ficha · ☰ Menú: volver</small>' : ''}</div>
       <div class="bkcovp" hidden></div></div>`;
     if (!TV) bindCommon(v);
     const vw = v.querySelector('.bkview'), rng = v.querySelector('[data-bkr]');
     const paint = () => { vw.innerHTML = spreadHtml(L, SP[si]); bindPage(vw); hydrate(vw); if (pickK) vw.querySelector(`.tostick[data-slotk="${CSS.escape(pickK)}"]`)?.classList.add('pick'); rng.value = si; view.leaf = leafOf(SP[si]);
       v.querySelector('[data-bkn]').textContent = si === 0 ? 'Tapa' : si === SP.length - 1 ? 'Contratapa' : `Hoja ${si} de ${SP.length - 2}`;
-      v.querySelector('[data-bk="-1"]').disabled = si === 0; v.querySelector('[data-bk="1"]').disabled = si === SP.length - 1; };
+      v.querySelector('[data-bk="-1"]').disabled = si === 0; v.querySelector('[data-bk="1"]').disabled = si === SP.length - 1; if (TV) fitTV(v); };
     const bindPage = root => {
       root.querySelectorAll('.fig[data-k]').forEach(f => f.onclick = () => zoom(f));
       root.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => { const t = SP.findIndex(sp => [sp.one, sp.solo, sp.wide, sp.l, sp.r].includes(+b.dataset.goto)); if (t >= 0) turn(t); });
@@ -566,6 +566,23 @@ const Figus = (() => {
     }
     wasNarrow = narrow(); paint(); ensureImgs(a.id);
     if (TV) setTimeout(() => v.querySelector('[data-bk="1"]')?.focus(), 50);
+  }
+
+  /* ---------------- 📺 en la tele todo con medidas fijas (la WebView del Fire Stick no siempre entiende las medidas "inteligentes") ---------------- */
+  function fitTV(v) {
+    const vw = v.querySelector('.bkview'), sp = vw?.querySelector('.bkspread'); if (!sp) return;
+    const imp = (el, k, val) => el.style.setProperty(k, val, 'important');
+    const bar = [...document.querySelectorAll('body > *')].filter(e => getComputedStyle(e).position === 'fixed' && e.getBoundingClientRect().top > innerHeight * .6 && e.offsetHeight < innerHeight * .3).reduce((m, e) => Math.max(m, innerHeight - e.getBoundingClientRect().top), 0);
+    const top = vw.getBoundingClientRect().top, foot = 40 + bar, H0 = Math.max(220, innerHeight - top - foot - 8), W0 = vw.clientWidth;
+    const ratio = sp.classList.contains('one') ? .7 : 1.45, W = Math.floor(Math.min(W0, H0 * ratio)), H = Math.floor(W / ratio);
+    imp(sp, 'width', W + 'px'); imp(sp, 'height', H + 'px');
+    sp.querySelectorAll('.bkp').forEach(p => { imp(p, 'height', H + 'px');
+      const head = p.querySelector('.bkhead')?.offsetHeight || 0, availH = H - head - 56, availW = p.clientWidth - 40;
+      p.querySelectorAll('.bkgrid').forEach(g => { const cols = +g.style.getPropertyValue('--cols') || 3, rows = +g.style.getPropertyValue('--rows') || 1, hero = !!p.querySelector('.bkhero');
+        const cw = Math.floor(Math.min((hero ? availW / 2 : availW) / cols - 12, ((availH / rows) - 10) * 5 / 7));
+        g.querySelectorAll('.fgcell').forEach(c => { imp(c, 'width', cw + 'px'); const f = c.querySelector('.fig'); if (f) { imp(f, 'width', cw + 'px'); imp(f, 'height', Math.round(cw * 7 / 5) + 'px'); } }); });
+      p.querySelectorAll('.bkhero .fgcell').forEach(c => { const cw = Math.floor(Math.min(availW / 2 - 12, availH * 5 / 7)); imp(c, 'width', cw + 'px'); const f = c.querySelector('.fig'); if (f) { imp(f, 'width', cw + 'px'); imp(f, 'height', Math.round(cw * 7 / 5) + 'px'); } });
+      p.querySelectorAll('.bkcover .fgalogo.big').forEach(l => { const z = Math.round(Math.min(W / (ratio === .7 ? 1 : 2), H) * .3); imp(l, 'width', z + 'px'); imp(l, 'height', z + 'px'); }); });
   }
 
   /* ---------------- 🔊 sonidos de papel (se generan acá mismo, sin archivos) ---------------- */
@@ -728,7 +745,8 @@ const Figus = (() => {
   function zoom(f) { let o = $('fgZoom'); if (!o) { o = document.createElement('div'); o.id = 'fgZoom'; o.onclick = () => o.remove(); }
     const x = keyCard(f.dataset.k || '');
     o.className = tvDev() ? 'fgstatic' : ''; o.innerHTML = `<div class="fgzwrap">${f.outerHTML}${x?.c ? fichaHtml(x.a, x.c) : ''}</div>${x?.c && !tvDev() ? pinBtn('fig', f.dataset.k) : ''}`; document.body.appendChild(o);
-    const big = o.querySelector('.fig'); big.classList.add('big'); big.classList.remove('tilting', 'justin'); big.removeAttribute('tabindex'); bindPin(o); hydrate(o); if (pcDev()) tilt(o); }
+    const big = o.querySelector('.fig'); big.classList.add('big'); big.classList.remove('tilting', 'justin'); big.removeAttribute('tabindex'); bindPin(o); hydrate(o); if (pcDev()) tilt(o);
+    if (tvDev()) { const w = Math.round(Math.min(innerWidth * .32, (innerHeight - 60) * 5 / 7)); big.style.setProperty('width', w + 'px', 'important'); big.style.setProperty('height', Math.round(w * 7 / 5) + 'px', 'important'); } }
 
   function renderEdit(v, a) {
     if (!work) work = JSON.parse(JSON.stringify(a));
